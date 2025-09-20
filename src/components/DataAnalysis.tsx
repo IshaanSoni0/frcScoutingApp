@@ -1,0 +1,285 @@
+import React, { useState, useMemo } from 'react';
+import { ScoutingData } from '../types';
+import { DataService } from '../services/dataService';
+import { ArrowLeft, BarChart3, Filter, Download } from 'lucide-react';
+
+interface DataAnalysisProps {
+  onBack: () => void;
+}
+
+export function DataAnalysis({ onBack }: DataAnalysisProps) {
+  const [data] = useState<ScoutingData[]>(DataService.getScoutingData());
+  const [filters, setFilters] = useState({
+    alliance: 'all',
+    team: '',
+    sortBy: 'timestamp',
+    sortOrder: 'desc' as 'asc' | 'desc',
+  });
+
+  const filteredAndSortedData = useMemo(() => {
+    let filtered = [...data];
+
+    // Apply filters
+    if (filters.alliance !== 'all') {
+      filtered = filtered.filter(d => d.alliance === filters.alliance);
+    }
+
+    if (filters.team) {
+      filtered = filtered.filter(d => 
+        d.teamKey.toLowerCase().includes(filters.team.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal: any, bVal: any;
+      
+      switch (filters.sortBy) {
+        case 'team':
+          aVal = a.teamKey;
+          bVal = b.teamKey;
+          break;
+        case 'totalScore':
+          aVal = a.auto.l1 + a.auto.l2 + a.auto.l3 + a.auto.l4 + 
+                 a.teleop.l1 + a.teleop.l2 + a.teleop.l3 + a.teleop.l4;
+          bVal = b.auto.l1 + b.auto.l2 + b.auto.l3 + b.auto.l4 + 
+                 b.teleop.l1 + b.teleop.l2 + b.teleop.l3 + b.teleop.l4;
+          break;
+        case 'l1Total':
+          aVal = a.auto.l1 + a.teleop.l1;
+          bVal = b.auto.l1 + b.teleop.l1;
+          break;
+        default:
+          aVal = a.timestamp;
+          bVal = b.timestamp;
+      }
+
+      if (filters.sortOrder === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      }
+      return aVal < bVal ? 1 : -1;
+    });
+
+    return filtered;
+  }, [data, filters]);
+
+  const exportToCSV = () => {
+    const headers = [
+      'Match', 'Team', 'Scouter', 'Alliance', 'Position',
+      'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Move',
+      'Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4',
+      'Climb', 'Defense', 'Timestamp'
+    ];
+
+    const rows = filteredAndSortedData.map(d => [
+      d.matchKey,
+      d.teamKey.replace('frc', ''),
+      d.scouter,
+      d.alliance,
+      d.position,
+      d.auto.l1,
+      d.auto.l2,
+      d.auto.l3,
+      d.auto.l4,
+      d.auto.hasAuto ? 'Yes' : 'No',
+      d.teleop.l1,
+      d.teleop.l2,
+      d.teleop.l3,
+      d.teleop.l4,
+      d.endgame.climb,
+      d.defense,
+      new Date(d.timestamp).toLocaleString()
+    ]);
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `frc-scouting-data-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const calculateTotalScore = (data: ScoutingData) => {
+    return data.auto.l1 + data.auto.l2 + data.auto.l3 + data.auto.l4 +
+           data.teleop.l1 + data.teleop.l2 + data.teleop.l3 + data.teleop.l4;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back to Admin Panel
+            </button>
+            <button
+              onClick={exportToCSV}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <BarChart3 className="w-8 h-8 text-blue-600" />
+            <h1 className="text-2xl font-bold text-gray-900">Data Analysis</h1>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-gray-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Filters & Sorting</h2>
+          </div>
+          <div className="grid md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Alliance
+              </label>
+              <select
+                value={filters.alliance}
+                onChange={(e) => setFilters({ ...filters, alliance: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Alliances</option>
+                <option value="red">Red Alliance</option>
+                <option value="blue">Blue Alliance</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Team Filter
+              </label>
+              <input
+                type="text"
+                value={filters.team}
+                onChange={(e) => setFilters({ ...filters, team: e.target.value })}
+                placeholder="Search by team number"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sort By
+              </label>
+              <select
+                value={filters.sortBy}
+                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="timestamp">Date</option>
+                <option value="team">Team Number</option>
+                <option value="totalScore">Total Score</option>
+                <option value="l1Total">L1 Total</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Order
+              </label>
+              <select
+                value={filters.sortOrder}
+                onChange={(e) => setFilters({ ...filters, sortOrder: e.target.value as 'asc' | 'desc' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Scouting Data ({filteredAndSortedData.length} entries)
+          </h2>
+          
+          {filteredAndSortedData.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No scouting data found with current filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 font-medium text-gray-900">Team</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Alliance</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Auto L1-L4</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Teleop L1-L4</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Total</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Climb</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Defense</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Scouter</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData.map((entry) => (
+                    <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 font-medium text-gray-900">
+                        {entry.teamKey.replace('frc', '')}
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded text-white ${
+                          entry.alliance === 'red' ? 'bg-red-500' : 'bg-blue-500'
+                        }`}>
+                          {entry.alliance.toUpperCase()} {entry.position}
+                        </span>
+                      </td>
+                      <td className="py-3 text-gray-600">
+                        {entry.auto.l1}/{entry.auto.l2}/{entry.auto.l3}/{entry.auto.l4}
+                      </td>
+                      <td className="py-3 text-gray-600">
+                        {entry.teleop.l1}/{entry.teleop.l2}/{entry.teleop.l3}/{entry.teleop.l4}
+                      </td>
+                      <td className="py-3 font-medium text-gray-900">
+                        {calculateTotalScore(entry)}
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${
+                          entry.endgame.climb === 'deep' ? 'bg-green-100 text-green-800' :
+                          entry.endgame.climb === 'low' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {entry.endgame.climb}
+                        </span>
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${
+                          entry.defense === 'great' ? 'bg-green-100 text-green-800' :
+                          entry.defense === 'ok' ? 'bg-yellow-100 text-yellow-800' :
+                          entry.defense === 'bad' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {entry.defense}
+                        </span>
+                      </td>
+                      <td className="py-3 text-gray-600">{entry.scouter}</td>
+                      <td className="py-3 text-gray-600">
+                        {new Date(entry.timestamp).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
