@@ -1,4 +1,4 @@
-const CACHE_NAME = 'frc-scout-v1';
+const CACHE_NAME = 'frc-scout-v2';
 // Use relative paths so the service worker works under a sub-path (e.g. GitHub Pages)
 const urlsToCache = [
   './',
@@ -8,8 +8,21 @@ const urlsToCache = [
 
 // Cache core files on install
 self.addEventListener('install', event => {
+  // Activate this service worker immediately once installed
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+  );
+});
+
+// Remove old caches and take control of uncontrolled clients
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+    )).then(() => {
+      return self.clients && self.clients.claim ? self.clients.claim() : undefined;
+    })
   );
 });
 
