@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Scouter } from '../types';
-import { DataService } from '../services/dataService';
+// DataService not required here; scouters persisted via useLocalStorage
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
 
@@ -10,6 +10,13 @@ interface ScouterManagementProps {
 
 export function ScouterManagement({ onBack }: ScouterManagementProps) {
   const [scouters, setScouters] = useLocalStorage<Scouter[]>('frc-scouters', []);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState({
+    name: '',
+    alliance: 'red' as 'red' | 'blue',
+    position: 1 as 1 | 2 | 3,
+    isRemote: false,
+  });
   const [newScouter, setNewScouter] = useState({
     name: '',
     alliance: 'red' as 'red' | 'blue',
@@ -33,6 +40,26 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
 
   const removeScouter = (id: string) => {
     setScouters(scouters.filter(s => s.id !== id));
+  };
+
+  const startEdit = (scouter: Scouter) => {
+    setEditingId(scouter.id);
+    setEditValues({
+      name: scouter.name,
+      alliance: scouter.alliance,
+      position: scouter.position,
+      isRemote: scouter.isRemote || false,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValues({ name: '', alliance: 'red', position: 1, isRemote: false });
+  };
+
+  const saveEdit = (id: string) => {
+    setScouters(scouters.map(s => s.id === id ? { ...s, ...editValues, name: editValues.name.trim() } : s));
+    cancelEdit();
   };
 
   return (
@@ -150,32 +177,99 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
                 <tbody>
                   {scouters.map((scouter) => (
                     <tr key={scouter.id} className="border-b border-gray-100">
-                      <td className="py-3 text-gray-900">{scouter.name}</td>
-                      <td className="py-3">
-                        <span className={`px-2 py-1 text-xs font-medium rounded text-white ${
-                          scouter.alliance === 'red' ? 'bg-red-500' : 'bg-blue-500'
-                        }`}>
-                          {scouter.alliance.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="py-3 text-gray-900">Team {scouter.position}</td>
-                      <td className="py-3">
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${
-                          scouter.isRemote 
-                            ? 'bg-orange-100 text-orange-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {scouter.isRemote ? 'Remote' : 'In-Person'}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <button
-                          onClick={() => removeScouter(scouter.id)}
-                          className="text-red-600 hover:text-red-900 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
+                      {editingId === scouter.id ? (
+                        <>
+                          <td className="py-3">
+                            <input
+                              type="text"
+                              value={editValues.name}
+                              onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
+                              className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                            />
+                          </td>
+                          <td className="py-3">
+                            <select
+                              value={editValues.alliance}
+                              onChange={(e) => setEditValues({ ...editValues, alliance: e.target.value as 'red' | 'blue' })}
+                              className="px-2 py-1 border border-gray-300 rounded-md"
+                            >
+                              <option value="red">Red</option>
+                              <option value="blue">Blue</option>
+                            </select>
+                          </td>
+                          <td className="py-3">
+                            <select
+                              value={editValues.position}
+                              onChange={(e) => setEditValues({ ...editValues, position: Number(e.target.value) as 1 | 2 | 3 })}
+                              className="px-2 py-1 border border-gray-300 rounded-md"
+                            >
+                              <option value={1}>Team 1</option>
+                              <option value={2}>Team 2</option>
+                              <option value={3}>Team 3</option>
+                            </select>
+                          </td>
+                          <td className="py-3">
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={editValues.isRemote}
+                                onChange={(e) => setEditValues({ ...editValues, isRemote: e.target.checked })}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-700">Remote</span>
+                            </label>
+                          </td>
+                          <td className="py-3 flex items-center gap-2">
+                            <button
+                              onClick={() => saveEdit(scouter.id)}
+                              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded-md"
+                            >
+                              Cancel
+                            </button>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="py-3 text-gray-900">{scouter.name}</td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 text-xs font-medium rounded text-white ${
+                              scouter.alliance === 'red' ? 'bg-red-500' : 'bg-blue-500'
+                            }`}>
+                              {scouter.alliance.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="py-3 text-gray-900">Team {scouter.position}</td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 text-xs font-medium rounded ${
+                              scouter.isRemote 
+                                ? 'bg-orange-100 text-orange-800' 
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {scouter.isRemote ? 'Remote' : 'In-Person'}
+                            </span>
+                          </td>
+                          <td className="py-3 flex items-center gap-3">
+                            <button
+                              onClick={() => startEdit(scouter)}
+                              className="text-blue-600 hover:text-blue-900 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => removeScouter(scouter.id)}
+                              className="text-red-600 hover:text-red-900 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>
