@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { User } from '../types';
 import { Settings, Users, BarChart3, Calendar, ArrowLeft } from 'lucide-react';
 import { ScouterManagement } from './ScouterManagement';
+import { migrateLocalToServer } from '../services/syncService';
+import { SyncControl } from './SyncControl';
 import { DataAnalysis } from './DataAnalysis';
 import { MatchSelection } from './MatchSelection';
 
@@ -65,13 +67,16 @@ export function AdminPanel({ user, onLogout }: AdminPanelProps) {
                 <p className="text-gray-600">Welcome, {user.username}</p>
               </div>
             </div>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Logout
-            </button>
+            <div className="flex items-center gap-3">
+              <SyncControl onSync={() => migrateLocalToServer()} />
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Logout
+              </button>
+            </div>
           </div>
         </div>
 

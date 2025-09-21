@@ -4,7 +4,8 @@ import { uuidv4 } from '../utils/uuid';
 // DataService not required here; scouters persisted via useLocalStorage
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
-import { pushScoutersToServer } from '../services/syncService';
+import { pushScoutersToServer, migrateLocalToServer } from '../services/syncService';
+import { SyncControl } from './SyncControl';
 
 interface ScouterManagementProps {
   onBack: () => void;
@@ -86,13 +87,18 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back to Admin Panel
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onBack}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Back to Admin Panel
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <SyncControl onSync={() => migrateLocalToServer()} />
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Users className="w-8 h-8 text-blue-600" />
