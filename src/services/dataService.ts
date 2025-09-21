@@ -67,6 +67,14 @@ export class DataService {
     }
   }
 
+  static clearScoutingData(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.SCOUTING_DATA);
+    } catch {
+      // ignore
+    }
+  }
+
   static isOnline(): boolean {
     return navigator.onLine;
   }

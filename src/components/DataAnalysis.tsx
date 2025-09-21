@@ -103,6 +103,15 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     URL.revokeObjectURL(url);
   };
 
+  const [showConfirmClearData, setShowConfirmClearData] = useState(false);
+
+  const handleClearData = () => {
+    DataService.clearScoutingData();
+    // No need to update `data` state because it's readonly in this simple UI; reload page to reflect or navigate back
+    setShowConfirmClearData(false);
+    window.location.reload();
+  };
+
   const calculateTotalScore = (data: ScoutingData) => {
     return data.auto.l1 + data.auto.l2 + data.auto.l3 + data.auto.l4 +
            data.teleop.l1 + data.teleop.l2 + data.teleop.l3 + data.teleop.l4;
@@ -126,6 +135,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
             >
               <Download className="w-4 h-4" />
               Export CSV
+            </button>
+            <button
+              onClick={() => setShowConfirmClearData(true)}
+              className="ml-3 flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Clear Scouting Data
             </button>
           </div>
           <div className="flex items-center gap-3">
@@ -280,6 +295,28 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           )}
         </div>
       </div>
+      {showConfirmClearData && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold mb-2">Confirm clear scouting data</h3>
+            <p className="text-gray-600 mb-4">Are you sure you want to permanently delete all scouting data? This cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowConfirmClearData(false)}
+                className="px-3 py-2 rounded-md bg-gray-200 hover:bg-gray-300"
+              >
+                No
+              </button>
+              <button
+                onClick={handleClearData}
+                className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+              >
+                Yes, clear data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
