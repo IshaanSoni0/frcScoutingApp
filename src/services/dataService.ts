@@ -57,6 +57,16 @@ export class DataService {
     return localStorage.getItem(STORAGE_KEYS.SELECTED_EVENT);
   }
 
+  static clearMatches(): void {
+    // Clear stored matches (queued matches for scouters)
+    try {
+      localStorage.removeItem(STORAGE_KEYS.MATCHES);
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_EVENT);
+    } catch {
+      // ignore
+    }
+  }
+
   static isOnline(): boolean {
     return navigator.onLine;
   }

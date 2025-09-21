@@ -165,15 +165,28 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
               <h2 className="text-xl font-bold text-gray-900">
                 Matches {selectedEvent && `(${matches.length})`}
               </h2>
-              {matches.length > 0 && (
+              <div className="flex items-center gap-2">
+                {matches.length > 0 && (
+                  <button
+                    onClick={() => DataService.saveMatches(matches)}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md transition-colors text-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    Save Matches
+                  </button>
+                )}
+
                 <button
-                  onClick={() => DataService.saveMatches(matches)}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md transition-colors text-sm"
+                  onClick={() => {
+                    DataService.clearMatches();
+                    setMatches([]);
+                    setSelectedEvent('');
+                  }}
+                  className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-md transition-colors text-sm"
                 >
-                  <Download className="w-4 h-4" />
-                  Save Matches
+                  Clear queued matches
                 </button>
-              )}
+              </div>
             </div>
 
             {!selectedEvent ? (

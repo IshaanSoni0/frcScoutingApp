@@ -37,6 +37,16 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
               <Users className="w-4 h-4" />
               {user.username}
             </span>
+              {onBack && (
+                <div className="ml-auto">
+                  <button
+                    onClick={onBack}
+                    className="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-md"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             <span className={`px-2 py-1 rounded text-white text-xs font-medium ${
               user.alliance === 'red' ? 'bg-red-500' : 'bg-blue-500'
             }`}>
