@@ -388,3 +388,40 @@ export default {
   initializeSyncService,
   pushPendingToServer,
 };
+
+// Expose debug helpers for manual testing in browser consoles
+try {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  if (typeof window !== 'undefined') {
+    // @ts-ignore
+    window.syncNow = async () => {
+      // eslint-disable-next-line no-console
+      console.log('syncNow: triggering migrateLocalToServer()');
+      try {
+        await migrateLocalToServer();
+        // eslint-disable-next-line no-console
+        console.log('syncNow: migration finished');
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('syncNow: migration error', e);
+      }
+    };
+
+    // @ts-ignore
+    window.pushPendingToServerNow = async () => {
+      // eslint-disable-next-line no-console
+      console.log('pushPendingToServerNow: triggering pushPendingToServer()');
+      try {
+        await pushPendingToServer({ batchSize: 100, maxRetries: 3 });
+        // eslint-disable-next-line no-console
+        console.log('pushPendingToServerNow: finished');
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('pushPendingToServerNow: error', e);
+      }
+    };
+  }
+} catch (e) {
+  // ignore if window isn't available
+}
