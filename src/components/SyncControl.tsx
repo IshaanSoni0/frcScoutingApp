@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
 
 interface SyncControlProps {
-  onSync: () => Promise<void> | void;
+  onSync: () => Promise<string | void> | void;
 }
 
 export function SyncControl({ onSync }: SyncControlProps) {
   const [status, setStatus] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
+  const [message, setMessage] = useState<string | null>(null);
 
   const handle = async () => {
     try {
       setStatus('working');
-      await onSync();
+      setMessage(null);
+      const res = await onSync();
+      if (typeof res === 'string') setMessage(res);
       setStatus('done');
       setTimeout(() => setStatus('idle'), 2000);
-    } catch (e) {
+    } catch (e: any) {
       // eslint-disable-next-line no-console
       console.error('SyncControl: sync error', e);
+      setMessage(e?.message ? String(e.message) : String(e));
       setStatus('error');
       setTimeout(() => setStatus('idle'), 2000);
     }
@@ -30,10 +34,10 @@ export function SyncControl({ onSync }: SyncControlProps) {
         Sync
       </button>
       <div className="text-sm text-gray-600">
-        {status === 'idle' && 'Idle'}
+        {status === 'idle' && (message || 'Idle')}
         {status === 'working' && 'Syncing...'}
-        {status === 'done' && 'Synced'}
-        {status === 'error' && 'Error'}
+        {status === 'done' && (message || 'Synced')}
+        {status === 'error' && (message || 'Error')}
       </div>
     </div>
   );

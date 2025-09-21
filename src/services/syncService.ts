@@ -32,8 +32,7 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
 
   const client = getSupabaseClient();
   if (!client) {
-    console.log('SyncService: no supabase client configured; pending items remain.');
-    return;
+    throw new Error('Supabase client not configured; cannot push pending scouting.');
   }
 
   // batch and retry
@@ -63,7 +62,7 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
         await sendBatchToServer(payload);
         const ids = batch.map(r => r.id);
         DataService.markScoutingSynced(ids);
-        console.log('SyncService: synced batch', ids.length);
+          return `Synced ${ids.length} scouting records`;
         break;
       } catch (err) {
         attempt++;
@@ -71,10 +70,11 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
         console.warn(`SyncService: batch sync failed, attempt ${attempt}, retrying in ${backoff}ms`, err);
         await wait(backoff);
         if (attempt > maxRetries) {
-          console.error('SyncService: max retries reached for batch, leaving pending');
+          throw new Error('SyncService: max retries reached for batch, leaving pending');
         }
       }
     }
+  return 'Pending push complete';
   }
 }
 
@@ -82,16 +82,15 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
 export async function migrateLocalToServer() {
   const client = getSupabaseClient();
   if (!client) {
-    console.log('SyncService: migrate skipped (no supabase client)');
-    return;
+    throw new Error('Supabase client not configured; cannot migrate local data.');
   }
 
   // 1) push pending scouting
   try {
     await pushPendingToServer({ batchSize: 100, maxRetries: 6 });
   } catch (e) {
-    console.error('SyncService: migration push failed', e);
-    // continue to attempt pull to get server state
+    // bubble up push errors — UI may want to display them
+    throw e;
   }
 
   // 2) pull scouters
@@ -266,7 +265,7 @@ export async function migrateLocalToServer() {
       console.error('SyncService: failed to pull scouters', sErr);
     }
   } catch (e) {
-    console.error('SyncService: error pulling scouters', e);
+    throw e;
   }
 
   // 3) pull matches
@@ -358,8 +357,7 @@ export async function migrateLocalToServer() {
 export async function pushScoutersToServer(scouters: any[]) {
   const client = getSupabaseClient();
   if (!client) {
-    console.warn('pushScoutersToServer: no supabase client configured');
-    return;
+    throw new Error('Supabase client not configured; cannot push scouters.');
   }
 
   try {
@@ -383,15 +381,13 @@ export async function pushScoutersToServer(scouters: any[]) {
 
     const { error } = await client.from('scouters').upsert(prepared, { onConflict: 'id' });
     if (error) {
-      console.error('pushScoutersToServer: upsert error', error);
-      return;
+      throw new Error('pushScoutersToServer: upsert error: ' + (error.message || JSON.stringify(error)));
     }
 
     // refresh authoritative rows
     const { data: refreshed, error: refErr } = await client.from('scouters').select('*');
     if (refErr) {
-      console.error('pushScoutersToServer: failed to refresh scouters', refErr);
-      return;
+      throw new Error('pushScoutersToServer: failed to refresh scouters: ' + (refErr.message || JSON.stringify(refErr)));
     }
 
     if (refreshed) {
@@ -405,9 +401,10 @@ export async function pushScoutersToServer(scouters: any[]) {
         deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null,
       }));
       DataService.saveScouters(mapped as any);
+      return `Upserted ${mapped.length} scouters`;
     }
   } catch (e) {
-    console.error('pushScoutersToServer: exception', e);
+    throw e;
   }
 }
 
