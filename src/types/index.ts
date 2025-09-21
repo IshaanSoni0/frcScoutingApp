@@ -52,6 +52,8 @@ export interface Scouter {
   alliance: 'red' | 'blue';
   position: 1 | 2 | 3;
   isRemote: boolean;
+  updatedAt?: number; // ms since epoch
+  deletedAt?: number | null;
 }
 
 export interface Event {

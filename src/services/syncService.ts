@@ -1,5 +1,4 @@
 import { DataService } from './dataService';
-import { ScoutingData } from '../types';
 import supabase from './supabaseClient';
 
 function getSupabaseClient() {
@@ -99,8 +98,143 @@ export async function migrateLocalToServer() {
   try {
     const { data: scouters, error: sErr } = await client.from('scouters').select('*');
     if (!sErr && scouters) {
-      // write into local storage via DataService
-      DataService.saveScouters(scouters as any);
+      // Merge server scouters with local scouters using last-write-wins merge policy.
+      try {
+        const local = DataService.getScouters();
+        const localMap: Record<string, any> = {};
+        local.forEach((s: any) => { if (s && s.id) localMap[s.id] = s; });
+
+        const serverMap: Record<string, any> = {};
+        scouters.forEach((s: any) => { if (s && s.id) serverMap[s.id] = s; });
+
+        const allIds = new Set<string>([...Object.keys(localMap), ...Object.keys(serverMap)]);
+        const toUpsert: any[] = [];
+        const merged: any[] = [];
+
+        for (const id of allIds) {
+          const l = localMap[id];
+          const s = serverMap[id];
+
+          const serverUpdated = s && s.updated_at ? Date.parse(s.updated_at) : 0;
+          const serverDeleted = s && s.deleted_at ? Date.parse(s.deleted_at) : null;
+          const serverDeletedTs = serverDeleted ?? 0;
+          const localUpdated = l && l.updatedAt ? l.updatedAt : 0;
+          const localDeleted = l && l.deletedAt ? l.deletedAt : null;
+          const localDeletedTs = localDeleted ?? 0;
+
+          if (s && l) {
+            // both exist: compare timestamps
+            if (localDeletedTs > 0 && (serverDeletedTs === 0 || localDeletedTs > serverUpdated)) {
+              // local has a newer deletion -> push delete to server
+              toUpsert.push({
+                id,
+                name: l.name,
+                alliance: l.alliance,
+                position: l.position,
+                is_remote: l.isRemote ?? false,
+                deleted_at: new Date(localDeleted).toISOString(),
+              });
+              merged.push({ ...l });
+            } else if (serverDeletedTs > 0 && (localDeletedTs === 0 || serverDeletedTs > localUpdated)) {
+              // server has a newer deletion -> accept server row
+              merged.push({
+                id: s.id,
+                name: s.name,
+                alliance: s.alliance,
+                position: s.position,
+                isRemote: s.is_remote ?? s.isRemote ?? false,
+                updatedAt: serverUpdated,
+                deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null,
+              });
+            } else {
+              // no deletion conflict: normal update by updatedAt
+              if (localUpdated > serverUpdated) {
+                // local wins -> push to server
+                toUpsert.push({
+                  id,
+                  name: l.name,
+                  alliance: l.alliance,
+                  position: l.position,
+                  is_remote: l.isRemote ?? false,
+                  deleted_at: l.deletedAt ? new Date(l.deletedAt).toISOString() : null,
+                });
+                merged.push({ ...l });
+              } else {
+                // server wins -> accept server
+                merged.push({
+                  id: s.id,
+                  name: s.name,
+                  alliance: s.alliance,
+                  position: s.position,
+                  isRemote: s.is_remote ?? s.isRemote ?? false,
+                  updatedAt: serverUpdated,
+                  deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null,
+                });
+              }
+            }
+          } else if (l && !s) {
+            // only local -> create on server
+            toUpsert.push({
+              id,
+              name: l.name,
+              alliance: l.alliance,
+              position: l.position,
+              is_remote: l.isRemote ?? false,
+              deleted_at: l.deletedAt ? new Date(l.deletedAt).toISOString() : null,
+            });
+            merged.push({ ...l });
+          } else if (s && !l) {
+            // only server -> accept server
+            merged.push({
+              id: s.id,
+              name: s.name,
+              alliance: s.alliance,
+              position: s.position,
+              isRemote: s.is_remote ?? s.isRemote ?? false,
+              updatedAt: serverUpdated,
+              deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null,
+            });
+          }
+        }
+
+        // If we have upserts to send, push them and then re-pull authoritative server rows
+        if (toUpsert.length > 0) {
+          try {
+            const { error: upErr } = await client.from('scouters').upsert(toUpsert, { onConflict: 'id' });
+            if (upErr) console.error('SyncService: error upserting scouters', upErr);
+            else {
+              // refresh server rows for authoritative timestamps
+              const { data: refreshed, error: refErr } = await client.from('scouters').select('*');
+              if (!refErr && refreshed) {
+                const mapped = refreshed.map((s: any) => ({
+                  id: s.id,
+                  name: s.name,
+                  alliance: s.alliance,
+                  position: s.position,
+                  isRemote: s.is_remote ?? s.isRemote ?? false,
+                  updatedAt: s.updated_at ? Date.parse(s.updated_at) : Date.now(),
+                  deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null,
+                }));
+                DataService.saveScouters(mapped as any);
+              } else if (refErr) {
+                console.error('SyncService: failed to refresh scouters after upsert', refErr);
+                // fallback to merged local state
+                DataService.saveScouters(merged as any);
+              }
+            }
+          } catch (e) {
+            console.error('SyncService: exception upserting scouters', e);
+            DataService.saveScouters(merged as any);
+          }
+        } else {
+          // no upserts necessary, persist merged local view
+          DataService.saveScouters(merged as any);
+        }
+      } catch (e) {
+        console.error('SyncService: error merging scouters', e);
+        // as a fallback, write server-provided scouters
+        DataService.saveScouters(scouters as any);
+      }
     } else if (sErr) {
       console.error('SyncService: failed to pull scouters', sErr);
     }
@@ -112,7 +246,79 @@ export async function migrateLocalToServer() {
   try {
     const { data: matches, error: mErr } = await client.from('matches').select('*');
     if (!mErr && matches) {
-      DataService.saveMatches(matches as any);
+      // Merge matches by key using last-write-wins on updated_at / updatedAt
+      try {
+        const local = DataService.getMatches();
+        const localMap: Record<string, any> = {};
+        local.forEach((m: any) => { if (m && m.key) localMap[m.key] = m; });
+
+        const serverMap: Record<string, any> = {};
+        matches.forEach((m: any) => { if (m && m.key) serverMap[m.key] = m; });
+
+        const allKeys = new Set<string>([...Object.keys(localMap), ...Object.keys(serverMap)]);
+        const toUpsert: any[] = [];
+        const merged: any[] = [];
+
+        for (const key of allKeys) {
+          const l = localMap[key];
+          const s = serverMap[key];
+          const serverUpdated = s && s.updated_at ? Date.parse(s.updated_at) : 0;
+          const localUpdated = l && l.updatedAt ? l.updatedAt : 0;
+
+          if (s && l) {
+            if (localUpdated > serverUpdated) {
+              // local wins -> upsert local
+              toUpsert.push({
+                key: l.key,
+                match_number: l.match_number,
+                comp_level: l.comp_level,
+                alliances: l.alliances,
+                deleted_at: l.deletedAt ? new Date(l.deletedAt).toISOString() : null,
+              });
+              merged.push(l);
+            } else {
+              // server wins
+              merged.push({ ...s, updatedAt: serverUpdated, deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null });
+            }
+          } else if (l && !s) {
+            toUpsert.push({
+              key: l.key,
+              match_number: l.match_number,
+              comp_level: l.comp_level,
+              alliances: l.alliances,
+              deleted_at: l.deletedAt ? new Date(l.deletedAt).toISOString() : null,
+            });
+            merged.push(l);
+          } else if (s && !l) {
+            merged.push({ ...s, updatedAt: serverUpdated, deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null });
+          }
+        }
+
+        if (toUpsert.length > 0) {
+          try {
+            const { error: upErr } = await client.from('matches').upsert(toUpsert, { onConflict: 'key' });
+            if (upErr) console.error('SyncService: error upserting matches', upErr);
+            else {
+              const { data: refreshed, error: refErr } = await client.from('matches').select('*');
+              if (!refErr && refreshed) {
+                const mapped = refreshed.map((m: any) => ({ ...m, updatedAt: m.updated_at ? Date.parse(m.updated_at) : Date.now(), deletedAt: m.deleted_at ? Date.parse(m.deleted_at) : null }));
+                DataService.saveMatches(mapped as any);
+              } else if (refErr) {
+                console.error('SyncService: failed to refresh matches after upsert', refErr);
+                DataService.saveMatches(merged as any);
+              }
+            }
+          } catch (e) {
+            console.error('SyncService: exception upserting matches', e);
+            DataService.saveMatches(merged as any);
+          }
+        } else {
+          DataService.saveMatches(merged as any);
+        }
+      } catch (e) {
+        console.error('SyncService: error merging matches', e);
+        DataService.saveMatches(matches as any);
+      }
     } else if (mErr) {
       console.error('SyncService: failed to pull matches', mErr);
     }

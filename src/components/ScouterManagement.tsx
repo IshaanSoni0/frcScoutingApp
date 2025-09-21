@@ -27,11 +27,12 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
   const addScouter = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newScouter.name.trim()) return;
-
     const scouter: Scouter = {
       id: Date.now().toString(),
       ...newScouter,
       name: newScouter.name.trim(),
+      updatedAt: Date.now(),
+      deletedAt: null,
     };
 
     setScouters([...scouters, scouter]);
@@ -39,7 +40,8 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
   };
 
   const removeScouter = (id: string) => {
-    setScouters(scouters.filter(s => s.id !== id));
+    // soft delete
+    setScouters(scouters.map(s => s.id === id ? { ...s, deletedAt: Date.now(), updatedAt: Date.now() } : s));
   };
 
   const startEdit = (scouter: Scouter) => {
@@ -58,7 +60,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
   };
 
   const saveEdit = (id: string) => {
-    setScouters(scouters.map(s => s.id === id ? { ...s, ...editValues, name: editValues.name.trim() } : s));
+    setScouters(scouters.map(s => s.id === id ? { ...s, ...editValues, name: editValues.name.trim(), updatedAt: Date.now() } : s));
     cancelEdit();
   };
 
@@ -175,7 +177,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {scouters.map((scouter) => (
+                  {scouters.filter(s => !s.deletedAt).map((scouter) => (
                     <tr key={scouter.id} className="border-b border-gray-100">
                       {editingId === scouter.id ? (
                         <>

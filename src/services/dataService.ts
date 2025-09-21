@@ -58,7 +58,9 @@ export class DataService {
   }
 
   static saveScouters(scouters: Scouter[]): void {
-    localStorage.setItem(STORAGE_KEYS.SCOUTERS, JSON.stringify(scouters));
+    const now = Date.now();
+    const stamped = scouters.map(s => ({ ...s, updatedAt: s.updatedAt || now }));
+    localStorage.setItem(STORAGE_KEYS.SCOUTERS, JSON.stringify(stamped));
   }
 
   static getScouters(): Scouter[] {
@@ -71,7 +73,9 @@ export class DataService {
   }
 
   static saveMatches(matches: any[]): void {
-    localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(matches));
+    const now = Date.now();
+    const stamped = matches.map((m: any) => ({ ...m, updatedAt: m.updatedAt || now }));
+    localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(stamped));
   }
 
   static getMatches(): any[] {
