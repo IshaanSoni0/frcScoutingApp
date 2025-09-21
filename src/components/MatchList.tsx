@@ -6,9 +6,10 @@ interface MatchListProps {
   matches: Match[];
   user: User;
   onMatchSelect: (match: Match) => void;
+  onBack?: () => void;
 }
 
-export function MatchList({ matches, user, onMatchSelect }: MatchListProps) {
+export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListProps) {
   const getTeamForUser = (match: Match): string => {
     const alliance = match.alliances[user.alliance];
     const teamKey = alliance.team_keys[user.position - 1];
@@ -115,6 +116,16 @@ export function MatchList({ matches, user, onMatchSelect }: MatchListProps) {
             <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No matches available</h3>
             <p className="text-gray-600">Contact your admin to select an event and load matches.</p>
+            {onBack && (
+              <div className="mt-6">
+                <button
+                  onClick={onBack}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+                >
+                  Back to Login
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

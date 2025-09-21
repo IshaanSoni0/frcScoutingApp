@@ -86,6 +86,7 @@ function App() {
         matches={matches}
         user={user}
         onMatchSelect={handleMatchSelect}
+        onBack={handleLogout}
       />
     );
   }
