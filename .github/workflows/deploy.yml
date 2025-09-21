@@ -29,6 +29,16 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Add SPA 404 fallback
+        run: |
+          if [ -f ./dist/index.html ]; then
+            cp ./dist/index.html ./dist/404.html
+            echo "Created dist/404.html from dist/index.html"
+          else
+            echo "dist/index.html not found"
+            exit 1
+          fi
+
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
