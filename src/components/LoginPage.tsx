@@ -42,6 +42,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   const [showInvalid, setShowInvalid] = useState(false);
 
+  const isAdminPreview = username.trim().toLowerCase() === 'admin6560';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
@@ -85,36 +87,40 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             />
           </div>
 
-          <div>
-            <label htmlFor="alliance" className="block text-sm font-medium text-gray-700 mb-2">
-              Alliance
-            </label>
-            <select
-              id="alliance"
-              value={alliance}
-              onChange={(e) => setAlliance(e.target.value as 'red' | 'blue')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-            >
-              <option value="red">Red Alliance</option>
-              <option value="blue">Blue Alliance</option>
-            </select>
-          </div>
+          {isAdminPreview ? (
+            <>
+              <div>
+                <label htmlFor="alliance" className="block text-sm font-medium text-gray-700 mb-2">
+                  Alliance
+                </label>
+                <select
+                  id="alliance"
+                  value={alliance}
+                  onChange={(e) => setAlliance(e.target.value as 'red' | 'blue')}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                >
+                  <option value="red">Red Alliance</option>
+                  <option value="blue">Blue Alliance</option>
+                </select>
+              </div>
 
-          <div>
-            <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-2">
-              Team Position
-            </label>
-            <select
-              id="position"
-              value={position}
-              onChange={(e) => setPosition(Number(e.target.value) as 1 | 2 | 3)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-            >
-              <option value={1}>Team 1</option>
-              <option value={2}>Team 2</option>
-              <option value={3}>Team 3</option>
-            </select>
-          </div>
+              <div>
+                <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-2">
+                  Team Position
+                </label>
+                <select
+                  id="position"
+                  value={position}
+                  onChange={(e) => setPosition(Number(e.target.value) as 1 | 2 | 3)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                >
+                  <option value={1}>Team 1</option>
+                  <option value={2}>Team 2</option>
+                  <option value={3}>Team 3</option>
+                </select>
+              </div>
+            </>
+          ) : null}
 
           <button
             type="submit"

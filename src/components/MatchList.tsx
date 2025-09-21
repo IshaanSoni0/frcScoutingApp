@@ -73,7 +73,7 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
                   </p>
                 </div>
                 <div className="text-right">
-                  <div className="text-lg font-bold text-blue-600">
+                  <div className={`text-lg font-bold ${user.alliance === 'red' ? 'text-red-600' : 'text-blue-600'}`}>
                     Team {getTeamForUser(match)}
                   </div>
                   <div className="text-sm text-gray-500">Your assignment</div>
