@@ -28,18 +28,38 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       // simple admin password check against Supabase 'admins' table (insecure by design)
       try {
         if (!supabase) {
-          setErrorMessage('Admin login unavailable: Supabase not configured.');
+          // Supabase isn't configured (often happens in development). Fall back to the local dev admin password.
+          // This is intentionally insecure and only for convenience/testing.
           // eslint-disable-next-line no-console
-          console.error('Supabase client not configured (import.meta.env missing)');
+          console.warn('Supabase client not configured; falling back to local admin password check');
+          if (password === 'arsen') {
+            onLogin({ username: name, alliance, position, isAdmin: true });
+            return;
+          }
+          setErrorMessage('Incorrect admin password.');
           setShowInvalid(true);
           return;
         }
 
+        // If Supabase is configured, try DB-backed admin check first
         const { data, error } = await supabase.from('admins').select('password').eq('username', name).limit(1).single();
-        if (error || !data) {
+        if (error) {
+          // If there's a DB error, log it and fallback to the plaintext 'arsen' password for convenience
+          // eslint-disable-next-line no-console
+          console.error('Supabase admin lookup error, falling back to local password check', error);
+          if (password === 'arsen') {
+            onLogin({ username: name, alliance, position, isAdmin: true });
+            return;
+          }
+          setErrorMessage('Admin login failed: admin record not found or DB error. See console for details.');
+          setShowInvalid(true);
+          return;
+        }
+
+        if (!data) {
           setErrorMessage('Admin login failed: admin record not found.');
           // eslint-disable-next-line no-console
-          console.error('Supabase admin lookup error', error);
+          console.warn('Supabase admin lookup returned no rows');
           setShowInvalid(true);
           return;
         }
