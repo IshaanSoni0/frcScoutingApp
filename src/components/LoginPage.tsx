@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { Users, Shield } from 'lucide-react';
 import { DataService } from '../services/dataService';
+import supabase from '../services/supabaseClient';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -9,10 +10,11 @@ interface LoginPageProps {
 
 export function LoginPage({ onLogin }: LoginPageProps) {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [alliance, _setAlliance] = useState<'red' | 'blue'>('red');
   const [position, _setPosition] = useState<1 | 2 | 3>(1);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) return;
 
@@ -20,8 +22,28 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     const isAdmin = name.toLowerCase() === 'admin6560';
 
     if (isAdmin) {
-      onLogin({ username: name, alliance, position, isAdmin: true });
-      return;
+      // simple admin password check against Supabase 'admins' table (insecure by design)
+      try {
+        if (!supabase) {
+          setShowInvalid(true);
+          return;
+        }
+        const { data, error } = await supabase.from('admins').select('password').eq('username', name).limit(1).single();
+        if (error || !data) {
+          setShowInvalid(true);
+          return;
+        }
+        if (data.password !== password) {
+          setShowInvalid(true);
+          return;
+        }
+
+        onLogin({ username: name, alliance, position, isAdmin: true });
+        return;
+      } catch (e) {
+        setShowInvalid(true);
+        return;
+      }
     }
 
     // Validate against scouters added by admin (case-insensitive match on scouter.name)
@@ -84,6 +106,20 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               placeholder="Enter your username"
               required
             />
+            {username.toLowerCase() === 'admin6560' && (
+              <div className="mt-3">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  placeholder="Admin password"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* Admin-specific selectors removed from login form. Admin can log in with username 'admin6560' and manage scouters from the Admin Panel. */}
