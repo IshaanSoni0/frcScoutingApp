@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { Users, Shield } from 'lucide-react';
+import { DataService } from '../services/dataService';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -15,15 +16,31 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     e.preventDefault();
     if (!username.trim()) return;
 
-    const isAdmin = username === 'admin6560';
-    
+    const name = username.trim();
+    const isAdmin = name.toLowerCase() === 'admin6560';
+
+    if (isAdmin) {
+      onLogin({ username: name, alliance, position, isAdmin: true });
+      return;
+    }
+
+    // Validate against scouters added by admin (case-insensitive match on scouter.name)
+    const scouters = DataService.getScouters();
+    const matched = scouters.find(s => s.name.toLowerCase() === name.toLowerCase());
+    if (!matched) {
+      setShowInvalid(true);
+      return;
+    }
+
     onLogin({
-      username: username.trim(),
-      alliance,
-      position,
-      isAdmin,
+      username: matched.name,
+      alliance: matched.alliance,
+      position: matched.position,
+      isAdmin: false,
     });
   };
+
+  const [showInvalid, setShowInvalid] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center p-4">
@@ -38,6 +55,22 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
+          {showInvalid && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+                <h3 className="text-lg font-semibold mb-2">Invalid username</h3>
+                <p className="text-gray-600 mb-4">The username you entered is not a registered scouter. Please check with your admin.</p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowInvalid(false)}
+                    className="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
               Username
             </label>
