@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Scouter } from '../types';
+import { uuidv4 } from '../utils/uuid';
 // DataService not required here; scouters persisted via useLocalStorage
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
@@ -28,7 +29,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     e.preventDefault();
     if (!newScouter.name.trim()) return;
     const scouter: Scouter = {
-      id: Date.now().toString(),
+      id: uuidv4(),
       ...newScouter,
       name: newScouter.name.trim(),
       updatedAt: Date.now(),

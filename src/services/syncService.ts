@@ -174,8 +174,35 @@ export async function migrateLocalToServer() {
             }
           } else if (l && !s) {
             // only local -> create on server
+            // ensure id is a valid UUID (Supabase expects uuid primary keys)
+            let upsertId = id;
+            const isUuidLike = typeof upsertId === 'string' && upsertId.length === 36 && upsertId.includes('-');
+            if (!isUuidLike) {
+              // generate a UUID and replace the local id so future devices/tabs see the same id
+              // dynamic import to avoid circular dependencies
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const { uuidv4 } = await import('../utils/uuid');
+              const newId = uuidv4();
+              upsertId = newId;
+              // update localMap so merged state includes new id
+              const updatedLocal = { ...l, id: newId };
+              localMap[newId] = updatedLocal;
+              delete localMap[id];
+              merged.push({ ...updatedLocal });
+              toUpsert.push({
+                id: upsertId,
+                name: updatedLocal.name,
+                alliance: updatedLocal.alliance,
+                position: updatedLocal.position,
+                is_remote: updatedLocal.isRemote ?? false,
+                deleted_at: updatedLocal.deletedAt ? new Date(updatedLocal.deletedAt).toISOString() : null,
+              });
+              // continue to next id (we've already queued upsert for the replaced item)
+              continue;
+            }
+
             toUpsert.push({
-              id,
+              id: upsertId,
               name: l.name,
               alliance: l.alliance,
               position: l.position,
