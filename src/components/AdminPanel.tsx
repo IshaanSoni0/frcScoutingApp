@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { User } from '../types';
 import { Settings, Users, BarChart3, Calendar, ArrowLeft } from 'lucide-react';
 import { ScouterManagement } from './ScouterManagement';
-import { migrateLocalToServer } from '../services/syncService';
+import { migrateLocalToServer, fetchServerScouters } from '../services/syncService';
 import { SyncControl } from './SyncControl';
 import { DataAnalysis } from './DataAnalysis';
 import { MatchSelection } from './MatchSelection';
@@ -68,7 +68,7 @@ export function AdminPanel({ user, onLogout }: AdminPanelProps) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <SyncControl onSync={() => migrateLocalToServer()} />
+              <SyncControl onSync={() => migrateLocalToServer()} onCheck={() => fetchServerScouters()} />
               <button
                 onClick={onLogout}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"

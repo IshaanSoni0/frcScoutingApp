@@ -24,11 +24,11 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
   const maxRetries = options?.maxRetries || 5;
 
   const pending = DataService.getPendingScouting();
-  if (!pending || pending.length === 0) return;
+  if (!pending || pending.length === 0) return 'No pending scouting';
 
   const all = DataService.getScoutingData() as any[];
   const records = all.filter(r => pending.includes(r.id));
-  if (records.length === 0) return;
+  if (records.length === 0) return 'No pending scouting';
 
   const client = getSupabaseClient();
   if (!client) {
@@ -36,6 +36,7 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
   }
 
   // batch and retry
+  let totalSynced = 0;
   for (let i = 0; i < records.length; i += batchSize) {
     const batch = records.slice(i, i + batchSize);
     // map to server shape
@@ -58,13 +59,14 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
 
     let attempt = 0;
     while (attempt <= maxRetries) {
-      try {
-        await sendBatchToServer(payload);
-        const ids = batch.map(r => r.id);
-        DataService.markScoutingSynced(ids);
-          return `Synced ${ids.length} scouting records`;
-        break;
-      } catch (err) {
+        try {
+          await sendBatchToServer(payload);
+          const ids = batch.map(r => r.id);
+          DataService.markScoutingSynced(ids);
+          totalSynced += ids.length;
+          // continue to next batch
+          break;
+        } catch (err) {
         attempt++;
         const backoff = Math.pow(2, attempt) * 500; // exponential backoff
         console.warn(`SyncService: batch sync failed, attempt ${attempt}, retrying in ${backoff}ms`, err);
@@ -74,7 +76,7 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
         }
       }
     }
-  return 'Pending push complete';
+  return `Synced ${totalSynced} scouting records`;
   }
 }
 
@@ -406,6 +408,14 @@ export async function pushScoutersToServer(scouters: any[]) {
   } catch (e) {
     throw e;
   }
+}
+
+export async function fetchServerScouters() {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot fetch scouters.');
+  const { data, error } = await client.from('scouters').select('*').order('updated_at', { ascending: false }).limit(500);
+  if (error) throw error;
+  return data || [];
 }
 
 let initialized = false;

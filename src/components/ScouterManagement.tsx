@@ -4,7 +4,7 @@ import { uuidv4 } from '../utils/uuid';
 // DataService not required here; scouters persisted via useLocalStorage
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
-import { pushScoutersToServer, migrateLocalToServer } from '../services/syncService';
+import { pushScoutersToServer, migrateLocalToServer, fetchServerScouters } from '../services/syncService';
 import { SyncControl } from './SyncControl';
 
 interface ScouterManagementProps {
@@ -13,6 +13,7 @@ interface ScouterManagementProps {
 
 export function ScouterManagement({ onBack }: ScouterManagementProps) {
   const [scouters, setScouters] = useLocalStorage<Scouter[]>('frc-scouters', []);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({
     name: '',
@@ -40,12 +41,10 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
 
     const updated = [...scouters, scouter];
     setScouters(updated);
-    // push to server if possible
-    try {
-      pushScoutersToServer(updated).catch(() => {});
-    } catch {
-      // noop
-    }
+    // push to server and show result
+    pushScoutersToServer(updated)
+      .then((msg) => setStatusMessage(msg as string))
+      .catch((err) => setStatusMessage(err?.message || String(err)));
     setNewScouter({ name: '', alliance: 'red', position: 1, isRemote: false });
   };
 
@@ -53,9 +52,9 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     // soft delete
     const updated = scouters.map(s => s.id === id ? { ...s, deletedAt: Date.now(), updatedAt: Date.now() } : s);
     setScouters(updated);
-    try {
-      pushScoutersToServer(updated).catch(() => {});
-    } catch {}
+    pushScoutersToServer(updated)
+      .then((msg) => setStatusMessage(msg as string))
+      .catch((err) => setStatusMessage(err?.message || String(err)));
   };
 
   const startEdit = (scouter: Scouter) => {
@@ -76,9 +75,9 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
   const saveEdit = (id: string) => {
     const updated = scouters.map(s => s.id === id ? { ...s, ...editValues, name: editValues.name.trim(), updatedAt: Date.now() } : s);
     setScouters(updated);
-    try {
-      pushScoutersToServer(updated).catch(() => {});
-    } catch {}
+    pushScoutersToServer(updated)
+      .then((msg) => setStatusMessage(msg as string))
+      .catch((err) => setStatusMessage(err?.message || String(err)));
     cancelEdit();
   };
 
@@ -97,7 +96,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
               </button>
             </div>
             <div className="flex items-center gap-3">
-              <SyncControl onSync={() => migrateLocalToServer()} />
+              <SyncControl onSync={() => migrateLocalToServer()} onCheck={() => fetchServerScouters()} />
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -105,6 +104,11 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
             <h1 className="text-2xl font-bold text-gray-900">Scouter Management</h1>
           </div>
         </div>
+        {statusMessage && (
+          <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded">
+            <strong>Sync status:</strong> {statusMessage}
+          </div>
+        )}
 
         {/* Add New Scouter Form */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
