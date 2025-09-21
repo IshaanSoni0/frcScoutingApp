@@ -354,6 +354,63 @@ export async function migrateLocalToServer() {
   }
 }
 
+// push scouters (array) to server immediately and refresh local storage
+export async function pushScoutersToServer(scouters: any[]) {
+  const client = getSupabaseClient();
+  if (!client) {
+    console.warn('pushScoutersToServer: no supabase client configured');
+    return;
+  }
+
+  try {
+    // ensure ids are UUID-like; generate UUIDs for any non-uuid ids
+    const prepared = await Promise.all(scouters.map(async (s: any) => {
+      let id = s.id;
+      const isUuidLike = typeof id === 'string' && id.length === 36 && id.includes('-');
+      if (!isUuidLike) {
+        const { uuidv4 } = await import('../utils/uuid');
+        id = uuidv4();
+      }
+      return {
+        id,
+        name: s.name,
+        alliance: s.alliance,
+        position: s.position,
+        is_remote: s.isRemote ?? false,
+        deleted_at: s.deletedAt ? new Date(s.deletedAt).toISOString() : null,
+      };
+    }));
+
+    const { error } = await client.from('scouters').upsert(prepared, { onConflict: 'id' });
+    if (error) {
+      console.error('pushScoutersToServer: upsert error', error);
+      return;
+    }
+
+    // refresh authoritative rows
+    const { data: refreshed, error: refErr } = await client.from('scouters').select('*');
+    if (refErr) {
+      console.error('pushScoutersToServer: failed to refresh scouters', refErr);
+      return;
+    }
+
+    if (refreshed) {
+      const mapped = refreshed.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        alliance: s.alliance,
+        position: s.position,
+        isRemote: s.is_remote ?? s.isRemote ?? false,
+        updatedAt: s.updated_at ? Date.parse(s.updated_at) : Date.now(),
+        deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null,
+      }));
+      DataService.saveScouters(mapped as any);
+    }
+  } catch (e) {
+    console.error('pushScoutersToServer: exception', e);
+  }
+}
+
 let initialized = false;
 
 export function initializeSyncService() {

@@ -4,6 +4,7 @@ import { uuidv4 } from '../utils/uuid';
 // DataService not required here; scouters persisted via useLocalStorage
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
+import { pushScoutersToServer } from '../services/syncService';
 
 interface ScouterManagementProps {
   onBack: () => void;
@@ -36,13 +37,24 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
       deletedAt: null,
     };
 
-    setScouters([...scouters, scouter]);
+    const updated = [...scouters, scouter];
+    setScouters(updated);
+    // push to server if possible
+    try {
+      pushScoutersToServer(updated).catch(() => {});
+    } catch {
+      // noop
+    }
     setNewScouter({ name: '', alliance: 'red', position: 1, isRemote: false });
   };
 
   const removeScouter = (id: string) => {
     // soft delete
-    setScouters(scouters.map(s => s.id === id ? { ...s, deletedAt: Date.now(), updatedAt: Date.now() } : s));
+    const updated = scouters.map(s => s.id === id ? { ...s, deletedAt: Date.now(), updatedAt: Date.now() } : s);
+    setScouters(updated);
+    try {
+      pushScoutersToServer(updated).catch(() => {});
+    } catch {}
   };
 
   const startEdit = (scouter: Scouter) => {
@@ -61,7 +73,11 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
   };
 
   const saveEdit = (id: string) => {
-    setScouters(scouters.map(s => s.id === id ? { ...s, ...editValues, name: editValues.name.trim(), updatedAt: Date.now() } : s));
+    const updated = scouters.map(s => s.id === id ? { ...s, ...editValues, name: editValues.name.trim(), updatedAt: Date.now() } : s);
+    setScouters(updated);
+    try {
+      pushScoutersToServer(updated).catch(() => {});
+    } catch {}
     cancelEdit();
   };
 
