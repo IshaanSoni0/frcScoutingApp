@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { initializeSyncService } from './services/syncService';
 
 // On startup, detect and unregister older service workers that may be
 // intercepting requests with incorrect cached paths (this helps GitHub Pages
@@ -48,4 +49,11 @@ async function cleanupOldServiceWorkers() {
       <App />
     </StrictMode>
   );
+
+  // initialize background sync
+  try {
+    initializeSyncService();
+  } catch (e) {
+    // ignore
+  }
 })();
