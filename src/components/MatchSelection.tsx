@@ -89,6 +89,15 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
     loadMatches(eventKey);
   };
 
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
+
+  const confirmClear = () => {
+    DataService.clearMatches();
+    setMatches([]);
+    setSelectedEvent('');
+    setShowConfirmClear(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto">
@@ -177,11 +186,7 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                 )}
 
                 <button
-                  onClick={() => {
-                    DataService.clearMatches();
-                    setMatches([]);
-                    setSelectedEvent('');
-                  }}
+                  onClick={() => setShowConfirmClear(true)}
                   className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-md transition-colors text-sm"
                 >
                   Clear queued matches
@@ -248,7 +253,36 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
             </p>
           </div>
         )}
+        {showConfirmClear && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+              <h3 className="text-lg font-semibold mb-2">Confirm clear queued matches</h3>
+              <p className="text-gray-600 mb-4">Are you sure you want to clear all queued matches for scouters? This cannot be undone.</p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowConfirmClear(false)}
+                  className="px-3 py-2 rounded-md bg-gray-200 hover:bg-gray-300"
+                >
+                  No
+                </button>
+                <button
+                  onClick={() => {
+                    DataService.clearMatches();
+                    setMatches([]);
+                    setSelectedEvent('');
+                    setShowConfirmClear(false);
+                  }}
+                  className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+                >
+                  Yes, clear
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+// Confirmation modal component is implemented inline in the file above via state `showConfirmClear`.
