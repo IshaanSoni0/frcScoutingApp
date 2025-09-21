@@ -14,6 +14,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [alliance, _setAlliance] = useState<'red' | 'blue'>('red');
   const [position, _setPosition] = useState<1 | 2 | 3>(1);
 
+  const [showInvalid, setShowInvalid] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) return;
@@ -25,15 +28,24 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       // simple admin password check against Supabase 'admins' table (insecure by design)
       try {
         if (!supabase) {
+          setErrorMessage('Admin login unavailable: Supabase not configured.');
+          // eslint-disable-next-line no-console
+          console.error('Supabase client not configured (import.meta.env missing)');
           setShowInvalid(true);
           return;
         }
+
         const { data, error } = await supabase.from('admins').select('password').eq('username', name).limit(1).single();
         if (error || !data) {
+          setErrorMessage('Admin login failed: admin record not found.');
+          // eslint-disable-next-line no-console
+          console.error('Supabase admin lookup error', error);
           setShowInvalid(true);
           return;
         }
+
         if (data.password !== password) {
+          setErrorMessage('Incorrect admin password.');
           setShowInvalid(true);
           return;
         }
@@ -41,6 +53,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         onLogin({ username: name, alliance, position, isAdmin: true });
         return;
       } catch (e) {
+        setErrorMessage('Admin login error (see console for details).');
+        // eslint-disable-next-line no-console
+        console.error('Admin login exception', e);
         setShowInvalid(true);
         return;
       }
@@ -50,6 +65,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     const scouters = DataService.getScouters();
     const matched = scouters.find(s => s.name.toLowerCase() === name.toLowerCase());
     if (!matched) {
+      setErrorMessage('The username you entered is not a registered scouter. Please check with your admin.');
       setShowInvalid(true);
       return;
     }
@@ -61,9 +77,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       isAdmin: false,
     });
   };
-
-  const [showInvalid, setShowInvalid] = useState(false);
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center p-4">
@@ -78,22 +91,23 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-          {showInvalid && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-                <h3 className="text-lg font-semibold mb-2">Invalid username</h3>
-                <p className="text-gray-600 mb-4">The username you entered is not a registered scouter. Please check with your admin.</p>
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setShowInvalid(false)}
-                    className="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                  >
-                    OK
-                  </button>
+            {showInvalid && (
+              <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+                  <h3 className="text-lg font-semibold mb-2">Login error</h3>
+                  <p className="text-gray-600 mb-4">{errorMessage || 'The username you entered is not a registered scouter. Please check with your admin.'}</p>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => { setShowInvalid(false); setErrorMessage(''); }}
+                      className="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      OK
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
               Username
             </label>
