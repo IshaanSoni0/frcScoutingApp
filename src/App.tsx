@@ -17,8 +17,9 @@ function App() {
   useEffect(() => {
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('SW registered'))
+      const swUrl = (import.meta as any).env?.BASE_URL ? `${(import.meta as any).env.BASE_URL}sw.js` : '/sw.js';
+      navigator.serviceWorker.register(swUrl)
+        .then(() => console.log('SW registered at', swUrl))
         .catch(console.error);
     }
 

@@ -1,27 +1,48 @@
-const CACHE_NAME = 'frc-scout-v1';
+const CACHE_NAME = 'frc-scout-v2';
+// Use relative paths so the service worker works under a sub-path (e.g. GitHub Pages)
 const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json'
+  './',
+  './index.html',
+  './manifest.json'
 ];
 
+// Cache core files on install
 self.addEventListener('install', event => {
+  // Activate this service worker immediately once installed
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
 });
 
+// Remove old caches and take control of uncontrolled clients
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+    )).then(() => {
+      return self.clients && self.clients.claim ? self.clients.claim() : undefined;
+    })
+  );
+});
+
+// Network-first: try the network, fall back to cache. This avoids serving
+// stale/incorrect cached asset paths that don't match the deployed base path.
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        if (response) {
-          return response;
+        // Optionally update the cache for navigation requests
+        try {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+        } catch (e) {
+          // ignore cache update errors
         }
-        return fetch(event.request);
-      }
-    )
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
