@@ -1,5 +1,4 @@
-// Bump this value when you need clients to drop older cached app shells.
-const CACHE_NAME = 'frc-scout-v3';
+const CACHE_NAME = 'frc-scout-v2';
 // Use relative paths so the service worker works under a sub-path (e.g. GitHub Pages)
 const urlsToCache = [
   './',
