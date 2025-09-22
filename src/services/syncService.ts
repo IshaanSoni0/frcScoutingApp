@@ -19,16 +19,16 @@ async function sendBatchToServer(records: any[]) {
   if (error) throw error;
 }
 
-async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: number }) {
+async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: number }): Promise<number> {
   const batchSize = options?.batchSize || 50;
   const maxRetries = options?.maxRetries || 5;
 
   const pending = DataService.getPendingScouting();
-  if (!pending || pending.length === 0) return 'No pending scouting';
+  if (!pending || pending.length === 0) return 0;
 
   const all = DataService.getScoutingData() as any[];
   const records = all.filter(r => pending.includes(r.id));
-  if (records.length === 0) return 'No pending scouting';
+  if (records.length === 0) return 0;
 
   const client = getSupabaseClient();
   if (!client) {
@@ -59,14 +59,14 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
 
     let attempt = 0;
     while (attempt <= maxRetries) {
-        try {
-          await sendBatchToServer(payload);
-          const ids = batch.map(r => r.id);
-          DataService.markScoutingSynced(ids);
-          totalSynced += ids.length;
-          // continue to next batch
-          break;
-        } catch (err) {
+      try {
+        await sendBatchToServer(payload);
+        const ids = batch.map(r => r.id);
+        DataService.markScoutingSynced(ids);
+        totalSynced += ids.length;
+        // continue to next batch
+        break;
+      } catch (err) {
         attempt++;
         const backoff = Math.pow(2, attempt) * 500; // exponential backoff
         console.warn(`SyncService: batch sync failed, attempt ${attempt}, retrying in ${backoff}ms`, err);
@@ -76,9 +76,10 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
         }
       }
     }
-  return `Synced ${totalSynced} scouting records`;
   }
+  return totalSynced;
 }
+// stray extra brace above removed
 
 // migration: push pending records then pull authoritative scouters & matches
 export async function migrateLocalToServer() {
@@ -87,9 +88,13 @@ export async function migrateLocalToServer() {
     throw new Error('Supabase client not configured; cannot migrate local data.');
   }
 
+  let pendingSynced = 0;
+  let scoutersUpserted = 0;
+
   // 1) push pending scouting
   try {
-    await pushPendingToServer({ batchSize: 100, maxRetries: 6 });
+    pendingSynced = await pushPendingToServer({ batchSize: 100, maxRetries: 6 });
+    // continue
   } catch (e) {
     // bubble up push errors — UI may want to display them
     throw e;
@@ -226,11 +231,15 @@ export async function migrateLocalToServer() {
         }
 
         // If we have upserts to send, push them and then re-pull authoritative server rows
+  // scoutersUpserted is tracked in outer scope
         if (toUpsert.length > 0) {
           try {
             const { error: upErr } = await client.from('scouters').upsert(toUpsert, { onConflict: 'id' });
-            if (upErr) console.error('SyncService: error upserting scouters', upErr);
-            else {
+            if (upErr) {
+              console.error('SyncService: error upserting scouters', upErr);
+              // persist merged local view
+              DataService.saveScouters(merged as any);
+            } else {
               // refresh server rows for authoritative timestamps
               const { data: refreshed, error: refErr } = await client.from('scouters').select('*');
               if (!refErr && refreshed) {
@@ -244,6 +253,7 @@ export async function migrateLocalToServer() {
                   deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null,
                 }));
                 DataService.saveScouters(mapped as any);
+                scoutersUpserted = mapped.length;
               } else if (refErr) {
                 console.error('SyncService: failed to refresh scouters after upsert', refErr);
                 // fallback to merged local state
@@ -353,6 +363,8 @@ export async function migrateLocalToServer() {
   } catch (e) {
     console.error('SyncService: error pulling matches', e);
   }
+  // return a short status summary for UI consumption
+  return `Synced scouting: ${typeof pendingSynced === 'number' ? pendingSynced : 0}; server scouters: ${scoutersUpserted ?? 0}; matches synced`;
 }
 
 // push scouters (array) to server immediately and refresh local storage
@@ -383,7 +395,22 @@ export async function pushScoutersToServer(scouters: any[]) {
 
     const { error } = await client.from('scouters').upsert(prepared, { onConflict: 'id' });
     if (error) {
-      throw new Error('pushScoutersToServer: upsert error: ' + (error.message || JSON.stringify(error)));
+      // If the error mentions a missing deleted_at column, retry without that field
+      const message = (error.message || JSON.stringify(error)).toString();
+      if (message.toLowerCase().includes('deleted_at') || (error.details && String(error.details).toLowerCase().includes('deleted_at'))) {
+        // retry prepared rows without deleted_at
+        const preparedNoDeleted = prepared.map((p: any) => {
+          const copy: any = { ...p };
+          delete copy.deleted_at;
+          return copy;
+        });
+        const { error: retryErr } = await client.from('scouters').upsert(preparedNoDeleted, { onConflict: 'id' });
+        if (retryErr) {
+          throw new Error('pushScoutersToServer: upsert error after retry without deleted_at: ' + (retryErr.message || JSON.stringify(retryErr)));
+        }
+      } else {
+        throw new Error('pushScoutersToServer: upsert error: ' + message);
+      }
     }
 
     // refresh authoritative rows

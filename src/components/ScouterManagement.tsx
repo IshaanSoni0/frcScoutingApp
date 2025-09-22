@@ -48,6 +48,36 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     setNewScouter({ name: '', alliance: 'red', position: 1, isRemote: false });
   };
 
+  const exportScouters = () => {
+    try {
+      const raw = JSON.stringify(scouters, null, 2);
+      navigator.clipboard?.writeText(raw);
+      // also trigger a download
+      const blob = new Blob([raw], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `scouters-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatusMessage('Exported scouters to clipboard and downloaded file');
+    } catch (e) {
+      setStatusMessage('Failed to export scouters: ' + (e as any)?.message || String(e));
+    }
+  };
+
+  const forcePushScouters = async () => {
+    try {
+      setStatusMessage('Forcing push to server...');
+      const res = await pushScoutersToServer(scouters);
+      setStatusMessage(String(res || 'Force push completed'));
+    } catch (e: any) {
+      setStatusMessage(e?.message ? String(e.message) : String(e));
+    }
+  };
+
   const removeScouter = (id: string) => {
     // soft delete
     const updated = scouters.map(s => s.id === id ? { ...s, deletedAt: Date.now(), updatedAt: Date.now() } : s);
@@ -96,12 +126,20 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
               </button>
             </div>
             <div className="flex items-center gap-3">
-              <SyncControl onSync={() => migrateLocalToServer()} onCheck={() => fetchServerScouters()} />
+                <SyncControl onSync={() => migrateLocalToServer()} onCheck={() => fetchServerScouters()} />
+                <button onClick={exportScouters} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-md">Export</button>
+                <button onClick={forcePushScouters} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md">Force Push</button>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Users className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Scouter Management</h1>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Users className="w-8 h-8 text-blue-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Scouter Management</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={exportScouters} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-md">Export</button>
+              <button onClick={forcePushScouters} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md">Force Push</button>
+            </div>
           </div>
         </div>
         {statusMessage && (

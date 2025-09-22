@@ -61,6 +61,12 @@ export class DataService {
     const now = Date.now();
     const stamped = scouters.map(s => ({ ...s, updatedAt: s.updatedAt || now }));
     localStorage.setItem(STORAGE_KEYS.SCOUTERS, JSON.stringify(stamped));
+    // notify other listeners in this window (and other tabs via storage event)
+    try {
+      window.dispatchEvent(new CustomEvent('local-storage', { detail: { key: STORAGE_KEYS.SCOUTERS, value: stamped } }));
+    } catch (e) {
+      // ignore environments that don't support CustomEvent
+    }
   }
 
   static getScouters(): Scouter[] {
