@@ -29,7 +29,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     isRemote: false,
   });
 
-  const addScouter = async (e: React.FormEvent) => {
+  const addScouter = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newScouter.name.trim()) return;
     const scouter: Scouter = {
@@ -42,13 +42,10 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
 
     const updated = [...scouters, scouter];
     setScouters(updated);
-    // push to server and show result (await to avoid race with Sync)
-    try {
-      const msg = await pushScoutersToServer(updated);
-      setStatusMessage(msg as string);
-    } catch (err: any) {
-      setStatusMessage(err?.message || String(err));
-    }
+    // push to server and show result
+    pushScoutersToServer(updated)
+      .then((msg) => setStatusMessage(msg as string))
+      .catch((err) => setStatusMessage(err?.message || String(err)));
     setNewScouter({ name: '', alliance: 'red', position: 1, isRemote: false });
   };
 
@@ -91,16 +88,13 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     }
   };
 
-  const removeScouter = async (id: string) => {
+  const removeScouter = (id: string) => {
     // soft delete
     const updated = scouters.map(s => s.id === id ? { ...s, deletedAt: Date.now(), updatedAt: Date.now() } : s);
     setScouters(updated);
-    try {
-      const msg = await pushScoutersToServer(updated);
-      setStatusMessage(msg as string);
-    } catch (err: any) {
-      setStatusMessage(err?.message || String(err));
-    }
+    pushScoutersToServer(updated)
+      .then((msg) => setStatusMessage(msg as string))
+      .catch((err) => setStatusMessage(err?.message || String(err)));
   };
 
   const startEdit = (scouter: Scouter) => {
@@ -118,15 +112,12 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     setEditValues({ name: '', alliance: 'red', position: 1, isRemote: false });
   };
 
-  const saveEdit = async (id: string) => {
+  const saveEdit = (id: string) => {
     const updated = scouters.map(s => s.id === id ? { ...s, ...editValues, name: editValues.name.trim(), updatedAt: Date.now() } : s);
     setScouters(updated);
-    try {
-      const msg = await pushScoutersToServer(updated);
-      setStatusMessage(msg as string);
-    } catch (err: any) {
-      setStatusMessage(err?.message || String(err));
-    }
+    pushScoutersToServer(updated)
+      .then((msg) => setStatusMessage(msg as string))
+      .catch((err) => setStatusMessage(err?.message || String(err)));
     cancelEdit();
   };
 
