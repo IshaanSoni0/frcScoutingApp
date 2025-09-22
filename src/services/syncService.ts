@@ -90,6 +90,7 @@ export async function migrateLocalToServer() {
 
   let pendingSynced = 0;
   let scoutersUpserted = 0;
+  let matchesUpserted = 0;
 
   // 1) push pending scouting
   try {
@@ -239,6 +240,8 @@ export async function migrateLocalToServer() {
               console.error('SyncService: error upserting scouters', upErr);
               // persist merged local view
               DataService.saveScouters(merged as any);
+              // reflect that merged local view contains these rows
+              scoutersUpserted = merged.length;
             } else {
               // refresh server rows for authoritative timestamps
               const { data: refreshed, error: refErr } = await client.from('scouters').select('*');
@@ -258,15 +261,18 @@ export async function migrateLocalToServer() {
                 console.error('SyncService: failed to refresh scouters after upsert', refErr);
                 // fallback to merged local state
                 DataService.saveScouters(merged as any);
+                scoutersUpserted = merged.length;
               }
             }
           } catch (e) {
             console.error('SyncService: exception upserting scouters', e);
             DataService.saveScouters(merged as any);
+            scoutersUpserted = merged.length;
           }
         } else {
           // no upserts necessary, persist merged local view
           DataService.saveScouters(merged as any);
+          scoutersUpserted = merged.length;
         }
       } catch (e) {
         console.error('SyncService: error merging scouters', e);
@@ -341,17 +347,21 @@ export async function migrateLocalToServer() {
               if (!refErr && refreshed) {
                 const mapped = refreshed.map((m: any) => ({ ...m, updatedAt: m.updated_at ? Date.parse(m.updated_at) : Date.now(), deletedAt: m.deleted_at ? Date.parse(m.deleted_at) : null }));
                 DataService.saveMatches(mapped as any);
+                matchesUpserted = mapped.length;
               } else if (refErr) {
                 console.error('SyncService: failed to refresh matches after upsert', refErr);
                 DataService.saveMatches(merged as any);
+                matchesUpserted = merged.length;
               }
             }
           } catch (e) {
             console.error('SyncService: exception upserting matches', e);
             DataService.saveMatches(merged as any);
+            matchesUpserted = merged.length;
           }
         } else {
           DataService.saveMatches(merged as any);
+          matchesUpserted = merged.length;
         }
       } catch (e) {
         console.error('SyncService: error merging matches', e);
@@ -364,7 +374,7 @@ export async function migrateLocalToServer() {
     console.error('SyncService: error pulling matches', e);
   }
   // return a short status summary for UI consumption
-  return `Synced scouting: ${typeof pendingSynced === 'number' ? pendingSynced : 0}; server scouters: ${scoutersUpserted ?? 0}; matches synced`;
+  return `Synced scouting: ${typeof pendingSynced === 'number' ? pendingSynced : 0}; server scouters: ${scoutersUpserted ?? 0}; matches synced: ${matchesUpserted ?? 0}`;
 }
 
 // push scouters (array) to server immediately and refresh local storage
@@ -490,12 +500,14 @@ try {
       // eslint-disable-next-line no-console
       console.log('syncNow: triggering migrateLocalToServer()');
       try {
-        await migrateLocalToServer();
+        const res = await migrateLocalToServer();
         // eslint-disable-next-line no-console
-        console.log('syncNow: migration finished');
+        console.log('syncNow: migration finished, result:', res);
+        return res;
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('syncNow: migration error', e);
+        throw e;
       }
     };
 
@@ -504,12 +516,14 @@ try {
       // eslint-disable-next-line no-console
       console.log('pushPendingToServerNow: triggering pushPendingToServer()');
       try {
-        await pushPendingToServer({ batchSize: 100, maxRetries: 3 });
+        const res = await pushPendingToServer({ batchSize: 100, maxRetries: 3 });
         // eslint-disable-next-line no-console
-        console.log('pushPendingToServerNow: finished');
+        console.log('pushPendingToServerNow: finished, totalSynced=', res);
+        return res;
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('pushPendingToServerNow: error', e);
+        throw e;
       }
     };
   }
