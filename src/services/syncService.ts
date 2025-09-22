@@ -85,9 +85,7 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
 export async function migrateLocalToServer() {
   const client = getSupabaseClient();
   if (!client) {
-    // Graceful fallback: do not throw so UI can show a friendly message.
-    console.warn('SyncService: Supabase client not configured; skipping migration.');
-    return 'Supabase client not configured; skipped migration';
+    throw new Error('Supabase client not configured; cannot migrate local data.');
   }
 
   let pendingSynced = 0;
@@ -373,21 +371,7 @@ export async function migrateLocalToServer() {
 export async function pushScoutersToServer(scouters: any[]) {
   const client = getSupabaseClient();
   if (!client) {
-    // Graceful fallback: persist scouters locally and return a helpful message.
-    try {
-      // ensure local storage contains the provided scouters
-      // DataService.saveScouters expects scouters with updatedAt; map conservatively
-      const now = Date.now();
-      const local = scouters.map((s: any) => ({ ...s, updatedAt: s.updatedAt || now }));
-      // Lazy import DataService here to avoid cyclic issues (DataService already imported at module top)
-      // Save locally so user won't lose data
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      DataService.saveScouters(local as any);
-    } catch (e) {
-      console.warn('pushScoutersToServer: failed to save scouters locally', e);
-    }
-    return 'Supabase client not configured; scouters saved locally';
+    throw new Error('Supabase client not configured; cannot push scouters.');
   }
 
   try {
