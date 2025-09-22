@@ -5,6 +5,7 @@ import { uuidv4 } from '../utils/uuid';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
 import { pushScoutersToServer, migrateLocalToServer, fetchServerScouters } from '../services/syncService';
+import { getSupabaseInfo } from '../services/supabaseClient';
 import { SyncControl } from './SyncControl';
 
 interface ScouterManagementProps {
@@ -78,6 +79,15 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     }
   };
 
+  const showClientInfo = () => {
+    try {
+      const info = getSupabaseInfo();
+      setStatusMessage(`Supabase: url=${info.url ? 'present' : 'missing'}, hasKey=${info.hasKey}, clientPresent=${info.clientPresent}`);
+    } catch (e) {
+      setStatusMessage('Failed to read Supabase info: ' + (e as any)?.message || String(e));
+    }
+  };
+
   const removeScouter = (id: string) => {
     // soft delete
     const updated = scouters.map(s => s.id === id ? { ...s, deletedAt: Date.now(), updatedAt: Date.now() } : s);
@@ -125,11 +135,9 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
                 Back to Admin Panel
               </button>
             </div>
-            <div className="flex items-center gap-3">
-                <SyncControl onSync={() => migrateLocalToServer()} onCheck={() => fetchServerScouters()} />
-                <button onClick={exportScouters} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-md">Export</button>
-                <button onClick={forcePushScouters} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md">Force Push</button>
-            </div>
+      <div className="flex items-center gap-3">
+        <SyncControl onSync={() => migrateLocalToServer()} onCheck={() => fetchServerScouters()} />
+      </div>
           </div>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -139,6 +147,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
             <div className="flex items-center gap-2">
               <button onClick={exportScouters} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-md">Export</button>
               <button onClick={forcePushScouters} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md">Force Push</button>
+              <button onClick={showClientInfo} className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded-md">Client Info</button>
             </div>
           </div>
         </div>
