@@ -117,14 +117,14 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                         placeholder="Search events..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+                        className="pl-10 pr-4 h-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
                       />
                     </div>
                     <button
                       onClick={checkAvailableEvents}
                       disabled={loading}
                       aria-busy={loading}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                      className={`flex items-center gap-2 px-3 rounded-md text-sm transition-colors h-10 flex-shrink-0 ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                     >
                       {loading ? (
                         <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -145,18 +145,18 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                         value={runtimeKey}
                         onChange={(e) => setRuntimeKey(e.target.value)}
                         placeholder="TBA API key"
-                        className="px-2 py-1 border border-gray-300 rounded-md text-sm w-full sm:w-64 truncate"
+                        className="px-2 h-10 border border-gray-300 rounded-md text-sm w-full sm:w-64 truncate"
                         aria-label="The Blue Alliance API key"
                       />
                       <button
                         onClick={() => { setRuntimeTbaKey(runtimeKey); checkAvailableEvents(); }}
-                        className="px-2 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 whitespace-nowrap"
+                        className="px-2 h-10 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 whitespace-nowrap flex-shrink-0"
                       >
                         Save & Load
                       </button>
                       <button
                         onClick={() => { clearRuntimeTbaKey(); setRuntimeKey(''); }}
-                        className="px-2 py-1 bg-gray-200 text-sm rounded-md hover:bg-gray-300 whitespace-nowrap"
+                        className="px-2 h-10 bg-gray-200 text-sm rounded-md hover:bg-gray-300 whitespace-nowrap flex-shrink-0"
                       >
                         Clear
                       </button>
