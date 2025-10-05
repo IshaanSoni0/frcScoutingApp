@@ -135,27 +135,29 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                     )}
                     <span>{loading ? 'Checking...' : 'Check available events'}</span>
                   </button>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
                     <input
                       type="password"
                       value={runtimeKey}
                       onChange={(e) => setRuntimeKey(e.target.value)}
                       placeholder="TBA API key"
-                      className="px-2 py-1 border border-gray-300 rounded-md text-sm max-w-xs w-full sm:w-auto"
+                      className="px-2 py-1 border border-gray-300 rounded-md text-sm w-full sm:w-64 truncate"
                       aria-label="The Blue Alliance API key"
                     />
-                    <button
-                      onClick={() => { setRuntimeTbaKey(runtimeKey); checkAvailableEvents(); }}
-                      className="px-2 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
-                    >
-                      Save & Load
-                    </button>
-                    <button
-                      onClick={() => { clearRuntimeTbaKey(); setRuntimeKey(''); }}
-                      className="px-2 py-1 bg-gray-200 text-sm rounded-md hover:bg-gray-300"
-                    >
-                      Clear
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setRuntimeTbaKey(runtimeKey); checkAvailableEvents(); }}
+                        className="px-2 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 whitespace-nowrap"
+                      >
+                        Save & Load
+                      </button>
+                      <button
+                        onClick={() => { clearRuntimeTbaKey(); setRuntimeKey(''); }}
+                        className="px-2 py-1 bg-gray-200 text-sm rounded-md hover:bg-gray-300 whitespace-nowrap"
+                      >
+                        Clear
+                      </button>
+                    </div>
                   </div>
                 </div>
             </div>
