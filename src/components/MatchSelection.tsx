@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Event, Match } from '../types';
 import { fetchEvents, fetchEventMatches, getRuntimeTbaKey, setRuntimeTbaKey, clearRuntimeTbaKey } from '../services/tbaApi';
 import { DataService } from '../services/dataService';
+import { migrateLocalToServer } from '../services/syncService';
 import { ArrowLeft, Calendar, Search, Download } from 'lucide-react';
 
 interface MatchSelectionProps {
@@ -13,6 +14,8 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
   const [selectedEvent, setSelectedEvent] = useState<string>('');
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [runtimeKey, setRuntimeKey] = useState<string>('');
 
@@ -231,13 +234,32 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
               </h2>
               <div className="flex items-center gap-2">
                 {matches.length > 0 && (
-                  <button
-                    onClick={() => DataService.saveMatches(matches)}
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md transition-colors text-sm"
-                  >
-                    <Download className="w-4 h-4" />
-                    Save Matches
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        setSaving(true);
+                        setSaveResult(null);
+                        try {
+                          DataService.saveMatches(matches as any[]);
+                          const res = await migrateLocalToServer();
+                          setSaveResult(String(res));
+                        } catch (e: any) {
+                          setSaveResult(String(e?.message || e));
+                        } finally {
+                          setSaving(false);
+                          setTimeout(() => setSaveResult(null), 5000);
+                        }
+                      }}
+                      className={`flex items-center gap-2 ${saving ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-3 py-2 rounded-md transition-colors text-sm`}
+                      disabled={saving}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>{saving ? 'Saving...' : 'Save Matches'}</span>
+                    </button>
+                    {saveResult && (
+                      <div className="text-sm text-gray-700 ml-2">{saveResult}</div>
+                    )}
+                  </div>
                 )}
 
                 <button
