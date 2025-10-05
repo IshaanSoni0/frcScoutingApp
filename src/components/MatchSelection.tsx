@@ -108,43 +108,46 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">Available Events</h2>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search events..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="relative flex-1 min-w-0">
+                      <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search events..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+                      />
+                    </div>
+                    <button
+                      onClick={checkAvailableEvents}
+                      disabled={loading}
+                      aria-busy={loading}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                    >
+                      {loading ? (
+                        <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      <span>{loading ? 'Checking...' : 'Check available events'}</span>
+                    </button>
                   </div>
-                  <button
-                    onClick={checkAvailableEvents}
-                    disabled={loading}
-                    aria-busy={loading}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                  >
-                    {loading ? (
-                      <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                      </svg>
-                    ) : (
-                      <Download className="w-4 h-4" />
-                    )}
-                    <span>{loading ? 'Checking...' : 'Check available events'}</span>
-                  </button>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
-                    <input
-                      type="password"
-                      value={runtimeKey}
-                      onChange={(e) => setRuntimeKey(e.target.value)}
-                      placeholder="TBA API key"
-                      className="px-2 py-1 border border-gray-300 rounded-md text-sm w-full sm:w-64 truncate"
-                      aria-label="The Blue Alliance API key"
-                    />
-                    <div className="flex items-center gap-2">
+
+                  <div className="flex w-full sm:w-auto justify-end">
+                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                      <input
+                        type="password"
+                        value={runtimeKey}
+                        onChange={(e) => setRuntimeKey(e.target.value)}
+                        placeholder="TBA API key"
+                        className="px-2 py-1 border border-gray-300 rounded-md text-sm w-full sm:w-64 truncate"
+                        aria-label="The Blue Alliance API key"
+                      />
                       <button
                         onClick={() => { setRuntimeTbaKey(runtimeKey); checkAvailableEvents(); }}
                         className="px-2 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 whitespace-nowrap"
