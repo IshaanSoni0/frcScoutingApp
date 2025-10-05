@@ -77,6 +77,34 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
 
+  // Sort matches for display: first by competition level, then by match number, then by key.
+  const compLevelRank: Record<string, number> = {
+    qm: 1, // qualification
+    ef: 2,
+    qf: 3,
+    sf: 4,
+    f: 5,
+  };
+
+  function compLevelName(level: string) {
+    switch (level) {
+      case 'qm': return 'Qualification';
+      case 'ef': return 'Eighth-final';
+      case 'qf': return 'Quarterfinal';
+      case 'sf': return 'Semifinal';
+      case 'f': return 'Final';
+      default: return level.toUpperCase();
+    }
+  }
+
+  const sortedMatches = [...matches].sort((a, b) => {
+    const ra = compLevelRank[a.comp_level] ?? 99;
+    const rb = compLevelRank[b.comp_level] ?? 99;
+    if (ra !== rb) return ra - rb;
+    if (a.match_number !== b.match_number) return a.match_number - b.match_number;
+    return a.key.localeCompare(b.key);
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto">
@@ -234,11 +262,21 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {matches.map((match) => (
+                {sortedMatches.map((match) => (
                   <div key={match.key} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="font-semibold text-gray-900">
-                        Qualification {match.match_number}
+                        {(() => {
+                          // Build a human readable title. If non-qualification comp levels appear,
+                          // include them to disambiguate duplicate numbers (e.g., Quarterfinal 1).
+                          const lvl = match.comp_level || 'qm';
+                          const name = compLevelName(lvl);
+                          // Some match objects include a set_number (playoff sets). Show it when present.
+                          const setNumber = (match as any).set_number;
+                          if (lvl === 'qm') return `${name} ${match.match_number}`;
+                          if (setNumber) return `${name} ${setNumber} - Match ${match.match_number}`;
+                          return `${name} ${match.match_number}`;
+                        })()}
                       </h3>
                       <span className="text-xs text-gray-500">{match.key}</span>
                     </div>
