@@ -30,14 +30,17 @@ function effectiveTbaKey(): string {
 export async function fetchEvents(year: number = new Date().getFullYear()) {
   try {
     const key = effectiveTbaKey();
-    const response = await fetch(`${TBA_BASE_URL}/events/${year}`, {
+    // use the /simple endpoint to reduce payload
+    const response = await fetch(`${TBA_BASE_URL}/events/${year}/simple`, {
       headers: key ? { 'X-TBA-Auth-Key': key } : {},
     });
-    
+
     if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      console.error('TBA fetchEvents failed', response.status, text);
       throw new Error('Failed to fetch events');
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error fetching events:', error);
@@ -48,14 +51,17 @@ export async function fetchEvents(year: number = new Date().getFullYear()) {
 export async function fetchEventMatches(eventKey: string) {
   try {
     const key = effectiveTbaKey();
-    const response = await fetch(`${TBA_BASE_URL}/event/${eventKey}/matches`, {
+    // use the /matches/simple endpoint to get compact match objects
+    const response = await fetch(`${TBA_BASE_URL}/event/${eventKey}/matches/simple`, {
       headers: key ? { 'X-TBA-Auth-Key': key } : {},
     });
-    
+
     if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      console.error('TBA fetchEventMatches failed', response.status, text);
       throw new Error('Failed to fetch matches');
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error fetching matches:', error);
