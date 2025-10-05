@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Event, Match } from '../types';
-import { fetchEvents, fetchEventMatches } from '../services/tbaApi';
+import { fetchEvents, fetchEventMatches, getRuntimeTbaKey, setRuntimeTbaKey, clearRuntimeTbaKey } from '../services/tbaApi';
 import { DataService } from '../services/dataService';
 import { ArrowLeft, Calendar, Search, Download } from 'lucide-react';
 
@@ -14,9 +14,14 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [runtimeKey, setRuntimeKey] = useState<string>('');
 
   useEffect(() => {
     // Do not auto-load events on mount. User must click 'Check available events' to fetch from TBA.
+    try {
+      const k = getRuntimeTbaKey();
+      if (k) setRuntimeKey(k);
+    } catch (e) {}
   }, []);
 
   const loadMatches = async (eventKey: string) => {
@@ -130,6 +135,28 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                     )}
                     <span>{loading ? 'Checking...' : 'Check available events'}</span>
                   </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      value={runtimeKey}
+                      onChange={(e) => setRuntimeKey(e.target.value)}
+                      placeholder="TBA API key"
+                      className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                      aria-label="The Blue Alliance API key"
+                    />
+                    <button
+                      onClick={() => { setRuntimeTbaKey(runtimeKey); }}
+                      className="px-2 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => { clearRuntimeTbaKey(); setRuntimeKey(''); }}
+                      className="px-2 py-1 bg-gray-200 text-sm rounded-md hover:bg-gray-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
             </div>
 
