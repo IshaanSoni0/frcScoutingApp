@@ -16,64 +16,45 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const loadEvents = async () => {
-      setLoading(true);
-      try {
-        // For demo purposes, using mock data since TBA API requires authentication
-        const mockEvents: Event[] = [
-          {
-            key: '2024demo',
-            name: 'Demo Competition 2024',
-            start_date: '2024-03-15',
-            end_date: '2024-03-17',
-          },
-          {
-            key: '2024regional1',
-            name: 'Regional Championship 2024',
-            start_date: '2024-04-05',
-            end_date: '2024-04-07',
-          },
-        ];
-        setEvents(mockEvents);
-      } catch (error) {
-        console.error('Error loading events:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadEvents();
+    // Do not auto-load events on mount. User must click 'Check available events' to fetch from TBA.
   }, []);
 
   const loadMatches = async (eventKey: string) => {
     setLoading(true);
     try {
-      // For demo purposes, using mock match data
-      const mockMatches: Match[] = [
-        {
-          key: `${eventKey}_qm1`,
-          match_number: 1,
-          comp_level: 'qm',
-          alliances: {
-            red: { team_keys: ['frc1234', 'frc5678', 'frc9012'] },
-            blue: { team_keys: ['frc3456', 'frc7890', 'frc2345'] }
-          }
-        },
-        {
-          key: `${eventKey}_qm2`,
-          match_number: 2,
-          comp_level: 'qm',
-          alliances: {
-            red: { team_keys: ['frc6789', 'frc0123', 'frc4567'] },
-            blue: { team_keys: ['frc8901', 'frc2345', 'frc6789'] }
-          }
-        }
-      ];
-      setMatches(mockMatches);
-      DataService.saveMatches(mockMatches);
-      DataService.setSelectedEvent(eventKey);
+      // Try to fetch real matches from TBA; fall back to any locally stored matches or an empty list
+      const fetched = await fetchEventMatches(eventKey);
+      // TBA returns an array of match objects; if empty, it may indicate matches not yet released
+      if (Array.isArray(fetched) && fetched.length > 0) {
+        setMatches(fetched as Match[]);
+        DataService.saveMatches(fetched as any[]);
+        DataService.setSelectedEvent(eventKey);
+      } else {
+        // No matches returned — treat as 'not yet released'
+        setMatches([]);
+        DataService.setSelectedEvent(eventKey);
+      }
     } catch (error) {
       console.error('Error loading matches:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkAvailableEvents = async () => {
+    setLoading(true);
+    try {
+      const year = new Date().getFullYear();
+      const ev = await fetchEvents(year);
+      if (Array.isArray(ev) && ev.length > 0) {
+        setEvents(ev as Event[]);
+      } else {
+        // if the fetch returned nothing, keep events empty and show message
+        setEvents([]);
+      }
+    } catch (e) {
+      console.error('Failed to fetch events', e);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -122,16 +103,34 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">Available Events</h2>
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search events..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search events..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    onClick={checkAvailableEvents}
+                    disabled={loading}
+                    aria-busy={loading}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                  >
+                    {loading ? (
+                      <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                    <span>{loading ? 'Checking...' : 'Check available events'}</span>
+                  </button>
+                </div>
             </div>
 
             {loading ? (
@@ -201,7 +200,9 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
               </div>
             ) : matches.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
-                <p>No matches found for selected event</p>
+                <p>
+                  {loading ? 'Loading matches...' : 'Matches for this event are not yet released by The Blue Alliance.'}
+                </p>
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">

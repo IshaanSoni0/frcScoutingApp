@@ -1,12 +1,11 @@
 const TBA_BASE_URL = 'https://www.thebluealliance.com/api/v3';
-const TBA_API_KEY = 'your-tba-api-key-here'; // Replace with actual API key
+// Read API key from Vite env so builds can inline it when provided at build time
+const TBA_API_KEY = (import.meta as any).env?.VITE_TBA_API_KEY || '';
 
-export async function fetchEvents(year: number = 2024) {
+export async function fetchEvents(year: number = new Date().getFullYear()) {
   try {
     const response = await fetch(`${TBA_BASE_URL}/events/${year}`, {
-      headers: {
-        'X-TBA-Auth-Key': TBA_API_KEY,
-      },
+      headers: TBA_API_KEY ? { 'X-TBA-Auth-Key': TBA_API_KEY } : {},
     });
     
     if (!response.ok) {
@@ -23,9 +22,7 @@ export async function fetchEvents(year: number = 2024) {
 export async function fetchEventMatches(eventKey: string) {
   try {
     const response = await fetch(`${TBA_BASE_URL}/event/${eventKey}/matches`, {
-      headers: {
-        'X-TBA-Auth-Key': TBA_API_KEY,
-      },
+      headers: TBA_API_KEY ? { 'X-TBA-Auth-Key': TBA_API_KEY } : {},
     });
     
     if (!response.ok) {
