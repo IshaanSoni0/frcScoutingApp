@@ -473,6 +473,51 @@ export async function fetchServerScouters() {
   return data || [];
 }
 
+// push matches array to server immediately and refresh local storage
+export async function pushMatchesToServer(matches: any[]) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot push matches.');
+
+  try {
+    const prepared = matches.map((m: any) => ({
+      key: m.key,
+      match_number: m.match_number,
+      comp_level: m.comp_level,
+      alliances: m.alliances,
+      deleted_at: m.deletedAt ? new Date(m.deletedAt).toISOString() : null,
+    }));
+
+    const { error } = await client.from('matches').upsert(prepared, { onConflict: 'key' });
+    if (error) {
+      const message = (error.message || JSON.stringify(error)).toString();
+      if (message.toLowerCase().includes('deleted_at') || (error.details && String(error.details).toLowerCase().includes('deleted_at'))) {
+        // retry without deleted_at and proceed
+        const preparedNoDeleted = prepared.map((p: any) => {
+          const copy: any = { ...p };
+          delete copy.deleted_at;
+          return copy;
+        });
+        const { error: retryErr } = await client.from('matches').upsert(preparedNoDeleted, { onConflict: 'key' });
+        if (retryErr) throw retryErr;
+      } else {
+        throw error;
+      }
+    }
+
+    // refresh authoritative rows
+    const { data: refreshed, error: refErr } = await client.from('matches').select('*');
+    if (refErr) throw refErr;
+    if (refreshed) {
+      const mapped = refreshed.map((m: any) => ({ ...m, updatedAt: m.updated_at ? Date.parse(m.updated_at) : Date.now(), deletedAt: m.deleted_at ? Date.parse(m.deleted_at) : null }));
+      DataService.saveMatches(mapped as any);
+      return mapped.length;
+    }
+    return 0;
+  } catch (e) {
+    throw e;
+  }
+}
+
 let initialized = false;
 
 export function initializeSyncService() {

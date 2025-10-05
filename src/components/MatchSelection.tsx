@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Event, Match } from '../types';
 import { fetchEvents, fetchEventMatches, getRuntimeTbaKey, setRuntimeTbaKey, clearRuntimeTbaKey } from '../services/tbaApi';
 import { DataService } from '../services/dataService';
-import { migrateLocalToServer } from '../services/syncService';
+import { migrateLocalToServer, pushMatchesToServer } from '../services/syncService';
 import { ArrowLeft, Calendar, Search, Download } from 'lucide-react';
 
 interface MatchSelectionProps {
@@ -237,19 +237,22 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={async () => {
-                        setSaving(true);
-                        setSaveResult(null);
-                        try {
-                          DataService.saveMatches(matches as any[]);
-                          const res = await migrateLocalToServer();
-                          setSaveResult(String(res));
-                        } catch (e: any) {
-                          setSaveResult(String(e?.message || e));
-                        } finally {
-                          setSaving(false);
-                          setTimeout(() => setSaveResult(null), 5000);
-                        }
-                      }}
+                          setSaving(true);
+                          setSaveResult(null);
+                          try {
+                            DataService.saveMatches(matches as any[]);
+                            // Attempt to push matches directly and report how many were synced
+                            const synced = await pushMatchesToServer(matches as any[]);
+                            // Also run migrateLocalToServer to ensure any pending scouting is pushed
+                            const migrateResult = await migrateLocalToServer();
+                            setSaveResult(`matches synced: ${synced}; ${migrateResult}`);
+                          } catch (e: any) {
+                            setSaveResult(String(e?.message || e));
+                          } finally {
+                            setSaving(false);
+                            setTimeout(() => setSaveResult(null), 5000);
+                          }
+                        }}
                       className={`flex items-center gap-2 ${saving ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-3 py-2 rounded-md transition-colors text-sm`}
                       disabled={saving}
                     >
