@@ -405,18 +405,36 @@ export async function pushScoutersToServer(scouters: any[]) {
 
     const { error } = await client.from('scouters').upsert(prepared, { onConflict: 'id' });
     if (error) {
-      // If the error mentions a missing deleted_at column, retry without that field
+      // If the error mentions a missing deleted_at column, retry by removing deleted_at
+      // but also perform hard deletes for rows that were explicitly deleted locally so the delete persists.
       const message = (error.message || JSON.stringify(error)).toString();
       if (message.toLowerCase().includes('deleted_at') || (error.details && String(error.details).toLowerCase().includes('deleted_at'))) {
-        // retry prepared rows without deleted_at
+        // split prepared into deleted and non-deleted
+        const deletedIds: string[] = prepared.filter((p: any) => p.deleted_at).map((p: any) => p.id);
         const preparedNoDeleted = prepared.map((p: any) => {
           const copy: any = { ...p };
           delete copy.deleted_at;
           return copy;
         });
+
+        // First upsert the non-deleted rows (without deleted_at)
         const { error: retryErr } = await client.from('scouters').upsert(preparedNoDeleted, { onConflict: 'id' });
         if (retryErr) {
           throw new Error('pushScoutersToServer: upsert error after retry without deleted_at: ' + (retryErr.message || JSON.stringify(retryErr)));
+        }
+
+        // Then, for any rows that were marked deleted locally, attempt hard delete so they are removed from DB
+        if (deletedIds.length > 0) {
+          try {
+            const { error: delErr } = await client.from('scouters').delete().in('id', deletedIds);
+            if (delErr) {
+              // If delete failed, surface an error so caller knows
+              throw new Error('pushScoutersToServer: delete error for removed scouters: ' + (delErr.message || JSON.stringify(delErr)));
+            }
+          } catch (delEx) {
+            // If delete throws, rethrow as a descriptive error
+            throw delEx;
+          }
         }
       } else {
         throw new Error('pushScoutersToServer: upsert error: ' + message);
