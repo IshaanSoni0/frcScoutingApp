@@ -32,7 +32,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           // This is intentionally insecure and only for convenience/testing.
           // eslint-disable-next-line no-console
           console.warn('Supabase client not configured; falling back to local admin password check');
-          if (password === 'arsen') {
+          if (password === 'charge') {
             onLogin({ username: name, alliance, position, isAdmin: true });
             return;
           }
@@ -44,10 +44,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         // If Supabase is configured, try DB-backed admin check first
         const { data, error } = await supabase.from('admins').select('password').eq('username', name).limit(1).single();
         if (error) {
-          // If there's a DB error, log it and fallback to the plaintext 'arsen' password for convenience
+          // If there's a DB error, log it and fallback to the plaintext 'charge' password for convenience
           // eslint-disable-next-line no-console
           console.error('Supabase admin lookup error, falling back to local password check', error);
-          if (password === 'arsen') {
+          if (password === 'charge') {
             onLogin({ username: name, alliance, position, isAdmin: true });
             return;
           }
