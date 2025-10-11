@@ -27,6 +27,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     if (isAdmin) {
       // simple admin password check against Supabase 'admins' table (insecure by design)
       try {
+        // Quick local override: if the developer wants to force the local dev password to work
+        // even when Supabase is configured, accept it here. This is intentionally insecure
+        // and only intended as a short-term hotfix — prefer updating the admin password
+        // in the Supabase `admins` table instead.
+        if (password === 'charge') {
+          onLogin({ username: name, alliance, position, isAdmin: true });
+          return;
+        }
         if (!supabase) {
           // Supabase isn't configured (often happens in development). Fall back to the local dev admin password.
           // This is intentionally insecure and only for convenience/testing.
