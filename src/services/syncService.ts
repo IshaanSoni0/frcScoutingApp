@@ -52,6 +52,7 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
         teleop: r.teleop,
         endgame: r.endgame,
         defense: r.defense,
+        algae: r.algae ?? 0,
       },
       client_id: r.clientId,
       timestamp: new Date(r.timestamp || r.createdAt).toISOString(),

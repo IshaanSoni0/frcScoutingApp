@@ -39,6 +39,7 @@ export interface ScoutingData {
     l3: number;
     l4: number;
   };
+  algae?: number;
   endgame: {
     climb: 'none' | 'low' | 'deep';
   };
