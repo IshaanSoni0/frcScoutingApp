@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Event, Match } from '../types';
 import { fetchEvents, fetchEventMatches, getRuntimeTbaKey, setRuntimeTbaKey, clearRuntimeTbaKey } from '../services/tbaApi';
 import { DataService } from '../services/dataService';
-import { migrateLocalToServer, pushMatchesToServer } from '../services/syncService';
+import { migrateLocalToServer, pushMatchesToServer, deleteMatchesFromServer } from '../services/syncService';
 import { ArrowLeft, Calendar, Search, Download } from 'lucide-react';
 
 interface MatchSelectionProps {
@@ -79,6 +79,8 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
   };
 
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
 
   // Sort matches for display: first by competition level, then by match number, then by key.
   const compLevelRank: Record<string, number> = {
@@ -345,6 +347,46 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
             </p>
           </div>
         )}
+        {deleteError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-6">
+            <div className="flex items-center justify-between">
+              <div className="text-red-800 font-medium">Failed to delete matches from server: {deleteError}</div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    // retry delete
+                    try {
+                      setDeleteInProgress(true);
+                      const allLocal = DataService.getMatches();
+                      const keys = allLocal.map((m: any) => m.key);
+                      if (keys.length > 0) await deleteMatchesFromServer(keys);
+                      // success: clear local
+                      DataService.clearMatches();
+                      setMatches([]);
+                      setSelectedEvent('');
+                      setDeleteError(null);
+                    } catch (e: any) {
+                      console.error('Retry delete failed:', e);
+                      setDeleteError(String(e?.message || e));
+                    } finally {
+                      setDeleteInProgress(false);
+                    }
+                  }}
+                  disabled={deleteInProgress}
+                  className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                >
+                  {deleteInProgress ? 'Deleting...' : 'Retry delete'}
+                </button>
+                <button
+                  onClick={() => setDeleteError(null)}
+                  className="px-3 py-2 rounded-md bg-gray-200 hover:bg-gray-300"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {showConfirmClear && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-sm">
@@ -358,11 +400,26 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                   No
                 </button>
                 <button
-                  onClick={() => {
-                    DataService.clearMatches();
-                    setMatches([]);
-                    setSelectedEvent('');
-                    setShowConfirmClear(false);
+                  onClick={async () => {
+                    try {
+                      setDeleteError(null);
+                      const allLocal = DataService.getMatches();
+                      const keys = allLocal.map((m: any) => m.key);
+                      if (keys.length > 0) {
+                        await deleteMatchesFromServer(keys);
+                      }
+                      // clear local matches and selection on success
+                      DataService.clearMatches();
+                      setMatches([]);
+                      setSelectedEvent('');
+                      setShowConfirmClear(false);
+                    } catch (e: any) {
+                      // preserve local matches and surface the error
+                      console.error('Failed to delete matches from server:', e);
+                      setDeleteError(String(e?.message || e));
+                      // keep the modal open so user can retry or cancel
+                      // (do not clear local state)
+                    }
                   }}
                   className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
                 >

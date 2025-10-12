@@ -569,6 +569,23 @@ export async function pushMatchesToServer(matches: any[]) {
   }
 }
 
+// delete matches by key from server
+export async function deleteMatchesFromServer(keys: string[]) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot delete matches.');
+
+  try {
+    const { error } = await client.from('matches').delete().in('key', keys);
+    if (error) {
+      // bubble up descriptive error
+      throw new Error('deleteMatchesFromServer: ' + (error.message || JSON.stringify(error)));
+    }
+    return true;
+  } catch (e) {
+    throw e;
+  }
+}
+
 let initialized = false;
 
 export function initializeSyncService() {
