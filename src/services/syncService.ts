@@ -571,6 +571,24 @@ export async function pushMatchesToServer(matches: any[]) {
       deleted_at: m.deletedAt ? new Date(m.deletedAt).toISOString() : null,
     }));
 
+    // If matches reference an event_key that doesn't exist in the events table,
+    // PostgreSQL will reject the insert due to the foreign key constraint. Ensure
+    // minimal event rows exist first (just the key) so matches can be upserted.
+    const eventKeys = Array.from(new Set(prepared.map((p: any) => p.event_key).filter(Boolean)));
+    if (eventKeys.length > 0) {
+      try {
+        const eventsToUpsert = eventKeys.map(k => ({ key: k }));
+        const { error: evErr } = await client.from('events').upsert(eventsToUpsert, { onConflict: 'key' });
+        if (evErr) {
+          // If upserting events fails, surface a clear error so caller can act.
+          throw new Error('pushMatchesToServer: failed to ensure events exist: ' + (evErr.message || JSON.stringify(evErr)));
+        }
+      } catch (e) {
+        // bubble up the error to the caller; it's better to fail loudly than corrupt expectations
+        throw e;
+      }
+    }
+
     const { error } = await client.from('matches').upsert(prepared, { onConflict: 'key' });
     if (error) {
       const message = (error.message || JSON.stringify(error)).toString();
