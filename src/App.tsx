@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Match } from './types';
 import { DataService } from './services/dataService';
 import { LoginPage } from './components/LoginPage';
@@ -27,6 +27,14 @@ function App() {
     const storedMatches = DataService.getMatches();
     setMatches(storedMatches);
   }, []);
+
+  // Ensure matches are reloaded whenever we transition to the matches view (e.g., after logout/login or role switch)
+  useEffect(() => {
+    if (currentState === 'matches') {
+      const stored = DataService.getMatches();
+      setMatches(stored);
+    }
+  }, [currentState]);
 
   const handleLogin = (userData: User) => {
     setUser(userData);
