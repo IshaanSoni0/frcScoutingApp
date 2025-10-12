@@ -562,6 +562,8 @@ export async function pushMatchesToServer(matches: any[]) {
 
   try {
     const prepared = matches.map((m: any) => ({
+      // include event_key so matches are organized under events in the DB
+      event_key: m.event_key || (DataService && DataService.getSelectedEvent && DataService.getSelectedEvent()) || null,
       key: m.key,
       match_number: m.match_number,
       comp_level: m.comp_level,
@@ -615,6 +617,16 @@ export async function deleteMatchesFromServer(keys: string[]) {
   } catch (e) {
     throw e;
   }
+}
+
+// fetch matches currently stored on Supabase (optionally limit) and include event_key
+export async function fetchServerMatches(limit = 500) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot fetch matches.');
+
+  const { data, error } = await client.from('matches').select('*').order('updated_at', { ascending: false }).limit(limit);
+  if (error) throw error;
+  return data || [];
 }
 
 let initialized = false;

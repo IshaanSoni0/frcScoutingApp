@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Event, Match } from '../types';
 import { fetchEvents, fetchEventMatches, getRuntimeTbaKey, setRuntimeTbaKey, clearRuntimeTbaKey } from '../services/tbaApi';
 import { DataService } from '../services/dataService';
-import { migrateLocalToServer, pushMatchesToServer, deleteMatchesFromServer } from '../services/syncService';
+import { migrateLocalToServer, pushMatchesToServer, deleteMatchesFromServer, fetchServerMatches } from '../services/syncService';
 import { ArrowLeft, Calendar, Search, Download } from 'lucide-react';
 
 interface MatchSelectionProps {
@@ -18,6 +18,8 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
   const [saveResult, setSaveResult] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [runtimeKey, setRuntimeKey] = useState<string>('');
+  const [serverMatches, setServerMatches] = useState<any[]>([]);
+  const [serverLoading, setServerLoading] = useState(false);
 
   useEffect(() => {
     // Do not auto-load events on mount. User must click 'Check available events' to fetch from TBA.
@@ -126,6 +128,58 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
           <div className="flex items-center gap-3">
             <Calendar className="w-8 h-8 text-blue-600" />
             <h1 className="text-2xl font-bold text-gray-900">Match Selection</h1>
+          </div>
+        </div>
+
+        {/* Server queued matches panel */}
+        <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Queued Matches on Server</h2>
+            <div>
+              <button
+                onClick={async () => {
+                  setServerLoading(true);
+                  try {
+                    const rows = await fetchServerMatches();
+                    setServerMatches(rows as any[]);
+                  } catch (e) {
+                    console.error('Failed to fetch server matches', e);
+                    setServerMatches([]);
+                  } finally {
+                    setServerLoading(false);
+                  }
+                }}
+                className="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {serverLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-64 overflow-y-auto space-y-3">
+            {serverMatches.length === 0 ? (
+              <div className="text-gray-500">No queued matches found on server.</div>
+            ) : (
+              Object.entries(serverMatches.reduce((acc: any, cur: any) => {
+                const key = cur.event_key || 'unknown';
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(cur);
+                return acc;
+              }, {})).map(([eventKey, rows]: any) => (
+                <div key={eventKey} className="border border-gray-100 rounded p-3">
+                  <div className="font-medium text-sm text-gray-700 mb-2">Event: {eventKey}</div>
+                  <div className="text-sm text-gray-600">
+                    {rows.slice(0, 20).map((r: any) => (
+                      <div key={r.key} className="flex items-center justify-between py-1">
+                        <div>{r.key}</div>
+                        <div className="text-xs text-gray-500">{r.match_number}</div>
+                      </div>
+                    ))}
+                    {rows.length > 20 && <div className="text-xs text-gray-400 mt-2">{rows.length - 20} more...</div>}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -242,9 +296,11 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                           setSaving(true);
                           setSaveResult(null);
                           try {
-                            DataService.saveMatches(matches as any[]);
+                            // attach currently selected event to the matches so they are organized server-side
+                            const withEvent = matches.map(m => ({ ...m, event_key: selectedEvent || DataService.getSelectedEvent() }));
+                            DataService.saveMatches(withEvent as any[]);
                             // Attempt to push matches directly and report how many were synced
-                            const synced = await pushMatchesToServer(matches as any[]);
+                            const synced = await pushMatchesToServer(withEvent as any[]);
                             // Also run migrateLocalToServer to ensure any pending scouting is pushed
                             const migrateResult = await migrateLocalToServer();
                             setSaveResult(`matches synced: ${synced}; ${migrateResult}`);
