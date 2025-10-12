@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
 import { ArrowLeft, BarChart3, Filter, Download } from 'lucide-react';
@@ -67,6 +67,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     const headers = [
       'Match', 'Team', 'Scouter', 'Alliance', 'Position',
       'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Move',
+      'Algae',
       'Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4',
       'Climb', 'Defense', 'Timestamp'
     ];
@@ -77,12 +78,13 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       d.scouter,
       d.alliance,
       d.position,
-      d.auto.l1,
-      d.auto.l2,
-      d.auto.l3,
-      d.auto.l4,
-      d.auto.hasAuto ? 'Yes' : 'No',
-      d.teleop.l1,
+  d.auto.l1,
+  d.auto.l2,
+  d.auto.l3,
+  d.auto.l4,
+  d.auto.hasAuto ? 'Yes' : 'No',
+  d.algae ?? 0,
+  d.teleop.l1,
       d.teleop.l2,
       d.teleop.l3,
       d.teleop.l4,
@@ -235,6 +237,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <th className="text-left py-3 font-medium text-gray-900">Alliance</th>
                     <th className="text-left py-3 font-medium text-gray-900">Auto L1-L4</th>
                     <th className="text-left py-3 font-medium text-gray-900">Teleop L1-L4</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Algae</th>
                     <th className="text-left py-3 font-medium text-gray-900">Total</th>
                     <th className="text-left py-3 font-medium text-gray-900">Climb</th>
                     <th className="text-left py-3 font-medium text-gray-900">Defense</th>
@@ -263,6 +266,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       </td>
                       <td className="py-3 font-medium text-gray-900">
                         {calculateTotalScore(entry)}
+                      </td>
+                      <td className="py-3 text-gray-600">
+                        {entry.algae ?? 0}
                       </td>
                       <td className="py-3">
                         <span className={`px-2 py-1 text-xs font-medium rounded ${
