@@ -264,11 +264,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <td className="py-3 text-gray-600">
                         {entry.teleop.l1}/{entry.teleop.l2}/{entry.teleop.l3}/{entry.teleop.l4}
                       </td>
-                      <td className="py-3 font-medium text-gray-900">
-                        {calculateTotalScore(entry)}
-                      </td>
                       <td className="py-3 text-gray-600">
                         {entry.algae ?? 0}
+                      </td>
+                      <td className="py-3 font-medium text-gray-900">
+                        {calculateTotalScore(entry)}
                       </td>
                       <td className="py-3">
                         <span className={`px-2 py-1 text-xs font-medium rounded ${
