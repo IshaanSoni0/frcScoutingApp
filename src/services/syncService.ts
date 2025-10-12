@@ -524,6 +524,16 @@ export async function fetchServerScouters() {
   return data || [];
 }
 
+// fetch all scouting records from server
+export async function fetchServerScouting() {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot fetch scouting records.');
+
+  const { data, error } = await client.from('scouting_records').select('*').order('timestamp', { ascending: false }).limit(1000);
+  if (error) throw error;
+  return data || [];
+}
+
 // push matches array to server immediately and refresh local storage
 export async function pushMatchesToServer(matches: any[]) {
   const client = getSupabaseClient();

@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
+import { fetchServerScouting } from '../services/syncService';
 import { ArrowLeft, BarChart3, Filter, Download } from 'lucide-react';
 
 interface DataAnalysisProps {
@@ -8,7 +9,47 @@ interface DataAnalysisProps {
 }
 
 export function DataAnalysis({ onBack }: DataAnalysisProps) {
-  const [data] = useState<ScoutingData[]>(DataService.getScoutingData());
+  const [data, setData] = useState<ScoutingData[]>([]);
+  const [loadingServer, setLoadingServer] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Try to fetch server data first (so incognito sessions show server rows)
+    let mounted = true;
+    (async () => {
+      setLoadingServer(true);
+      try {
+        const serverRows: any[] = await fetchServerScouting();
+        if (!mounted) return;
+        // map server shape to ScoutingData expected by the UI
+        const mapped = serverRows.map((r: any) => ({
+          id: r.id,
+          matchKey: r.match_key,
+          teamKey: r.team_key,
+          scouter: r.scouter_name,
+          alliance: r.alliance,
+          position: r.position,
+          auto: r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false },
+          teleop: r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 },
+          endgame: r.payload?.endgame || { climb: 'none' },
+          defense: r.payload?.defense || 'none',
+          algae: r.payload?.algae ?? 0,
+          timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
+        }));
+        setData(mapped as ScoutingData[]);
+        setServerError(null);
+      } catch (e: any) {
+        console.error('Failed to fetch server scouting records:', e);
+        setServerError(String(e?.message || e));
+        // fallback to local data if server request fails
+        const local = DataService.getScoutingData();
+        setData(local as ScoutingData[]);
+      } finally {
+        setLoadingServer(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
   const [filters, setFilters] = useState({
     alliance: 'all',
     team: '',
@@ -131,13 +172,47 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               <ArrowLeft className="w-5 h-5" />
               Back to Admin Panel
             </button>
-            <button
-              onClick={exportToCSV}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exportToCSV}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+              <button
+                onClick={async () => {
+                  setLoadingServer(true);
+                  try {
+                    const serverRows: any[] = await fetchServerScouting();
+                    const mapped = serverRows.map((r: any) => ({
+                      id: r.id,
+                      matchKey: r.match_key,
+                      teamKey: r.team_key,
+                      scouter: r.scouter_name,
+                      alliance: r.alliance,
+                      position: r.position,
+                      auto: r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false },
+                      teleop: r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 },
+                      endgame: r.payload?.endgame || { climb: 'none' },
+                      defense: r.payload?.defense || 'none',
+                      algae: r.payload?.algae ?? 0,
+                      timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
+                    }));
+                    setData(mapped as ScoutingData[]);
+                    setServerError(null);
+                  } catch (e: any) {
+                    console.error('Failed to fetch server scouting records:', e);
+                    setServerError(String(e?.message || e));
+                  } finally {
+                    setLoadingServer(false);
+                  }
+                }}
+                className="ml-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {loadingServer ? 'Refreshing...' : 'Refresh from server'}
+              </button>
+            </div>
             <button
               onClick={() => setShowConfirmClearData(true)}
               className="ml-3 flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors"
@@ -220,6 +295,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
         {/* Data Table */}
         <div className="bg-white rounded-lg shadow-md p-6">
+          {serverError && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 text-red-800">
+              Failed to load server data: {serverError}
+            </div>
+          )}
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Scouting Data ({filteredAndSortedData.length} entries)
           </h2>
