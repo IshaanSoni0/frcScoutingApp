@@ -153,14 +153,8 @@ export class DataService {
   }
 
   static async syncData(): Promise<void> {
-    try {
-      if (this.isOnline()) {
-        await migrateLocalToServer();
-      }
-    } catch (e) {
-      // surface error for callers but do not throw to avoid breaking UI flows
-      // eslint-disable-next-line no-console
-      console.error('DataService.syncData: error migrating local data to server', e);
+    if (this.isOnline()) {
+      await migrateLocalToServer();
     }
   }
 }

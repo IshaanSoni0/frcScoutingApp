@@ -20,6 +20,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const isOnline = DataService.isOnline();
 
   const getTeamKey = (): string => {
@@ -55,14 +56,24 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
 
     try {
       DataService.saveScoutingData(scoutingData);
-      
       if (isOnline) {
-        await DataService.syncData();
+        const start = Date.now();
+        try {
+          await DataService.syncData();
+          // eslint-disable-next-line no-console
+          console.debug('ScoutingForm: sync completed in', Date.now() - start, 'ms');
+        } catch (e: any) {
+          // surface error to user
+          setSubmitError(String(e?.message || e));
+          // eslint-disable-next-line no-console
+          console.error('ScoutingForm: sync error', e);
+        }
       }
 
       onSubmit();
     } catch (error) {
       console.error('Error saving scouting data:', error);
+      setSubmitError(String((error as any)?.message || error));
     } finally {
       setIsSubmitting(false);
     }
@@ -133,6 +144,9 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {submitError && (
+            <div className="bg-red-100 border border-red-200 text-red-800 p-3 rounded">{submitError}</div>
+          )}
           {/* Autonomous Period */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Autonomous Period</h2>

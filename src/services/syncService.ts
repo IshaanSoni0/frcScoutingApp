@@ -13,10 +13,25 @@ function wait(ms: number) {
 async function sendBatchToServer(records: any[]) {
   const client = getSupabaseClient();
   if (!client) throw new Error('no supabase client');
-
   // try upsert with supabase-js
-  const { error } = await client.from('scouting_records').upsert(records, { onConflict: 'id' });
-  if (error) throw error;
+  try {
+    // log summary for debugging
+    // eslint-disable-next-line no-console
+    console.debug('SyncService: sending batch to scouting_records, count=', records.length);
+    const { error, data } = await client.from('scouting_records').upsert(records, { onConflict: 'id' });
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error('SyncService: upsert error for scouting_records', { error, records });
+      throw error;
+    }
+    // eslint-disable-next-line no-console
+    const rows = Array.isArray(data) ? (data as any[]).length : 0;
+    console.debug('SyncService: upsert succeeded, rows=', rows);
+    return { data };
+  } catch (err) {
+    // bubble up
+    throw err;
+  }
 }
 
 async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: number }): Promise<number> {
