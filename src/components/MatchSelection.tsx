@@ -37,8 +37,9 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
       const fetched = await fetchEventMatches(eventKey);
       // TBA returns an array of match objects; if empty, it may indicate matches not yet released
       if (Array.isArray(fetched) && fetched.length > 0) {
-        setMatches(fetched as Match[]);
-        DataService.saveMatches(fetched as any[]);
+        const sorted = (fetched as Match[]).slice().sort(compareMatches);
+        setMatches(sorted);
+        DataService.saveMatches(sorted as any[]);
         DataService.setSelectedEvent(eventKey);
       } else {
         // No matches returned — treat as 'not yet released'
@@ -270,24 +271,24 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={async () => {
-                          setSaving(true);
-                          setSaveResult(null);
-                          try {
-                            // attach currently selected event to the matches so they are organized server-side
-                            const withEvent = matches.map(m => ({ ...m, event_key: selectedEvent || DataService.getSelectedEvent() }));
-                            DataService.saveMatches(withEvent as any[]);
-                            // Attempt to push matches directly and report how many were synced
-                            const synced = await pushMatchesToServer(withEvent as any[]);
-                            // Also run migrateLocalToServer to ensure any pending scouting is pushed
-                            const migrateResult = await migrateLocalToServer();
-                            setSaveResult(`matches synced: ${synced}; ${migrateResult}`);
-                          } catch (e: any) {
-                            setSaveResult(String(e?.message || e));
-                          } finally {
-                            setSaving(false);
-                            setTimeout(() => setSaveResult(null), 5000);
-                          }
-                        }}
+                        setSaving(true);
+                        setSaveResult(null);
+                        try {
+                          // attach currently selected event to the matches so they are organized server-side
+                          const withEvent = sortedMatches.map(m => ({ ...m, event_key: selectedEvent || DataService.getSelectedEvent() }));
+                          DataService.saveMatches(withEvent as any[]);
+                          // Attempt to push matches directly and report how many were synced
+                          const synced = await pushMatchesToServer(withEvent as any[]);
+                          // Also run migrateLocalToServer to ensure any pending scouting is pushed
+                          const migrateResult = await migrateLocalToServer();
+                          setSaveResult(`matches synced: ${synced}; ${migrateResult}`);
+                        } catch (e: any) {
+                          setSaveResult(String(e?.message || e));
+                        } finally {
+                          setSaving(false);
+                          setTimeout(() => setSaveResult(null), 5000);
+                        }
+                      }}
                       className={`flex items-center gap-2 ${saving ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white px-3 py-2 rounded-md transition-colors text-sm`}
                       disabled={saving}
                     >
@@ -328,7 +329,7 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                       <h3 className="font-semibold text-gray-900">{readableMatchLabel(match)}</h3>
                       <span className="text-xs text-gray-500">{match.key}</span>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div className="bg-red-50 p-2 rounded">
                         <h4 className="font-medium text-red-700 mb-1">Red Alliance</h4>
@@ -338,7 +339,7 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                           </div>
                         ))}
                       </div>
-                      
+
                       <div className="bg-blue-50 p-2 rounded">
                         <h4 className="font-medium text-blue-700 mb-1">Blue Alliance</h4>
                         {match.alliances.blue.team_keys.map((team, index) => (
