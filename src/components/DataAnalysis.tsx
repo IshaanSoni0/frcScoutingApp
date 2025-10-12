@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
-import { fetchServerScouting } from '../services/syncService';
+import { fetchServerScouting, deleteScoutingFromServer } from '../services/syncService';
 import { ArrowLeft, BarChart3, Filter, Download } from 'lucide-react';
 
 interface DataAnalysisProps {
@@ -147,12 +147,27 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   };
 
   const [showConfirmClearData, setShowConfirmClearData] = useState(false);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleClearData = () => {
-    DataService.clearScoutingData();
-    // No need to update `data` state because it's readonly in this simple UI; reload page to reflect or navigate back
-    setShowConfirmClearData(false);
-    window.location.reload();
+    (async () => {
+      setDeleteInProgress(true);
+      setDeleteError(null);
+      try {
+        // attempt to delete server-side first
+        await deleteScoutingFromServer();
+        // then clear local
+        DataService.clearScoutingData();
+        setData([]);
+        setShowConfirmClearData(false);
+      } catch (e: any) {
+        console.error('Failed to delete scouting data from server:', e);
+        setDeleteError(String(e?.message || e));
+      } finally {
+        setDeleteInProgress(false);
+      }
+    })();
   };
 
   const calculateTotalScore = (data: ScoutingData) => {
@@ -219,7 +234,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
             >
               Clear Scouting Data
             </button>
+
           </div>
+
           <div className="flex items-center gap-3">
             <BarChart3 className="w-8 h-8 text-blue-600" />
             <h1 className="text-2xl font-bold text-gray-900">Data Analysis</h1>
@@ -298,6 +315,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           {serverError && (
             <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 text-red-800">
               Failed to load server data: {serverError}
+            </div>
+          )}
+          {deleteError && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 text-red-800">
+              Failed to delete server data: {deleteError}
             </div>
           )}
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -395,9 +417,10 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               </button>
               <button
                 onClick={handleClearData}
-                className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+                disabled={deleteInProgress}
+                className="px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
               >
-                Yes, clear data
+                {deleteInProgress ? 'Deleting...' : 'Yes, clear data'}
               </button>
             </div>
           </div>

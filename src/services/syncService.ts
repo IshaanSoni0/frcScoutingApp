@@ -534,6 +534,23 @@ export async function fetchServerScouting() {
   return data || [];
 }
 
+// delete all scouting records from server
+export async function deleteScoutingFromServer() {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot delete scouting records.');
+
+  try {
+    // attempt to delete all rows; use a broad filter to avoid accidental full-table delete without filter
+    const { error } = await client.from('scouting_records').delete().neq('id', '');
+    if (error) {
+      throw new Error('deleteScoutingFromServer: ' + (error.message || JSON.stringify(error)));
+    }
+    return true;
+  } catch (e) {
+    throw e;
+  }
+}
+
 // push matches array to server immediately and refresh local storage
 export async function pushMatchesToServer(matches: any[]) {
   const client = getSupabaseClient();
