@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Match, User, ScoutingData } from '../types';
+import { Match, User } from '../types';
 import { DataService } from '../services/dataService';
 import { Save, ArrowLeft, Wifi, WifiOff } from 'lucide-react';
 
@@ -42,8 +42,9 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
     e.preventDefault();
     setIsSubmitting(true);
 
-    const scoutingData: ScoutingData = {
-      id: `${match.key}_${getTeamKey()}_${Date.now()}`,
+  const scoutingData: any = {
+      // do not set `id` here — let DataService.assign a proper UUID so Supabase uuid columns are satisfied
+      // id: `${match.key}_${getTeamKey()}_${Date.now()}`,
       matchKey: match.key,
       teamKey: getTeamKey(),
       scouter: user.username,
@@ -52,7 +53,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
       ...formData,
       algae: (formData as any).algae ?? 0,
       timestamp: Date.now(),
-    };
+  } as any;
 
     try {
       DataService.saveScoutingData(scoutingData);

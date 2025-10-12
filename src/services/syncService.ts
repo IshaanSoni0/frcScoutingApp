@@ -45,6 +45,41 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
   const records = all.filter(r => pending.includes(r.id));
   if (records.length === 0) return 0;
 
+  // Normalize ids: Supabase expects UUIDs for primary keys. If any local record uses a non-UUID id
+  // (for example, composed of match/team/timestamp), generate a proper UUID and persist the change
+  // so the pending queue and local storage reference the new UUIDs.
+  const { uuidv4 } = await import('../utils/uuid');
+  let mutated = false;
+  const idMap: Record<string, string> = {};
+  const newAll = all.map((r: any) => {
+    const isUuidLike = typeof r.id === 'string' && r.id.length === 36 && r.id.includes('-');
+    if (!isUuidLike) {
+      const newId = uuidv4();
+      idMap[r.id] = newId;
+      mutated = true;
+      return { ...r, id: newId };
+    }
+    return r;
+  });
+  if (mutated) {
+    // persist updated records and update pending queue
+    DataService.replaceScoutingData(newAll);
+    const newPending = DataService.getPendingScouting().map((pid: string) => idMap[pid] || pid);
+    DataService.setPendingScouting(newPending);
+    // refresh local pointers
+    // eslint-disable-next-line no-console
+    console.debug('SyncService: normalized non-UUID ids for pending scouting records', { idMap });
+    // recalc records to send
+    const refreshedAll = newAll;
+    // eslint-disable-next-line no-shadow
+    const refreshedRecords = refreshedAll.filter((r: any) => newPending.includes(r.id));
+    // override records variable for subsequent processing
+    // @ts-ignore
+    records.length = 0; // clear
+    // @ts-ignore
+    records.push(...refreshedRecords);
+  }
+
   const client = getSupabaseClient();
   if (!client) {
     throw new Error('Supabase client not configured; cannot push pending scouting.');

@@ -133,6 +133,14 @@ export class DataService {
     }
   }
 
+  static setPendingScouting(pending: string[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PENDING_SCOUTING, JSON.stringify(pending));
+    } catch {
+      // ignore
+    }
+  }
+
   static markScoutingSynced(ids: string[]): void {
     try {
       const data = this.getScoutingData() as any[];
@@ -142,6 +150,15 @@ export class DataService {
       const pending = this.getPendingScouting().filter(id => !ids.includes(id));
       localStorage.setItem(STORAGE_KEYS.PENDING_SCOUTING, JSON.stringify(pending));
     } catch (e) {
+      // ignore
+    }
+  }
+
+  // Replace the entire scouting data array (used for id-migration fixes)
+  static replaceScoutingData(records: any[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SCOUTING_DATA, JSON.stringify(records));
+    } catch {
       // ignore
     }
   }
