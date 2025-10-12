@@ -159,27 +159,34 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
           <div className="max-h-64 overflow-y-auto space-y-3">
             {serverMatches.length === 0 ? (
               <div className="text-gray-500">No queued matches found on server.</div>
-            ) : (
-              Object.entries(serverMatches.reduce((acc: any, cur: any) => {
-                const key = cur.event_key || 'unknown';
-                if (!acc[key]) acc[key] = [];
-                acc[key].push(cur);
-                return acc;
-              }, {})).map(([eventKey, rows]: any) => (
-                <div key={eventKey} className="border border-gray-100 rounded p-3">
-                  <div className="font-medium text-sm text-gray-700 mb-2">Event: {eventKey}</div>
-                  <div className="text-sm text-gray-600">
-                    {rows.slice(0, 20).map((r: any) => (
-                      <div key={r.key} className="flex items-center justify-between py-1">
-                        <div>{r.key}</div>
-                        <div className="text-xs text-gray-500">{r.match_number}</div>
-                      </div>
-                    ))}
-                    {rows.length > 20 && <div className="text-xs text-gray-400 mt-2">{rows.length - 20} more...</div>}
+              ) : (
+                Object.entries(serverMatches.reduce((acc: any, cur: any) => {
+                  const key = cur.event_key || 'unknown';
+                  if (!acc[key]) acc[key] = [];
+                  acc[key].push(cur);
+                  return acc;
+                }, {})).map(([eventKey, rows]: any) => (
+                  <div key={eventKey} className="border border-gray-100 rounded p-3">
+                    <div className="font-medium text-sm text-gray-700 mb-2">Event: {eventKey}</div>
+                    <div className="text-sm text-gray-600">
+                      {rows.map((r: any) => (
+                        <div key={r.key} className="flex items-center justify-between py-1">
+                          <div>{(() => {
+                            const lvl = r.comp_level || 'qm';
+                            const setNumber = (r as any).set_number;
+                            const matchNumber = r.match_number;
+                            if (lvl === 'qm') return `Qualification ${matchNumber}`;
+                            const name = compLevelName(lvl);
+                            if (setNumber) return `${name} ${setNumber} - Match ${matchNumber}`;
+                            return `${name} ${matchNumber}`;
+                          })()}</div>
+                          <div className="text-xs text-gray-500">{r.key}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
           </div>
         </div>
 
