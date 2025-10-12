@@ -1,5 +1,6 @@
 import { ScoutingData, Scouter } from '../types';
 import { uuidv4 } from '../utils/uuid';
+import { migrateLocalToServer } from './syncService';
 
 const STORAGE_KEYS = {
   SCOUTING_DATA: 'frc-scouting-data',
@@ -152,7 +153,14 @@ export class DataService {
   }
 
   static async syncData(): Promise<void> {
-    // SyncService will orchestrate this; keep for compatibility
-    return;
+    try {
+      if (this.isOnline()) {
+        await migrateLocalToServer();
+      }
+    } catch (e) {
+      // surface error for callers but do not throw to avoid breaking UI flows
+      // eslint-disable-next-line no-console
+      console.error('DataService.syncData: error migrating local data to server', e);
+    }
   }
 }
