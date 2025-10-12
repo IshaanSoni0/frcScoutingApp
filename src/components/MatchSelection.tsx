@@ -30,6 +30,36 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
     } catch (e) {}
   }, []);
 
+  // On mount, hydrate matches from local storage (so admin sees saved/queued matches)
+  useEffect(() => {
+    try {
+      const sel = DataService.getSelectedEvent();
+      if (sel) setSelectedEvent(sel);
+      const stored = DataService.getMatches() || [];
+      if (stored && stored.length > 0) {
+        const sorted = stored.slice().sort(compareMatches);
+        setMatches(sorted as Match[]);
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'frc-matches' || e.key === 'frc-selected-event') {
+        try {
+          const sel = DataService.getSelectedEvent();
+          if (sel) setSelectedEvent(sel);
+          const stored = DataService.getMatches() || [];
+          setMatches((stored as any[]).slice().sort(compareMatches));
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   const loadMatches = async (eventKey: string) => {
     setLoading(true);
     try {

@@ -25,8 +25,8 @@ export function parseMatchKey(key: string) {
     const parts = key.split('_');
     if (parts.length < 2) return null;
     const suffix = parts[1];
-    // comp_level is letters before digits
-    const m = suffix.match(/^([a-z]+)(\d*)m?(\d+)?$/i);
+    // comp_level is letters before digits. Accept extra trailing chars after match number.
+    const m = suffix.match(/^([a-z]+)(\d*)m?(\d+)?.*$/i);
     if (!m) return null;
     const comp_level = m[1];
     const maybeSet = m[2];
@@ -56,8 +56,10 @@ export function compareMatches(a: any, b: any) {
   const aParsed = a && a.key ? parseMatchKey(a.key) : null;
   const bParsed = b && b.key ? parseMatchKey(b.key) : null;
 
-  const ra = compLevelRank[a.comp_level ?? aParsed?.comp_level] ?? 99;
-  const rb = compLevelRank[b.comp_level ?? bParsed?.comp_level] ?? 99;
+  const aComp = String(a.comp_level ?? aParsed?.comp_level ?? '').toLowerCase();
+  const bComp = String(b.comp_level ?? bParsed?.comp_level ?? '').toLowerCase();
+  const ra = compLevelRank[aComp] ?? 99;
+  const rb = compLevelRank[bComp] ?? 99;
   if (ra !== rb) return ra - rb;
 
   // For playoff levels, prefer set_number then match_number
