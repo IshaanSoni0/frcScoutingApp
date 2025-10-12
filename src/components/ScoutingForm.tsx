@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Match, User } from '../types';
+import { readableMatchLabel } from '../utils/match';
 import { DataService } from '../services/dataService';
 import { Save, ArrowLeft, Wifi, WifiOff } from 'lucide-react';
 
@@ -131,9 +132,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
           </div>
           
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Qualification {match.match_number}
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900">{readableMatchLabel(match)}</h1>
             <div className="mt-2 text-lg">
               <span className={`font-semibold ${user.alliance === 'red' ? 'text-red-600' : 'text-blue-600'}`}>
                 Team {getTeamKey().replace('frc', '')}

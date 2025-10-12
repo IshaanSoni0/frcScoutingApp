@@ -1,5 +1,5 @@
-import React from 'react';
 import { Match, User } from '../types';
+import { compareMatches, readableMatchLabel } from '../utils/match';
 import { Clock, Users } from 'lucide-react';
 
 interface MatchListProps {
@@ -16,16 +16,7 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
     return teamKey?.replace('frc', '') || 'Unknown';
   };
 
-  const formatMatchType = (compLevel: string): string => {
-    const types: Record<string, string> = {
-      'qm': 'Qualification',
-      'ef': 'Elimination',
-      'qf': 'Quarterfinal',
-      'sf': 'Semifinal',
-      'f': 'Final',
-    };
-    return types[compLevel] || compLevel.toUpperCase();
-  };
+  // match labeling handled by shared helper
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -56,7 +47,7 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
         </div>
 
         <div className="grid gap-4">
-          {matches.map((match) => (
+          {matches.slice().sort(compareMatches).map((match) => (
             <div
               key={match.key}
               onClick={() => onMatchSelect(match)}
@@ -65,7 +56,7 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {formatMatchType(match.comp_level)} {match.match_number}
+                    {readableMatchLabel(match)}
                   </h3>
                   <p className="text-sm text-gray-600 flex items-center gap-1">
                     <Clock className="w-4 h-4" />

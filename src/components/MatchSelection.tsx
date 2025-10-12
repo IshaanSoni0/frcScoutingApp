@@ -4,6 +4,7 @@ import { fetchEvents, fetchEventMatches, getRuntimeTbaKey, setRuntimeTbaKey, cle
 import { DataService } from '../services/dataService';
 import { migrateLocalToServer, pushMatchesToServer, deleteMatchesFromServer, fetchServerMatches } from '../services/syncService';
 import { ArrowLeft, Calendar, Search, Download } from 'lucide-react';
+import { readableMatchLabel, compareMatches } from '../utils/match';
 
 interface MatchSelectionProps {
   onBack: () => void;
@@ -85,32 +86,9 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
   const [deleteInProgress, setDeleteInProgress] = useState(false);
 
   // Sort matches for display: first by competition level, then by match number, then by key.
-  const compLevelRank: Record<string, number> = {
-    qm: 1, // qualification
-    ef: 2,
-    qf: 3,
-    sf: 4,
-    f: 5,
-  };
+  // use shared helpers from ../utils/match
 
-  function compLevelName(level: string) {
-    switch (level) {
-      case 'qm': return 'Qualification';
-      case 'ef': return 'Eighth-final';
-      case 'qf': return 'Quarterfinal';
-      case 'sf': return 'Semifinal';
-      case 'f': return 'Final';
-      default: return level.toUpperCase();
-    }
-  }
-
-  const sortedMatches = [...matches].sort((a, b) => {
-    const ra = compLevelRank[a.comp_level] ?? 99;
-    const rb = compLevelRank[b.comp_level] ?? 99;
-    if (ra !== rb) return ra - rb;
-    if (a.match_number !== b.match_number) return a.match_number - b.match_number;
-    return a.key.localeCompare(b.key);
-  });
+  const sortedMatches = [...matches].sort(compareMatches);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -169,17 +147,9 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                   <div key={eventKey} className="border border-gray-100 rounded p-3">
                     <div className="font-medium text-sm text-gray-700 mb-2">Event: {eventKey}</div>
                     <div className="text-sm text-gray-600">
-                      {rows.map((r: any) => (
+                          {rows.map((r: any) => (
                         <div key={r.key} className="flex items-center justify-between py-1">
-                          <div>{(() => {
-                            const lvl = r.comp_level || 'qm';
-                            const setNumber = (r as any).set_number;
-                            const matchNumber = r.match_number;
-                            if (lvl === 'qm') return `Qualification ${matchNumber}`;
-                            const name = compLevelName(lvl);
-                            if (setNumber) return `${name} ${setNumber} - Match ${matchNumber}`;
-                            return `${name} ${matchNumber}`;
-                          })()}</div>
+                          <div>{readableMatchLabel(r)}</div>
                           <div className="text-xs text-gray-500">{r.key}</div>
                         </div>
                       ))}
@@ -355,19 +325,7 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                 {sortedMatches.map((match) => (
                   <div key={match.key} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-semibold text-gray-900">
-                        {(() => {
-                          // Build a human readable title. If non-qualification comp levels appear,
-                          // include them to disambiguate duplicate numbers (e.g., Quarterfinal 1).
-                          const lvl = match.comp_level || 'qm';
-                          const name = compLevelName(lvl);
-                          // Some match objects include a set_number (playoff sets). Show it when present.
-                          const setNumber = (match as any).set_number;
-                          if (lvl === 'qm') return `${name} ${match.match_number}`;
-                          if (setNumber) return `${name} ${setNumber} - Match ${match.match_number}`;
-                          return `${name} ${match.match_number}`;
-                        })()}
-                      </h3>
+                      <h3 className="font-semibold text-gray-900">{readableMatchLabel(match)}</h3>
                       <span className="text-xs text-gray-500">{match.key}</span>
                     </div>
                     
