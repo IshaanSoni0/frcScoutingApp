@@ -109,7 +109,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       'Match', 'Team', 'Scouter', 'Alliance', 'Position',
       'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Move', 'Auto Net', 'Auto Prosser',
       'Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Net', 'Teleop Prosser',
-      'Climb', 'Defense', 'Timestamp'
+      'Climb', 'Driver Skill', 'Robot Speed', 'Died', 'Defense', 'Timestamp'
     ];
 
     const rows = filteredAndSortedData.map(d => [
@@ -132,6 +132,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     d.teleop.net ? 'Yes' : 'No',
     d.teleop.prosser ? 'Yes' : 'No',
       d.endgame.climb,
+      d.endgame.driverSkill ?? '',
+      d.endgame.robotSpeed ?? '',
+      d.endgame.died ? 'Yes' : 'No',
       d.defense,
       new Date(d.timestamp).toLocaleString()
     ]);
@@ -345,6 +348,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <th className="text-left py-3 font-medium text-gray-900">Auto Prosser</th>
                     <th className="text-left py-3 font-medium text-gray-900">Total</th>
                     <th className="text-left py-3 font-medium text-gray-900">Climb</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Driver Skill</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Robot Speed</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Died</th>
                     <th className="text-left py-3 font-medium text-gray-900">Defense</th>
                     <th className="text-left py-3 font-medium text-gray-900">Teleop Net</th>
                     <th className="text-left py-3 font-medium text-gray-900">Teleop Prosser</th>
@@ -385,6 +391,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                           {entry.endgame.climb}
                         </span>
                       </td>
+                      <td className="py-3 text-gray-600">{entry.endgame.driverSkill ?? ''}</td>
+                      <td className="py-3 text-gray-600">{entry.endgame.robotSpeed ?? ''}</td>
+                      <td className="py-3 text-gray-600">{entry.endgame.died ? 'Yes' : 'No'}</td>
                       <td className="py-3">
                         <span className={`px-2 py-1 text-xs font-medium rounded ${
                           entry.defense === 'great' ? 'bg-green-100 text-green-800' :

@@ -45,6 +45,9 @@ export interface ScoutingData {
   };
   endgame: {
     climb: 'none' | 'low' | 'deep';
+    driverSkill?: 'low' | 'medium' | 'high';
+    robotSpeed?: 'slow' | 'medium' | 'fast';
+    died?: boolean;
   };
   defense: 'none' | 'bad' | 'ok' | 'great';
   timestamp: number;

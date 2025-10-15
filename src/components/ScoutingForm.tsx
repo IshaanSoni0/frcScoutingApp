@@ -15,7 +15,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
   const [formData, setFormData] = useState({
     auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false, net: false, prosser: false },
     teleop: { l1: 0, l2: 0, l3: 0, l4: 0, net: false, prosser: false },
-    endgame: { climb: 'none' as 'none' | 'low' | 'deep' },
+  endgame: { climb: 'none' as 'none' | 'low' | 'deep', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: false },
     defense: 'none' as 'none' | 'bad' | 'ok' | 'great',
   });
 
@@ -280,7 +280,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                     type="button"
                     onClick={() => setFormData(prev => ({
                       ...prev,
-                      endgame: { climb: option.value as 'none' | 'low' | 'deep' }
+                      endgame: { ...prev.endgame, climb: option.value as 'none' | 'low' | 'deep' }
                     }))}
                     className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
                       formData.endgame.climb === option.value
@@ -292,8 +292,67 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                   </button>
                 ))}
               </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Driver Skill</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'low', label: 'Low' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'high', label: 'High' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, driverSkill: option.value as any } }))}
+                      className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
+                        formData.endgame.driverSkill === option.value
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Robot Speed</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'slow', label: 'Slow' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'fast', label: 'Fast' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, robotSpeed: option.value as any } }))}
+                      className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
+                        formData.endgame.robotSpeed === option.value
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!!formData.endgame.died}
+                    onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, died: e.target.checked } }))}
+                    className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  />
+                  <span className="text-gray-700">Robot died in match</span>
+                </label>
+              </div>
             </div>
-            {/* Algae removed; Net/Prosser toggles added in Auto/Teleop sections */}
           </div>
 
           {/* Defense */}
