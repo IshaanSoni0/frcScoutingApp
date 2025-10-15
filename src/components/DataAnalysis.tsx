@@ -29,11 +29,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           scouter: r.scouter_name,
           alliance: r.alliance,
           position: r.position,
-          auto: r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false },
-          teleop: r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 },
+            auto: { ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }), net: r.payload?.auto?.net ?? false, prosser: r.payload?.auto?.prosser ?? false },
+            teleop: { ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }), net: r.payload?.teleop?.net ?? false, prosser: r.payload?.teleop?.prosser ?? false },
           endgame: r.payload?.endgame || { climb: 'none' },
           defense: r.payload?.defense || 'none',
-          algae: r.payload?.algae ?? 0,
+            // algae removed — keep compatibility by ignoring
           timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
         }));
         setData(mapped as ScoutingData[]);
@@ -107,9 +107,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const exportToCSV = () => {
     const headers = [
       'Match', 'Team', 'Scouter', 'Alliance', 'Position',
-      'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Move',
-      'Algae',
-      'Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4',
+      'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Move', 'Auto Net', 'Auto Prosser',
+      'Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Net', 'Teleop Prosser',
       'Climb', 'Defense', 'Timestamp'
     ];
 
@@ -124,11 +123,14 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   d.auto.l3,
   d.auto.l4,
   d.auto.hasAuto ? 'Yes' : 'No',
-  d.algae ?? 0,
+  d.auto.net ? 'Yes' : 'No',
+  d.auto.prosser ? 'Yes' : 'No',
   d.teleop.l1,
-      d.teleop.l2,
-      d.teleop.l3,
-      d.teleop.l4,
+    d.teleop.l2,
+    d.teleop.l3,
+    d.teleop.l4,
+    d.teleop.net ? 'Yes' : 'No',
+    d.teleop.prosser ? 'Yes' : 'No',
       d.endgame.climb,
       d.defense,
       new Date(d.timestamp).toLocaleString()
@@ -339,10 +341,13 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <th className="text-left py-3 font-medium text-gray-900">Alliance</th>
                     <th className="text-left py-3 font-medium text-gray-900">Auto L1-L4</th>
                     <th className="text-left py-3 font-medium text-gray-900">Teleop L1-L4</th>
-                    <th className="text-left py-3 font-medium text-gray-900">Algae</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Auto Net</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Auto Prosser</th>
                     <th className="text-left py-3 font-medium text-gray-900">Total</th>
                     <th className="text-left py-3 font-medium text-gray-900">Climb</th>
                     <th className="text-left py-3 font-medium text-gray-900">Defense</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Teleop Net</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Teleop Prosser</th>
                     <th className="text-left py-3 font-medium text-gray-900">Scouter</th>
                     <th className="text-left py-3 font-medium text-gray-900">Date</th>
                   </tr>
@@ -366,9 +371,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <td className="py-3 text-gray-600">
                         {entry.teleop.l1}/{entry.teleop.l2}/{entry.teleop.l3}/{entry.teleop.l4}
                       </td>
-                      <td className="py-3 text-gray-600">
-                        {entry.algae ?? 0}
-                      </td>
+                      <td className="py-3 text-gray-600">{entry.auto.net ? 'Yes' : 'No'}</td>
+                      <td className="py-3 text-gray-600">{entry.auto.prosser ? 'Yes' : 'No'}</td>
                       <td className="py-3 font-medium text-gray-900">
                         {calculateTotalScore(entry)}
                       </td>
@@ -391,6 +395,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                           {entry.defense}
                         </span>
                       </td>
+                      <td className="py-3 text-gray-600">{entry.teleop.net ? 'Yes' : 'No'}</td>
+                      <td className="py-3 text-gray-600">{entry.teleop.prosser ? 'Yes' : 'No'}</td>
                       <td className="py-3 text-gray-600">{entry.scouter}</td>
                       <td className="py-3 text-gray-600">
                         {new Date(entry.timestamp).toLocaleDateString()}

@@ -13,9 +13,8 @@ interface ScoutingFormProps {
 
 export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProps) {
   const [formData, setFormData] = useState({
-    auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false },
-    teleop: { l1: 0, l2: 0, l3: 0, l4: 0 },
-    algae: 0,
+    auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false, net: false, prosser: false },
+    teleop: { l1: 0, l2: 0, l3: 0, l4: 0, net: false, prosser: false },
     endgame: { climb: 'none' as 'none' | 'low' | 'deep' },
     defense: 'none' as 'none' | 'bad' | 'ok' | 'great',
   });
@@ -51,8 +50,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
       scouter: user.username,
       alliance: user.alliance,
       position: user.position,
-      ...formData,
-      algae: (formData as any).algae ?? 0,
+    ...formData,
       timestamp: Date.now(),
   } as any;
 
@@ -188,6 +186,22 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
               />
               <span className="text-gray-700">Robot moved in auto</span>
             </label>
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: !prev.auto.net } }))}
+                className={`px-3 py-2 rounded border ${formData.auto.net ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
+              >
+                Net
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: !prev.auto.prosser } }))}
+                className={`px-3 py-2 rounded border ${formData.auto.prosser ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
+              >
+                Prosser
+              </button>
+            </div>
           </div>
 
           {/* Teleop Period */}
@@ -218,6 +232,22 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                 onIncrement={() => handleScoreChange('teleop', 'l4', 1)}
                 onDecrement={() => handleScoreChange('teleop', 'l4', -1)}
               />
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: !prev.teleop.net } }))}
+                className={`px-3 py-2 rounded border ${formData.teleop.net ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
+              >
+                Net
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: !prev.teleop.prosser } }))}
+                className={`px-3 py-2 rounded border ${formData.teleop.prosser ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
+              >
+                Prosser
+              </button>
             </div>
           </div>
 
@@ -250,26 +280,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                 ))}
               </div>
             </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Algae collected</label>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, algae: Math.max(0, (prev as any).algae - 1) }))}
-                  className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center font-bold hover:bg-red-600 transition-colors"
-                >
-                  −
-                </button>
-                <div className="text-2xl font-bold text-gray-900 min-w-[2ch]">{(formData as any).algae}</div>
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, algae: (prev as any).algae + 1 }))}
-                  className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold hover:bg-green-600 transition-colors"
-                >
-                  +
-                </button>
-              </div>
-            </div>
+            {/* Algae removed; Net/Prosser toggles added in Auto/Teleop sections */}
           </div>
 
           {/* Defense */}

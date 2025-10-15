@@ -32,14 +32,17 @@ export interface ScoutingData {
     l3: number;
     l4: number;
     hasAuto: boolean;
+    net?: boolean;
+    prosser?: boolean;
   };
   teleop: {
     l1: number;
     l2: number;
     l3: number;
     l4: number;
+    net?: boolean;
+    prosser?: boolean;
   };
-  algae?: number;
   endgame: {
     climb: 'none' | 'low' | 'deep';
   };
