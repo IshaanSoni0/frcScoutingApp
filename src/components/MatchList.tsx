@@ -1,6 +1,8 @@
 import { Match, User } from '../types';
 import { compareMatches, readableMatchLabel } from '../utils/match';
-import { Clock, Users } from 'lucide-react';
+import { Clock, Users, CheckCircle } from 'lucide-react';
+import { DataService } from '../services/dataService';
+import { useEffect, useState } from 'react';
 
 interface MatchListProps {
   matches: Match[];
@@ -15,6 +17,24 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
     const teamKey = alliance.team_keys[user.position - 1];
     return teamKey?.replace('frc', '') || 'Unknown';
   };
+
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'frc-scouting-data' || e.key === 'frc-pending-scouting') {
+        setTick(t => t + 1);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const localScouting = DataService.getScoutingData() || [];
+  const isScoutedByUser = (m: Match) => localScouting.some((s: any) => s.matchKey === m.key && s.scouter === user.username);
+  const sorted = matches.slice().sort(compareMatches);
+  const unscouted = sorted.filter(m => !isScoutedByUser(m));
+  const scouted = sorted.filter(m => isScoutedByUser(m));
+  const orderedMatches = [...unscouted, ...scouted];
 
   // match labeling handled by shared helper
 
@@ -47,11 +67,11 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
         </div>
 
         <div className="grid gap-4">
-          {matches.slice().sort(compareMatches).map((match) => (
+          {orderedMatches.map((match) => (
             <div
               key={match.key}
               onClick={() => onMatchSelect(match)}
-              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-blue-500"
+              className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer ${isScoutedByUser(match) ? 'opacity-90 border-l-4 border-green-500' : 'border-l-4 border-blue-500'}`}
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
