@@ -2,6 +2,7 @@ import { Match, User } from '../types';
 import { compareMatches, readableMatchLabel } from '../utils/match';
 import { Clock, Users, CheckCircle } from 'lucide-react';
 import { DataService } from '../services/dataService';
+import { fetchServerScouting } from '../services/syncService';
 import { useEffect, useState } from 'react';
 
 interface MatchListProps {
@@ -19,6 +20,7 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
   };
 
   const [, setTick] = useState(0);
+  const [serverScouting, setServerScouting] = useState<any[]>([]);
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'frc-scouting-data' || e.key === 'frc-pending-scouting') {
@@ -29,8 +31,46 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
+  // load server-side scouting records once and refresh when online
+  useEffect(() => {
+    let mounted = true;
+    async function loadServer() {
+      try {
+        const data = await fetchServerScouting();
+        if (!mounted) return;
+        setServerScouting(Array.isArray(data) ? data : []);
+      } catch (e) {
+        // ignore fetch errors; we'll fall back to local-only
+        // eslint-disable-next-line no-console
+        console.warn('MatchList: failed to fetch server scouting', e);
+        setServerScouting([]);
+      } finally {
+        // noop
+      }
+    }
+
+    loadServer();
+
+    // refresh when coming back online
+    const onOnline = () => {
+      loadServer();
+    };
+    window.addEventListener('online', onOnline);
+    return () => {
+      mounted = false;
+      window.removeEventListener('online', onOnline);
+    };
+  }, []);
+
   const localScouting = DataService.getScoutingData() || [];
-  const isScoutedByUser = (m: Match) => localScouting.some((s: any) => s.matchKey === m.key && s.scouter === user.username);
+  // consider a match scouted for this user if either local or server contains a record
+  const isScoutedByUser = (m: Match) => {
+    const localHit = localScouting.some((s: any) => s.matchKey === m.key && s.scouter === user.username);
+    if (localHit) return true;
+    // check server records (match_key / scouter_name)
+    const serverHit = serverScouting.some((r: any) => (r.match_key === m.key || r.match_key === m.key) && (r.scouter_name === user.username));
+    return !!serverHit;
+  };
   const sorted = matches.slice().sort(compareMatches);
   const unscouted = sorted.filter(m => !isScoutedByUser(m));
   const scouted = sorted.filter(m => isScoutedByUser(m));
