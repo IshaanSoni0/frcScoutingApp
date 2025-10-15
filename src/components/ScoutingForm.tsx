@@ -148,7 +148,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
           {/* Autonomous Period */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Autonomous Period</h2>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <ScoreButton
                 label="L1"
                 value={formData.auto.l1}
@@ -173,6 +173,8 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                 onIncrement={() => handleScoreChange('auto', 'l4', 1)}
                 onDecrement={() => handleScoreChange('auto', 'l4', -1)}
               />
+            </div>
+            <div className="flex justify-center gap-4 mt-4">
               <ScoreButton
                 label="Net"
                 value={formData.auto.net ? 1 : 0}
@@ -219,7 +221,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
           {/* Teleop Period */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Teleop Period</h2>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <ScoreButton
                 label="L1"
                 value={formData.teleop.l1}
@@ -244,6 +246,8 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                 onIncrement={() => handleScoreChange('teleop', 'l4', 1)}
                 onDecrement={() => handleScoreChange('teleop', 'l4', -1)}
               />
+            </div>
+            <div className="flex justify-center gap-4 mt-4">
               <ScoreButton
                 label="Net"
                 value={formData.teleop.net ? 1 : 0}
