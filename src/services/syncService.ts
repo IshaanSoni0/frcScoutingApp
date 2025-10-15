@@ -152,6 +152,15 @@ export async function migrateLocalToServer() {
     throw e;
   }
 
+  // If we pushed any pending scouting, notify interested listeners that server state changed
+  try {
+    if (pendingSynced && pendingSynced > 0) {
+      notifyServerScoutingUpdated();
+    }
+  } catch (e) {
+    // ignore notifier failures
+  }
+
   // 2) pull scouters
   try {
     const { data: scouters, error: sErr } = await client.from('scouters').select('*');
@@ -425,7 +434,28 @@ export async function migrateLocalToServer() {
     console.error('SyncService: error pulling matches', e);
   }
   // return a short status summary for UI consumption
-  return `Synced scouting: ${typeof pendingSynced === 'number' ? pendingSynced : 0}; server scouters: ${scoutersUpserted ?? 0}; matches synced: ${matchesUpserted ?? 0}`;
+  const summary = `Synced scouting: ${typeof pendingSynced === 'number' ? pendingSynced : 0}; server scouters: ${scoutersUpserted ?? 0}; matches synced: ${matchesUpserted ?? 0}`;
+  // Notify listeners that the migration completed and server state may have changed
+  try {
+    notifyServerScoutingUpdated();
+  } catch (e) {
+    // ignore
+  }
+  return summary;
+}
+
+// Notify other windows/tabs/components that server scouting may have changed.
+function notifyServerScoutingUpdated() {
+  try {
+    if (typeof window !== 'undefined' && window && window.dispatchEvent) {
+      // eslint-disable-next-line no-undef
+      window.dispatchEvent(new CustomEvent('server-scouting-updated'));
+    }
+  } catch (e) {
+    // ignore environments without CustomEvent or window
+    // eslint-disable-next-line no-console
+    console.debug('notifyServerScoutingUpdated failed', e);
+  }
 }
 
 // push scouters (array) to server immediately and refresh local storage

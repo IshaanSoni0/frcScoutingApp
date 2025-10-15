@@ -55,10 +55,15 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
     const onOnline = () => {
       loadServer();
     };
+    const onServerUpdated = () => {
+      loadServer();
+    };
     window.addEventListener('online', onOnline);
+    window.addEventListener('server-scouting-updated', onServerUpdated as EventListener);
     return () => {
       mounted = false;
       window.removeEventListener('online', onOnline);
+      window.removeEventListener('server-scouting-updated', onServerUpdated as EventListener);
     };
   }, []);
 
