@@ -47,7 +47,7 @@ export interface ScoutingData {
     climb: 'none' | 'low' | 'deep';
     driverSkill?: 'low' | 'medium' | 'high';
     robotSpeed?: 'slow' | 'medium' | 'fast';
-    died?: boolean;
+  died?: 'none' | 'partway' | 'start';
   };
   defense: 'none' | 'bad' | 'ok' | 'great';
   timestamp: number;

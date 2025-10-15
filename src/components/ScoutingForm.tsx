@@ -15,7 +15,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
   const [formData, setFormData] = useState({
     auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false, net: false, prosser: false },
     teleop: { l1: 0, l2: 0, l3: 0, l4: 0, net: false, prosser: false },
-  endgame: { climb: 'none' as 'none' | 'low' | 'deep', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: false },
+  endgame: { climb: 'none' as 'none' | 'low' | 'deep', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: 'none' as 'none' | 'partway' | 'start' },
     defense: 'none' as 'none' | 'bad' | 'ok' | 'great',
   });
 
@@ -341,16 +341,26 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center gap-3">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={!!formData.endgame.died}
-                    onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, died: e.target.checked } }))}
-                    className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                  />
-                  <span className="text-gray-700">Robot died in match</span>
-                </label>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Robot Died</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'none', label: "Didn't die" },
+                    { value: 'partway', label: 'Died partway' },
+                    { value: 'start', label: 'Died at start' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, died: option.value as any } }))}
+                      className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
+                          formData.endgame.died === option.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
+                        }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

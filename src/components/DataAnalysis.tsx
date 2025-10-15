@@ -31,7 +31,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           position: r.position,
             auto: { ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }), net: r.payload?.auto?.net ?? false, prosser: r.payload?.auto?.prosser ?? false },
             teleop: { ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }), net: r.payload?.teleop?.net ?? false, prosser: r.payload?.teleop?.prosser ?? false },
-          endgame: r.payload?.endgame || { climb: 'none' },
+          endgame: { ...(r.payload?.endgame || { climb: 'none' }), died: r.payload?.endgame?.died ?? 'none' },
           defense: r.payload?.defense || 'none',
             // algae removed — keep compatibility by ignoring
           timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
@@ -132,9 +132,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     d.teleop.net ? 'Yes' : 'No',
     d.teleop.prosser ? 'Yes' : 'No',
       d.endgame.climb,
-      d.endgame.driverSkill ?? '',
-      d.endgame.robotSpeed ?? '',
-      d.endgame.died ? 'Yes' : 'No',
+  d.endgame.driverSkill ?? '',
+  d.endgame.robotSpeed ?? '',
+  (d.endgame.died === 'none' ? "Didn't die" : d.endgame.died === 'partway' ? 'Died partway' : d.endgame.died === 'start' ? 'Died at start' : ''),
       d.defense,
       new Date(d.timestamp).toLocaleString()
     ]);
