@@ -1,4 +1,5 @@
-const CACHE_NAME = 'frc-scout-v3';
+// Bump this value when you want clients to evict old cached assets and load a fresh build
+const CACHE_NAME = 'frc-scout-v4';
 // Use relative paths so the service worker works under a sub-path (e.g. GitHub Pages)
 const urlsToCache = [
   './',
