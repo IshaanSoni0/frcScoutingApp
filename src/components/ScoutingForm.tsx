@@ -13,7 +13,7 @@ interface ScoutingFormProps {
 
 export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProps) {
   const [formData, setFormData] = useState({
-    auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false, net: false, prosser: false },
+    auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false },
     teleop: { l1: 0, l2: 0, l3: 0, l4: 0, net: false, prosser: false },
   endgame: { climb: 'none' as 'none' | 'low' | 'deep', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: 'none' as 'none' | 'partway' | 'start' },
     defense: 'none' as 'none' | 'bad' | 'ok' | 'great',
@@ -174,20 +174,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                 onDecrement={() => handleScoreChange('auto', 'l4', -1)}
               />
             </div>
-            <div className="flex justify-center gap-4 mt-4">
-              <ScoreButton
-                label="Net"
-                value={formData.auto.net ? 1 : 0}
-                onIncrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: true } }))}
-                onDecrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: false } }))}
-              />
-              <ScoreButton
-                label="Prosser"
-                value={formData.auto.prosser ? 1 : 0}
-                onIncrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: true } }))}
-                onDecrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: false } }))}
-              />
-            </div>
+            {/* Auto Net/Prosser removed - tracked only in Teleop */}
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -200,22 +187,6 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
               />
               <span className="text-gray-700">Robot moved in auto</span>
             </label>
-            <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: !prev.auto.net } }))}
-                className={`px-3 py-2 rounded border ${formData.auto.net ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
-              >
-                Net
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: !prev.auto.prosser } }))}
-                className={`px-3 py-2 rounded border ${formData.auto.prosser ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
-              >
-                Prosser
-              </button>
-            </div>
           </div>
 
           {/* Teleop Period */}

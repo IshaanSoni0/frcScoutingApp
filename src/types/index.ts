@@ -32,8 +32,7 @@ export interface ScoutingData {
     l3: number;
     l4: number;
     hasAuto: boolean;
-    net?: boolean;
-    prosser?: boolean;
+    // net/prosser removed from auto (only tracked in teleop)
   };
   teleop: {
     l1: number;

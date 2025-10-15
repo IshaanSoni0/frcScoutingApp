@@ -29,7 +29,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           scouter: r.scouter_name,
           alliance: r.alliance,
           position: r.position,
-            auto: { ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }), net: r.payload?.auto?.net ?? false, prosser: r.payload?.auto?.prosser ?? false },
+            auto: { ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }) },
             teleop: { ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }), net: r.payload?.teleop?.net ?? false, prosser: r.payload?.teleop?.prosser ?? false },
           endgame: { ...(r.payload?.endgame || { climb: 'none' }), died: r.payload?.endgame?.died ?? 'none' },
           defense: r.payload?.defense || 'none',
@@ -107,7 +107,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const exportToCSV = () => {
     const headers = [
       'Match', 'Team', 'Scouter', 'Alliance', 'Position',
-      'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Move', 'Auto Net', 'Auto Prosser',
+      'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Move',
       'Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Net', 'Teleop Prosser',
       'Climb', 'Driver Skill', 'Robot Speed', 'Died', 'Defense', 'Timestamp'
     ];
@@ -123,8 +123,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   d.auto.l3,
   d.auto.l4,
   d.auto.hasAuto ? 'Yes' : 'No',
-  d.auto.net ? 'Yes' : 'No',
-  d.auto.prosser ? 'Yes' : 'No',
+  // auto.net/auto.prosser removed
     d.teleop.l1,
       d.teleop.l2,
       d.teleop.l3,
@@ -176,7 +175,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   };
 
   const calculateTotalScore = (data: ScoutingData) => {
-    const autoTotal = data.auto.l1 + data.auto.l2 + data.auto.l3 + data.auto.l4 + (data.auto.net ? 1 : 0) + (data.auto.prosser ? 1 : 0);
+    const autoTotal = data.auto.l1 + data.auto.l2 + data.auto.l3 + data.auto.l4;
     const teleopTotal = data.teleop.l1 + data.teleop.l2 + data.teleop.l3 + data.teleop.l4 + (data.teleop.net ? 1 : 0) + (data.teleop.prosser ? 1 : 0);
     return autoTotal + teleopTotal;
   };
@@ -345,8 +344,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <th className="text-left py-3 font-medium text-gray-900">Alliance</th>
                     <th className="text-left py-3 font-medium text-gray-900">Auto L1-L4</th>
                     <th className="text-left py-3 font-medium text-gray-900">Teleop L1-L4</th>
-                    <th className="text-left py-3 font-medium text-gray-900">Auto Net</th>
-                    <th className="text-left py-3 font-medium text-gray-900">Auto Prosser</th>
+                    {/* Auto Net/Prosser removed */}
                     <th className="text-left py-3 font-medium text-gray-900">Total</th>
                     <th className="text-left py-3 font-medium text-gray-900">Climb</th>
                     <th className="text-left py-3 font-medium text-gray-900">Driver Skill</th>
@@ -378,8 +376,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <td className="py-3 text-gray-600">
                         {entry.teleop.l1}/{entry.teleop.l2}/{entry.teleop.l3}/{entry.teleop.l4}
                       </td>
-                      <td className="py-3 text-gray-600">{entry.auto.net ? 'Yes' : 'No'}</td>
-                      <td className="py-3 text-gray-600">{entry.auto.prosser ? 'Yes' : 'No'}</td>
+                      {/* Auto Net/Prosser removed */}
                       <td className="py-3 font-medium text-gray-900">
                         {calculateTotalScore(entry)}
                       </td>
