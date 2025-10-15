@@ -148,7 +148,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
           {/* Autonomous Period */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Autonomous Period</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
               <ScoreButton
                 label="L1"
                 value={formData.auto.l1}
@@ -172,6 +172,18 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                 value={formData.auto.l4}
                 onIncrement={() => handleScoreChange('auto', 'l4', 1)}
                 onDecrement={() => handleScoreChange('auto', 'l4', -1)}
+              />
+              <ScoreButton
+                label="Net"
+                value={formData.auto.net ? 1 : 0}
+                onIncrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: true } }))}
+                onDecrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: false } }))}
+              />
+              <ScoreButton
+                label="Prosser"
+                value={formData.auto.prosser ? 1 : 0}
+                onIncrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: true } }))}
+                onDecrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: false } }))}
               />
             </div>
             <label className="flex items-center gap-2">
@@ -207,7 +219,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
           {/* Teleop Period */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Teleop Period</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <ScoreButton
                 label="L1"
                 value={formData.teleop.l1}
@@ -232,23 +244,20 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                 onIncrement={() => handleScoreChange('teleop', 'l4', 1)}
                 onDecrement={() => handleScoreChange('teleop', 'l4', -1)}
               />
+              <ScoreButton
+                label="Net"
+                value={formData.teleop.net ? 1 : 0}
+                onIncrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: true } }))}
+                onDecrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: false } }))}
+              />
+              <ScoreButton
+                label="Prosser"
+                value={formData.teleop.prosser ? 1 : 0}
+                onIncrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: true } }))}
+                onDecrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: false } }))}
+              />
             </div>
-            <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: !prev.teleop.net } }))}
-                className={`px-3 py-2 rounded border ${formData.teleop.net ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
-              >
-                Net
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: !prev.teleop.prosser } }))}
-                className={`px-3 py-2 rounded border ${formData.teleop.prosser ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'}`}
-              >
-                Prosser
-              </button>
-            </div>
+            
           </div>
 
           {/* Endgame */}
