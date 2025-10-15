@@ -75,8 +75,13 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {readableMatchLabel(match)}
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <span>{readableMatchLabel(match)}</span>
+                    {isScoutedByUser(match) && (
+                      <span title="Scouted" className="ml-3 inline-flex items-center">
+                        <CheckCircle className="w-6 h-6 text-green-500" />
+                      </span>
+                    )}
                   </h3>
                   <p className="text-sm text-gray-600 flex items-center gap-1">
                     <Clock className="w-4 h-4" />
