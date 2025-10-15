@@ -125,12 +125,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   d.auto.hasAuto ? 'Yes' : 'No',
   d.auto.net ? 'Yes' : 'No',
   d.auto.prosser ? 'Yes' : 'No',
-  d.teleop.l1,
-    d.teleop.l2,
-    d.teleop.l3,
-    d.teleop.l4,
-    d.teleop.net ? 'Yes' : 'No',
-    d.teleop.prosser ? 'Yes' : 'No',
+    d.teleop.l1,
+      d.teleop.l2,
+      d.teleop.l3,
+      d.teleop.l4,
+      d.teleop.net ? 'Yes' : 'No',
+      d.teleop.prosser ? 'Yes' : 'No',
       d.endgame.climb,
   d.endgame.driverSkill ?? '',
   d.endgame.robotSpeed ?? '',
@@ -176,8 +176,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   };
 
   const calculateTotalScore = (data: ScoutingData) => {
-    return data.auto.l1 + data.auto.l2 + data.auto.l3 + data.auto.l4 +
-           data.teleop.l1 + data.teleop.l2 + data.teleop.l3 + data.teleop.l4;
+    const autoTotal = data.auto.l1 + data.auto.l2 + data.auto.l3 + data.auto.l4 + (data.auto.net ? 1 : 0) + (data.auto.prosser ? 1 : 0);
+    const teleopTotal = data.teleop.l1 + data.teleop.l2 + data.teleop.l3 + data.teleop.l4 + (data.teleop.net ? 1 : 0) + (data.teleop.prosser ? 1 : 0);
+    return autoTotal + teleopTotal;
   };
 
   return (
@@ -393,7 +394,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       </td>
                       <td className="py-3 text-gray-600">{entry.endgame.driverSkill ?? ''}</td>
                       <td className="py-3 text-gray-600">{entry.endgame.robotSpeed ?? ''}</td>
-                      <td className="py-3 text-gray-600">{entry.endgame.died ? 'Yes' : 'No'}</td>
+                      <td className="py-3 text-gray-600">{entry.endgame.died === 'none' ? "Didn't die" : entry.endgame.died === 'partway' ? 'Died partway' : entry.endgame.died === 'start' ? 'Died at start' : ''}</td>
                       <td className="py-3">
                         <span className={`px-2 py-1 text-xs font-medium rounded ${
                           entry.defense === 'great' ? 'bg-green-100 text-green-800' :
