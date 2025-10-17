@@ -79,6 +79,44 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     return () => { mounted = false; };
   }, []);
 
+  // auto-refresh when the component mounts (helpful when navigated to from admin panel)
+  useEffect(() => {
+    // simply call the existing refresh logic by triggering the same fetch flow
+    let mounted = true;
+    (async () => {
+      try {
+        const serverRows: any[] = await fetchServerScouting();
+        if (!mounted) return;
+        const mapped = serverRows.map((r: any) => ({
+          id: r.id,
+          matchKey: r.match_key,
+          teamKey: r.team_key,
+          scouter: r.scouter_name,
+          alliance: r.alliance,
+          position: r.position,
+          auto: {
+            ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }),
+            net: typeof r.payload?.auto?.net === 'number' ? r.payload.auto.net : (r.payload?.auto?.net ? 1 : 0),
+            prosser: typeof r.payload?.auto?.prosser === 'number' ? r.payload.auto.prosser : (r.payload?.auto?.prosser ? 1 : 0),
+          },
+          teleop: {
+            ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }),
+            net: typeof r.payload?.teleop?.net === 'number' ? r.payload.teleop.net : (r.payload?.teleop?.net ? 1 : 0),
+            prosser: typeof r.payload?.teleop?.prosser === 'number' ? r.payload.teleop.prosser : (r.payload?.teleop?.prosser ? 1 : 0),
+          },
+          endgame: r.payload?.endgame || { climb: 'none' },
+          defense: r.payload?.defense || 'none',
+          timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
+        }));
+        setRows(mapped as ScoutingData[]);
+        setServerError(null);
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   // Build list of teams from saved matches (so we include teams with no scouting rows)
   const allTeams = useMemo(() => {
     const matches = DataService.getMatches() || [];

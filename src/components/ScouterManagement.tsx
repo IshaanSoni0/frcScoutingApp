@@ -82,6 +82,32 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     }
   };
 
+  // auto-refresh when this view loads
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        await migrateLocalToServer();
+        // fetch server scouters to update local view (SyncControl already does this but we want immediate refresh)
+        const server = await fetchServerScouters();
+        if (!mounted) return;
+        if (Array.isArray(server) && server.length > 0) {
+          // user-facing scouters are stored via useLocalStorage hook; update only if server returns rows
+          setScouters((prev) => {
+            // map server rows to local shape and merge
+            const mapped = server.map((s: any) => ({ id: s.id, name: s.name, alliance: s.alliance, position: s.position, isRemote: s.is_remote ?? s.isRemote ?? false, updatedAt: s.updated_at ? Date.parse(s.updated_at) : Date.now(), deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null }));
+            // simple replace to prefer server authoritative scouter list
+            return mapped as any;
+          });
+        }
+      } catch (e) {
+        // ignore refresh errors
+      }
+    })();
+    return () => { mounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const showClientInfo = () => {
     try {
       const info = getSupabaseInfo();

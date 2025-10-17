@@ -70,6 +70,12 @@ export function AdminPanel({ user, onLogout }: AdminPanelProps) {
             <div className="flex items-center gap-3">
               <SyncControl onSync={() => migrateLocalToServer()} onCheck={() => fetchServerScouters()} />
               <button
+                onClick={() => { migrateLocalToServer().catch(() => {}); fetchServerScouters().catch(() => {}); }}
+                className="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md"
+              >
+                Refresh
+              </button>
+              <button
                 onClick={onLogout}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
