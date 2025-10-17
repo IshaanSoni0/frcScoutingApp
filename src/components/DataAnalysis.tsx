@@ -29,8 +29,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           scouter: r.scouter_name,
           alliance: r.alliance,
           position: r.position,
-            auto: { ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }) },
-            teleop: { ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }), net: r.payload?.teleop?.net ?? false, prosser: r.payload?.teleop?.prosser ?? false },
+            auto: { ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }), net: Number(r.payload?.auto?.net ?? 0), prosser: Number(r.payload?.auto?.prosser ?? 0) },
+            teleop: { ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }), net: Number(r.payload?.teleop?.net ?? 0), prosser: Number(r.payload?.teleop?.prosser ?? 0) },
           endgame: { ...(r.payload?.endgame || { climb: 'none' }), died: r.payload?.endgame?.died ?? 'none' },
           defense: r.payload?.defense || 'none',
             // algae removed — keep compatibility by ignoring
@@ -105,37 +105,23 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   }, [data, filters]);
 
   const exportToCSV = () => {
+    // Export aggregated team view
+    const teams = computeTeamAggregates();
     const headers = [
-      'Match', 'Team', 'Scouter', 'Alliance', 'Position',
-      'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Move',
-      'Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Net', 'Teleop Prosser',
-      'Climb', 'Driver Skill', 'Robot Speed', 'Died', 'Defense', 'Timestamp'
+      'Team', 'Matches', 'Avg Auto Pieces', 'Avg Teleop Pieces', 'Avg Total Pieces', 'Avg Total Score', 'Avg Auto Net', 'Avg Auto Prosser', 'Avg Teleop Net', 'Avg Teleop Prosser'
     ];
 
-    const rows = filteredAndSortedData.map(d => [
-      d.matchKey,
-      d.teamKey.replace('frc', ''),
-      d.scouter,
-      d.alliance,
-      d.position,
-  d.auto.l1,
-  d.auto.l2,
-  d.auto.l3,
-  d.auto.l4,
-  d.auto.hasAuto ? 'Yes' : 'No',
-  // auto.net/auto.prosser removed
-    d.teleop.l1,
-      d.teleop.l2,
-      d.teleop.l3,
-      d.teleop.l4,
-      d.teleop.net ? 'Yes' : 'No',
-      d.teleop.prosser ? 'Yes' : 'No',
-      d.endgame.climb,
-  d.endgame.driverSkill ?? '',
-  d.endgame.robotSpeed ?? '',
-  (d.endgame.died === 'none' ? "Didn't die" : d.endgame.died === 'partway' ? 'Died partway' : d.endgame.died === 'start' ? 'Died at start' : ''),
-      d.defense,
-      new Date(d.timestamp).toLocaleString()
+    const rows = teams.map(t => [
+      t.team.replace('frc', ''),
+      String(t.count),
+      t.avgAuto.toFixed(2),
+      t.avgTele.toFixed(2),
+      t.avgTotal.toFixed(2),
+      t.avgScore.toFixed(2),
+      t.avgAutoNet.toFixed(2),
+      t.avgAutoProsser.toFixed(2),
+      t.avgTeleNet.toFixed(2),
+      t.avgTeleProsser.toFixed(2),
     ]);
 
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -148,6 +134,83 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Compute team aggregates from data and matches
+  const computeTeamAggregates = () => {
+    const matches = DataService.getMatches() || [];
+    // collect unique teams from matches alliances
+    const teamsSet = new Set<string>();
+    for (const m of matches) {
+      try {
+        const alliances = m.alliances || m.alliances_json || (m.alliances && JSON.parse(m.alliances));
+        if (alliances) {
+          for (const side of ['red', 'blue']) {
+            const sideObj = alliances[side] || alliances[side + '_alliance'] || alliances[side];
+            if (sideObj && Array.isArray(sideObj.team_keys)) {
+              for (const t of sideObj.team_keys) teamsSet.add(t);
+            }
+          }
+        }
+      } catch (e) {
+        // ignore malformed match entries
+      }
+    }
+
+    // also include teams that appear in data but not in matches
+    data.forEach(d => teamsSet.add(d.teamKey));
+
+    const teams = Array.from(teamsSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    const aggregates = teams.map(team => {
+      const rows = data.filter(d => d.teamKey === team);
+      const count = rows.length;
+
+      let sumAuto = 0;
+      let sumTele = 0;
+      let sumScore = 0;
+      let sumAutoNet = 0;
+      let sumAutoProsser = 0;
+      let sumTeleNet = 0;
+      let sumTeleProsser = 0;
+
+      for (const r of rows) {
+        const autoPieces = (r.auto.l1 || 0) + (r.auto.l2 || 0) + (r.auto.l3 || 0) + (r.auto.l4 || 0) + (r.auto.net ?? 0) + (r.auto.prosser ?? 0);
+        const telePieces = (r.teleop.l1 || 0) + (r.teleop.l2 || 0) + (r.teleop.l3 || 0) + (r.teleop.l4 || 0) + (r.teleop.net ?? 0) + (r.teleop.prosser ?? 0);
+        const total = autoPieces + telePieces;
+        sumAuto += autoPieces;
+        sumTele += telePieces;
+        sumScore += calculateTotalScore(r);
+        sumAutoNet += (r.auto.net ?? 0);
+        sumAutoProsser += (r.auto.prosser ?? 0);
+        sumTeleNet += (r.teleop.net ?? 0);
+        sumTeleProsser += (r.teleop.prosser ?? 0);
+      }
+
+      const avgAuto = count ? sumAuto / count : 0;
+      const avgTele = count ? sumTele / count : 0;
+      const avgTotal = count ? (sumAuto + sumTele) / count : 0;
+      const avgScore = count ? sumScore / count : 0;
+      const avgAutoNet = count ? sumAutoNet / count : 0;
+      const avgAutoProsser = count ? sumAutoProsser / count : 0;
+      const avgTeleNet = count ? sumTeleNet / count : 0;
+      const avgTeleProsser = count ? sumTeleProsser / count : 0;
+
+      return {
+        team,
+        count,
+        avgAuto,
+        avgTele,
+        avgTotal,
+        avgScore,
+        avgAutoNet,
+        avgAutoProsser,
+        avgTeleNet,
+        avgTeleProsser,
+      };
+    });
+
+    return aggregates;
   };
 
   const [showConfirmClearData, setShowConfirmClearData] = useState(false);
@@ -175,8 +238,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   };
 
   const calculateTotalScore = (data: ScoutingData) => {
-    const autoTotal = data.auto.l1 + data.auto.l2 + data.auto.l3 + data.auto.l4;
-    const teleopTotal = data.teleop.l1 + data.teleop.l2 + data.teleop.l3 + data.teleop.l4 + (data.teleop.net ? 1 : 0) + (data.teleop.prosser ? 1 : 0);
+    const autoTotal = data.auto.l1 + data.auto.l2 + data.auto.l3 + data.auto.l4 + (data.auto.net ?? 0) + (data.auto.prosser ?? 0);
+    const teleopTotal = data.teleop.l1 + data.teleop.l2 + data.teleop.l3 + data.teleop.l4 + (data.teleop.net ?? 0) + (data.teleop.prosser ?? 0);
     return autoTotal + teleopTotal;
   };
 
