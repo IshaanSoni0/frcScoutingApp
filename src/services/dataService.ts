@@ -168,6 +168,22 @@ export class DataService {
       const data = this.getScoutingData() as any[];
       const updated = data.map(d => (d.id === record.id ? { ...d, ...record, synced: false, updatedAt: Date.now() } : d));
       localStorage.setItem(STORAGE_KEYS.SCOUTING_DATA, JSON.stringify(updated));
+      // ensure this id is in the pending queue so syncService will push the update
+      try {
+        const pending = this.getPendingScouting();
+        if (!pending.includes(record.id)) {
+          pending.push(record.id);
+          localStorage.setItem(STORAGE_KEYS.PENDING_SCOUTING, JSON.stringify(pending));
+          // notify other tabs/listeners
+          try {
+            window.dispatchEvent(new CustomEvent('local-storage', { detail: { key: STORAGE_KEYS.PENDING_SCOUTING, value: pending } }));
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (e) {
+        // ignore pending queue errors
+      }
     } catch (e) {
       // ignore
       // eslint-disable-next-line no-console
