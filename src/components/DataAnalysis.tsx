@@ -216,6 +216,83 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     }
   };
 
+  // when user clicks a team, compute per-match averages for that team
+  const openTeamDetail = (teamKey: string) => {
+    setSelectedTeam(teamKey);
+    // group entries by matchKey
+    const entries = rows.filter(r => r.teamKey === teamKey);
+    const byMatch: Record<string, any[]> = {};
+    entries.forEach(e => {
+      byMatch[e.matchKey] = byMatch[e.matchKey] || [];
+      byMatch[e.matchKey].push(e);
+    });
+    const matches = Object.keys(byMatch).map(mk => {
+      const scouterEntries = byMatch[mk];
+      const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
+      const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
+
+      const autoL1 = scouterEntries.map(e => e.auto.l1 || 0);
+      const autoL2 = scouterEntries.map(e => e.auto.l2 || 0);
+      const autoL3 = scouterEntries.map(e => e.auto.l3 || 0);
+      const autoL4 = scouterEntries.map(e => e.auto.l4 || 0);
+      const autoNet = scouterEntries.map(e => (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0)));
+      const autoPros = scouterEntries.map(e => (typeof e.auto.prosser === 'number' ? e.auto.prosser : (e.auto.prosser ? 1 : 0)));
+
+      const teleopL1 = scouterEntries.map(e => e.teleop.l1 || 0);
+      const teleopL2 = scouterEntries.map(e => e.teleop.l2 || 0);
+      const teleopL3 = scouterEntries.map(e => e.teleop.l3 || 0);
+      const teleopL4 = scouterEntries.map(e => e.teleop.l4 || 0);
+      const teleopNet = scouterEntries.map(e => (typeof e.teleop.net === 'number' ? e.teleop.net : (e.teleop.net ? 1 : 0)));
+      const teleopPros = scouterEntries.map(e => (typeof e.teleop.prosser === 'number' ? e.teleop.prosser : (e.teleop.prosser ? 1 : 0)));
+
+      const avgAutoL1 = avg(autoL1);
+      const avgAutoL2 = avg(autoL2);
+      const avgAutoL3 = avg(autoL3);
+      const avgAutoL4 = avg(autoL4);
+      const avgAutoNet = avg(autoNet);
+      const avgAutoPros = avg(autoPros);
+      const avgAutoTotal = avg(scouterEntries.map(e => (e.auto.l1 || 0) + (e.auto.l2 || 0) + (e.auto.l3 || 0) + (e.auto.l4 || 0) + (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0)) + (typeof e.auto.prosser === 'number' ? e.auto.prosser : (e.auto.prosser ? 1 : 0))));
+
+      const avgTeleopL1 = avg(teleopL1);
+      const avgTeleopL2 = avg(teleopL2);
+      const avgTeleopL3 = avg(teleopL3);
+      const avgTeleopL4 = avg(teleopL4);
+      const avgTeleopNet = avg(teleopNet);
+      const avgTeleopPros = avg(teleopPros);
+      const avgTeleopTotal = avg(scouterEntries.map(e => (e.teleop.l1 || 0) + (e.teleop.l2 || 0) + (e.teleop.l3 || 0) + (e.teleop.l4 || 0) + (typeof e.teleop.net === 'number' ? e.teleop.net : (e.teleop.net ? 1 : 0)) + (typeof e.teleop.prosser === 'number' ? e.teleop.prosser : (e.teleop.prosser ? 1 : 0))));
+
+      const matchInfo = (DataService.getMatches() || []).find((m: any) => m.key === mk);
+      const matchLabel = matchInfo ? `${matchInfo.comp_level} ${matchInfo.match_number}` : mk;
+
+      return {
+        matchKey: mk,
+        matchLabel,
+        scouterCount: scouterEntries.length,
+        avgAutoL1: Math.round(avgAutoL1 * 100) / 100,
+        avgAutoL2: Math.round(avgAutoL2 * 100) / 100,
+        avgAutoL3: Math.round(avgAutoL3 * 100) / 100,
+        avgAutoL4: Math.round(avgAutoL4 * 100) / 100,
+        avgAutoNet: Math.round(avgAutoNet * 100) / 100,
+        avgAutoPros: Math.round(avgAutoPros * 100) / 100,
+        avgAutoTotal: Math.round(avgAutoTotal * 100) / 100,
+        avgTeleopL1: Math.round(avgTeleopL1 * 100) / 100,
+        avgTeleopL2: Math.round(avgTeleopL2 * 100) / 100,
+        avgTeleopL3: Math.round(avgTeleopL3 * 100) / 100,
+        avgTeleopL4: Math.round(avgTeleopL4 * 100) / 100,
+        avgTeleopNet: Math.round(avgTeleopNet * 100) / 100,
+        avgTeleopPros: Math.round(avgTeleopPros * 100) / 100,
+        avgTeleopTotal: Math.round(avgTeleopTotal * 100) / 100,
+      };
+    });
+
+    setTeamMatches(matches.sort((a, b) => a.matchLabel.localeCompare(b.matchLabel)));
+  };
+
+  const closeTeamDetail = () => {
+    setSelectedTeam(null);
+    setTeamMatches([]);
+  };
+
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
   if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Prosser', 'Auto Avg');
@@ -241,6 +318,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [showConfirmClearData, setShowConfirmClearData] = useState(false);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [teamMatches, setTeamMatches] = useState<any[]>([]);
 
   const handleClearData = () => {
     (async () => {
@@ -404,7 +483,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               <tbody>
                 {sorted.map((t) => (
                   <tr key={t.teamKey} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 font-medium text-gray-900">{t.team}</td>
+                    <td className="py-3 font-medium text-gray-900">
+                      <button onClick={() => openTeamDetail(t.teamKey)} className="text-left text-blue-600 hover:underline">
+                        {t.team}
+                      </button>
+                    </td>
                     <td className="py-3 text-gray-600">{t.count}</td>
                     <td className="py-3 text-gray-600">{t.avgAutoL1.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgAutoL2.toFixed(2)}</td>
@@ -427,6 +510,66 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           </div>
         </div>
       </div>
+
+        {/* Team detail modal */}
+        {selectedTeam && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-4xl overflow-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Team {selectedTeam.replace(/^frc/, '')} — Match averages</h3>
+                <div>
+                  <button onClick={closeTeamDetail} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">Close</button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2">Match</th>
+                      <th className="text-left py-2">Scouters</th>
+                      <th className="text-left py-2">Auto Total</th>
+                      <th className="text-left py-2">Auto L1</th>
+                      <th className="text-left py-2">Auto L2</th>
+                      <th className="text-left py-2">Auto L3</th>
+                      <th className="text-left py-2">Auto L4</th>
+                      <th className="text-left py-2">Auto Net</th>
+                      <th className="text-left py-2">Auto Prosser</th>
+                      <th className="text-left py-2">Teleop Total</th>
+                      <th className="text-left py-2">Teleop L1</th>
+                      <th className="text-left py-2">Teleop L2</th>
+                      <th className="text-left py-2">Teleop L3</th>
+                      <th className="text-left py-2">Teleop L4</th>
+                      <th className="text-left py-2">Teleop Net</th>
+                      <th className="text-left py-2">Teleop Prosser</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamMatches.map(m => (
+                      <tr key={m.matchKey} className="border-b hover:bg-gray-50">
+                        <td className="py-2">{m.matchLabel}</td>
+                        <td className="py-2">{m.scouterCount}</td>
+                        <td className="py-2">{m.avgAutoTotal.toFixed(2)}</td>
+                        <td className="py-2">{m.avgAutoL1.toFixed(2)}</td>
+                        <td className="py-2">{m.avgAutoL2.toFixed(2)}</td>
+                        <td className="py-2">{m.avgAutoL3.toFixed(2)}</td>
+                        <td className="py-2">{m.avgAutoL4.toFixed(2)}</td>
+                        <td className="py-2">{m.avgAutoNet.toFixed(2)}</td>
+                        <td className="py-2">{m.avgAutoPros.toFixed(2)}</td>
+                        <td className="py-2">{m.avgTeleopTotal.toFixed(2)}</td>
+                        <td className="py-2">{m.avgTeleopL1.toFixed(2)}</td>
+                        <td className="py-2">{m.avgTeleopL2.toFixed(2)}</td>
+                        <td className="py-2">{m.avgTeleopL3.toFixed(2)}</td>
+                        <td className="py-2">{m.avgTeleopL4.toFixed(2)}</td>
+                        <td className="py-2">{m.avgTeleopNet.toFixed(2)}</td>
+                        <td className="py-2">{m.avgTeleopPros.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
       {showConfirmClearData && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
