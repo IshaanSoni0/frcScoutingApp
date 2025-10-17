@@ -418,12 +418,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Avg');
     if (showTeleop) headers.push('Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Prosser', 'Teleop Avg', 'Teleop Net');
     // endgame columns
-    headers.push('Matches', 'High Climb (high/matches)', 'Died (count/matches)', 'Driver Skill', 'Robot Speed', 'Defense');
+    headers.push('High Climb (high/matches)', 'Died (count/matches)', 'Driver Skill', 'Robot Speed', 'Defense');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
   if (showAuto) base.push(t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAutoNet, t.avgAuto);
   if (showTeleop) base.push(t.avgTeleopL1, t.avgTeleopL2, t.avgTeleopL3, t.avgTeleopL4, t.avgTeleopProsser, t.avgTeleop, t.avgTeleopNet);
-  base.push(t.matchesPlayed, `${t.highClimbCount}/${t.matchesPlayed}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.defense);
+  base.push(`${t.highClimbCount}/${t.matchesPlayed}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.defense);
       return base;
     });
     const csv = [headers, ...rowsCsv].map(r => r.join(',')).join('\n');
@@ -600,7 +600,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <th onClick={() => toggleSort('avgTeleopProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Prosser</th>
                   <th onClick={() => toggleSort('avgAuto')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Avg</th>
                   <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Avg</th>
-                  <th onClick={() => toggleSort('matchesPlayed')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Matches</th>
                   <th className="text-left py-3 font-medium text-gray-900">High Climb</th>
                   <th className="text-left py-3 font-medium text-gray-900">Died</th>
                   <th className="text-left py-3 font-medium text-gray-900">Driver Skill</th>
@@ -630,7 +629,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <td className="py-3 text-gray-600">{t.avgTeleopProsser.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgAuto.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleop.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.matchesPlayed}</td>
                     <td className="py-3 text-gray-600">{t.highClimbCount}/{t.matchesPlayed}</td>
                     <td className="py-3 text-gray-600">{t.diedCount}/{t.matchesPlayed}</td>
                     <td className="py-3 text-gray-600">{t.driverSkill}</td>
