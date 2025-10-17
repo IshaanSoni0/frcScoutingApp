@@ -227,23 +227,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   // summary KPIs
   const totalTeams = teamStats.length;
   const totalEntries = rows.length;
-  const overallAvgAuto = useMemo(() => {
-    if (rows.length === 0) return 0;
-    const sum = rows.reduce((acc, r) => {
-      const avg = ((r.auto.l1 || 0) + (r.auto.l2 || 0) + (r.auto.l3 || 0) + (r.auto.l4 || 0)) / 4;
-      return acc + avg;
-    }, 0);
-    return Math.round((sum / rows.length) * 100) / 100;
-  }, [rows]);
-
-  const overallAvgTeleop = useMemo(() => {
-    if (rows.length === 0) return 0;
-    const sum = rows.reduce((acc, r) => {
-      const avg = ((r.teleop.l1 || 0) + (r.teleop.l2 || 0) + (r.teleop.l3 || 0) + (r.teleop.l4 || 0)) / 4;
-      return acc + avg;
-    }, 0);
-    return Math.round((sum / rows.length) * 100) / 100;
-  }, [rows]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -340,7 +323,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           </div>
 
           {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-4">
             <div className="p-3 border rounded bg-gray-50">
               <div className="text-xs text-gray-500">Teams</div>
               <div className="text-xl font-bold">{totalTeams}</div>
@@ -348,14 +331,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
             <div className="p-3 border rounded bg-gray-50">
               <div className="text-xs text-gray-500">Entries</div>
               <div className="text-xl font-bold">{totalEntries}</div>
-            </div>
-            <div className="p-3 border rounded bg-gray-50">
-              <div className="text-xs text-gray-500">Avg Auto</div>
-              <div className="text-xl font-bold">{overallAvgAuto.toFixed(2)}</div>
-            </div>
-            <div className="p-3 border rounded bg-gray-50">
-              <div className="text-xs text-gray-500">Avg Teleop</div>
-              <div className="text-xl font-bold">{overallAvgTeleop.toFixed(2)}</div>
             </div>
           </div>
 
