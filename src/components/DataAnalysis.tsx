@@ -23,7 +23,7 @@ type TeamStats = {
   avgTeleopL2: number;
   avgTeleopL3: number;
   avgTeleopL4: number;
-  pctTeleopNet: number; // 0-100 (keeps showing percent for net success)
+  avgTeleopNet: number; // numeric average for teleop net counts
   avgTeleopProsser: number; // numeric average count
 };
 
@@ -133,10 +133,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const avgAuto = avg([avgAutoL1, avgAutoL2, avgAutoL3, avgAutoL4, avgAutoNet]);
 
   const avgTeleopProsser = avg(teleopProsser);
+  const avgTeleopNet = avg(teleopNet);
   // include prosser count into teleop average as numeric addition
   const avgTeleop = avg([avgTeleopL1, avgTeleopL2, avgTeleopL3, avgTeleopL4, avgTeleopProsser]);
 
-  const pctTeleopNet = Math.round(avg(teleopNet) * 100);
+  const pctTeleopNet = Math.round(avgTeleopNet * 100);
 
       return {
         teamKey: tk,
@@ -153,7 +154,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         avgTeleopL2: Math.round(avgTeleopL2 * 100) / 100,
         avgTeleopL3: Math.round(avgTeleopL3 * 100) / 100,
         avgTeleopL4: Math.round(avgTeleopL4 * 100) / 100,
-        pctTeleopNet,
+        avgTeleopNet: Math.round(avgTeleopNet * 100) / 100,
         avgTeleopProsser: Math.round(avgTeleopProsser * 100) / 100,
       } as TeamStats;
     });
@@ -198,11 +199,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
   if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Avg');
-  if (showTeleop) headers.push('Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Prosser', 'Teleop Avg', 'Teleop Net %');
+  if (showTeleop) headers.push('Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Prosser', 'Teleop Avg', 'Teleop Net');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
   if (showAuto) base.push(t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAutoNet, t.avgAuto);
-  if (showTeleop) base.push(t.avgTeleopL1, t.avgTeleopL2, t.avgTeleopL3, t.avgTeleopL4, t.avgTeleopProsser, t.avgTeleop, t.pctTeleopNet);
+  if (showTeleop) base.push(t.avgTeleopL1, t.avgTeleopL2, t.avgTeleopL3, t.avgTeleopL4, t.avgTeleopProsser, t.avgTeleop, t.avgTeleopNet);
       return base;
     });
     const csv = [headers, ...rowsCsv].map(r => r.join(',')).join('\n');
@@ -373,7 +374,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <th onClick={() => toggleSort('avgTeleopL2')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L2</th>
                   <th onClick={() => toggleSort('avgTeleopL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L3</th>
                   <th onClick={() => toggleSort('avgTeleopL4')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L4</th>
-                  <th onClick={() => toggleSort('pctTeleopNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Net %</th>
+                  <th onClick={() => toggleSort('avgTeleopNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Net</th>
                   <th onClick={() => toggleSort('avgTeleopProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Prosser</th>
                   <th onClick={() => toggleSort('avgAuto')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Avg</th>
                   <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Avg</th>
@@ -393,7 +394,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <td className="py-3 text-gray-600">{t.avgTeleopL2.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleopL3.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleopL4.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.pctTeleopNet}%</td>
+                    <td className="py-3 text-gray-600">{t.avgTeleopNet.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleopProsser.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgAuto.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleop.toFixed(2)}</td>

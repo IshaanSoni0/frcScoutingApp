@@ -13,8 +13,8 @@ interface ScoutingFormProps {
 
 export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProps) {
   const [formData, setFormData] = useState({
-    auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false },
-    teleop: { l1: 0, l2: 0, l3: 0, l4: 0, net: false, prosser: false },
+    auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false, net: 0, prosser: 0 },
+  teleop: { l1: 0, l2: 0, l3: 0, l4: 0, net: 0, prosser: 0 },
   endgame: { climb: 'none' as 'none' | 'low' | 'deep', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: 'none' as 'none' | 'partway' | 'start' },
     defense: 'none' as 'none' | 'bad' | 'ok' | 'great',
   });
@@ -174,7 +174,21 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
                 onDecrement={() => handleScoreChange('auto', 'l4', -1)}
               />
             </div>
-            {/* Auto Net/Prosser removed - tracked only in Teleop */}
+            {/* Auto Net/Prosser counters */}
+            <div className="flex justify-center gap-4 mt-4">
+              <ScoreButton
+                label="Net"
+                value={formData.auto.net || 0}
+                onIncrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: (prev.auto.net || 0) + 1 } }))}
+                onDecrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: Math.max(0, (prev.auto.net || 0) - 1) } }))}
+              />
+              <ScoreButton
+                label="Prosser"
+                value={formData.auto.prosser || 0}
+                onIncrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: (prev.auto.prosser || 0) + 1 } }))}
+                onDecrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: Math.max(0, (prev.auto.prosser || 0) - 1) } }))}
+              />
+            </div>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
