@@ -25,6 +25,12 @@ type TeamStats = {
   avgTeleopL4: number;
   avgTeleopNet: number; // numeric average for teleop net counts
   avgTeleopProsser: number; // numeric average count
+  matchesPlayed: number; // distinct matches with entries
+  highClimbCount: number; // number of matches where majority reported high climb
+  diedCount: number; // number of matches where majority reported died
+  driverSkill: string; // Low/Medium/High or N/A
+  robotSpeed: string; // Slow/Medium/Fast or N/A
+  defense: string; // None/Bad/OK/Great or N/A
 };
 
 export function DataAnalysis({ onBack }: DataAnalysisProps) {
@@ -141,6 +147,55 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     const stats: TeamStats[] = allTeams.map((tk) => {
       const entries = byTeam[tk] || [];
       const count = entries.length;
+      // group by match to compute match-level majority decisions
+      const byMatch: Record<string, ScoutingData[]> = {};
+      entries.forEach(e => {
+        byMatch[e.matchKey] = byMatch[e.matchKey] || [];
+        byMatch[e.matchKey].push(e);
+      });
+      const matchKeys = Object.keys(byMatch);
+      const matchesPlayed = matchKeys.length;
+
+      // helper for majority: returns true if >=50% of scouters reported the predicate
+      const majority = (arr: any[], fn: (v: any) => boolean) => {
+        if (arr.length === 0) return false;
+        const yes = arr.filter(fn).length;
+        return yes / arr.length >= 0.5;
+      };
+
+      // per-match majority for high climbs and died
+      let highClimbCount = 0;
+      let diedCount = 0;
+      matchKeys.forEach(mk => {
+        const scouters = byMatch[mk];
+        const isHigh = majority(scouters, (s) => (s.endgame?.climb === 'high'));
+        if (isHigh) highClimbCount += 1;
+        const isDied = majority(scouters, (s) => (s.endgame?.died && s.endgame.died !== 'none'));
+        if (isDied) diedCount += 1;
+      });
+
+      // average mapping helpers for driverSkill, robotSpeed, defense
+      const mapDriver = (v: any) => (v === 'low' ? 1 : v === 'medium' ? 2 : v === 'high' ? 3 : 0);
+      const mapSpeed = (v: any) => (v === 'slow' ? 1 : v === 'medium' ? 2 : v === 'fast' ? 3 : 0);
+      const mapDefense = (v: any) => (v === 'none' ? 1 : v === 'bad' ? 2 : v === 'ok' ? 3 : v === 'great' ? 4 : 0);
+
+      const driverVals = entries.map(e => mapDriver(e.endgame?.driverSkill));
+      const speedVals = entries.map(e => mapSpeed(e.endgame?.robotSpeed));
+      const defVals = entries.map(e => mapDefense(e.defense));
+
+      const avgOrNA = (arr: number[]) => {
+        const nonZero = arr.filter(v => v > 0);
+        if (nonZero.length === 0) return 0;
+        return Math.round((nonZero.reduce((s, v) => s + v, 0) / nonZero.length) * 100) / 100;
+      };
+
+      const avgDriver = avgOrNA(driverVals);
+      const avgSpeed = avgOrNA(speedVals);
+      const avgDefense = avgOrNA(defVals);
+
+      const mapBackDriver = (v: number) => v <= 1.5 ? 'Low' : v <= 2.5 ? 'Medium' : 'High';
+      const mapBackSpeed = (v: number) => v <= 1.5 ? 'Slow' : v <= 2.5 ? 'Medium' : 'Fast';
+      const mapBackDefense = (v: number) => v <= 1.5 ? 'None/Bad' : v <= 2.5 ? 'OK' : 'Great';
       const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
 
       const autoL1 = entries.map(e => e.auto.l1 || 0);
@@ -201,7 +256,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         avgAutoL2: Math.round(avgAutoL2 * 100) / 100,
         avgAutoL3: Math.round(avgAutoL3 * 100) / 100,
         avgAutoL4: Math.round(avgAutoL4 * 100) / 100,
-    avgAutoNet: Math.round(avgAutoNet * 100) / 100,
+  avgAutoNet: Math.round(avgAutoNet * 100) / 100,
         avgTeleop: Math.round(avgTeleop * 100) / 100,
         avgTeleopL1: Math.round(avgTeleopL1 * 100) / 100,
         avgTeleopL2: Math.round(avgTeleopL2 * 100) / 100,
@@ -209,6 +264,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         avgTeleopL4: Math.round(avgTeleopL4 * 100) / 100,
         avgTeleopNet: Math.round(avgTeleopNet * 100) / 100,
         avgTeleopProsser: Math.round(avgTeleopProsser * 100) / 100,
+        matchesPlayed,
+        highClimbCount,
+        diedCount,
+        driverSkill: avgDriver === 0 ? 'N/A' : mapBackDriver(avgDriver),
+        robotSpeed: avgSpeed === 0 ? 'N/A' : mapBackSpeed(avgSpeed),
+        defense: avgDefense === 0 ? 'N/A' : mapBackDefense(avgDefense),
       } as TeamStats;
     });
 
@@ -282,9 +343,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const avgAutoL2 = avg(autoL2);
       const avgAutoL3 = avg(autoL3);
       const avgAutoL4 = avg(autoL4);
-      const avgAutoNet = avg(autoNet);
-      const avgAutoPros = avg(autoPros);
-      const avgAutoTotal = avg(scouterEntries.map(e => (e.auto.l1 || 0) + (e.auto.l2 || 0) + (e.auto.l3 || 0) + (e.auto.l4 || 0) + (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0)) + (typeof e.auto.prosser === 'number' ? e.auto.prosser : (e.auto.prosser ? 1 : 0))));
+  const avgAutoNet = avg(autoNet);
+  const avgAutoPros = avg(autoPros);
+  const avgAutoTotal = avg(scouterEntries.map(e => (e.auto.l1 || 0) + (e.auto.l2 || 0) + (e.auto.l3 || 0) + (e.auto.l4 || 0) + (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0))));
 
       const avgTeleopL1 = avg(teleopL1);
       const avgTeleopL2 = avg(teleopL2);
@@ -293,6 +354,27 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const avgTeleopNet = avg(teleopNet);
       const avgTeleopPros = avg(teleopPros);
       const avgTeleopTotal = avg(scouterEntries.map(e => (e.teleop.l1 || 0) + (e.teleop.l2 || 0) + (e.teleop.l3 || 0) + (e.teleop.l4 || 0) + (typeof e.teleop.net === 'number' ? e.teleop.net : (e.teleop.net ? 1 : 0)) + (typeof e.teleop.prosser === 'number' ? e.teleop.prosser : (e.teleop.prosser ? 1 : 0))));
+
+      // endgame majority for this match
+      const majority = (arr: any[], fn: (v: any) => boolean) => {
+        if (!arr || arr.length === 0) return false;
+        const yes = arr.filter(fn).length;
+        return yes / arr.length >= 0.5;
+      };
+      const isHighClimb = majority(scouterEntries, (s) => (s.endgame?.climb === 'high'));
+      const isDied = majority(scouterEntries, (s) => (s.endgame?.died && s.endgame.died !== 'none'));
+
+      const mapDriver = (v: any) => (v === 'low' ? 1 : v === 'medium' ? 2 : v === 'high' ? 3 : 0);
+      const mapSpeed = (v: any) => (v === 'slow' ? 1 : v === 'medium' ? 2 : v === 'fast' ? 3 : 0);
+      const mapDefense = (v: any) => (v === 'none' ? 1 : v === 'bad' ? 2 : v === 'ok' ? 3 : v === 'great' ? 4 : 0);
+
+      const avgDriverVal = avg(scouterEntries.map(e => mapDriver(e.endgame?.driverSkill)));
+      const avgSpeedVal = avg(scouterEntries.map(e => mapSpeed(e.endgame?.robotSpeed)));
+      const avgDefVal = avg(scouterEntries.map(e => mapDefense(e.defense)));
+
+      const mapBackDriver = (v: number) => v <= 1.5 ? 'Low' : v <= 2.5 ? 'Medium' : 'High';
+      const mapBackSpeed = (v: number) => v <= 1.5 ? 'Slow' : v <= 2.5 ? 'Medium' : 'Fast';
+      const mapBackDefense = (v: number) => v <= 1.5 ? 'None/Bad' : v <= 2.5 ? 'OK' : 'Great';
 
       const matchInfo = (DataService.getMatches() || []).find((m: any) => m.key === mk);
       const matchLabel = matchInfo ? `${matchInfo.comp_level} ${matchInfo.match_number}` : mk;
@@ -306,7 +388,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         avgAutoL3: Math.round(avgAutoL3 * 100) / 100,
         avgAutoL4: Math.round(avgAutoL4 * 100) / 100,
         avgAutoNet: Math.round(avgAutoNet * 100) / 100,
-        avgAutoPros: Math.round(avgAutoPros * 100) / 100,
+  avgAutoPros: Math.round(avgAutoPros * 100) / 100,
         avgAutoTotal: Math.round(avgAutoTotal * 100) / 100,
         avgTeleopL1: Math.round(avgTeleopL1 * 100) / 100,
         avgTeleopL2: Math.round(avgTeleopL2 * 100) / 100,
@@ -315,6 +397,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         avgTeleopNet: Math.round(avgTeleopNet * 100) / 100,
         avgTeleopPros: Math.round(avgTeleopPros * 100) / 100,
         avgTeleopTotal: Math.round(avgTeleopTotal * 100) / 100,
+        highClimb: isHighClimb ? 'High' : 'No',
+        died: isDied ? 'Yes' : 'No',
+        driverSkill: avgDriverVal === 0 ? 'N/A' : mapBackDriver(avgDriverVal),
+        robotSpeed: avgSpeedVal === 0 ? 'N/A' : mapBackSpeed(avgSpeedVal),
+        defense: avgDefVal === 0 ? 'N/A' : mapBackDefense(avgDefVal),
       };
     });
 
@@ -328,12 +415,15 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
-  if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Avg');
-  if (showTeleop) headers.push('Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Prosser', 'Teleop Avg', 'Teleop Net');
+    if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Avg');
+    if (showTeleop) headers.push('Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Prosser', 'Teleop Avg', 'Teleop Net');
+    // endgame columns
+    headers.push('Matches', 'High Climb (high/matches)', 'Died (count/matches)', 'Driver Skill', 'Robot Speed', 'Defense');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
   if (showAuto) base.push(t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAutoNet, t.avgAuto);
   if (showTeleop) base.push(t.avgTeleopL1, t.avgTeleopL2, t.avgTeleopL3, t.avgTeleopL4, t.avgTeleopProsser, t.avgTeleop, t.avgTeleopNet);
+  base.push(t.matchesPlayed, `${t.highClimbCount}/${t.matchesPlayed}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.defense);
       return base;
     });
     const csv = [headers, ...rowsCsv].map(r => r.join(',')).join('\n');
@@ -510,6 +600,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <th onClick={() => toggleSort('avgTeleopProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Prosser</th>
                   <th onClick={() => toggleSort('avgAuto')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Avg</th>
                   <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Avg</th>
+                  <th onClick={() => toggleSort('matchesPlayed')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Matches</th>
+                  <th className="text-left py-3 font-medium text-gray-900">High Climb</th>
+                  <th className="text-left py-3 font-medium text-gray-900">Died</th>
+                  <th className="text-left py-3 font-medium text-gray-900">Driver Skill</th>
+                  <th className="text-left py-3 font-medium text-gray-900">Robot Speed</th>
+                  <th className="text-left py-3 font-medium text-gray-900">Defense</th>
                 </tr>
               </thead>
               <tbody>
@@ -534,6 +630,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <td className="py-3 text-gray-600">{t.avgTeleopProsser.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgAuto.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleop.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600">{t.matchesPlayed}</td>
+                    <td className="py-3 text-gray-600">{t.highClimbCount}/{t.matchesPlayed}</td>
+                    <td className="py-3 text-gray-600">{t.diedCount}/{t.matchesPlayed}</td>
+                    <td className="py-3 text-gray-600">{t.driverSkill}</td>
+                    <td className="py-3 text-gray-600">{t.robotSpeed}</td>
+                    <td className="py-3 text-gray-600">{t.defense}</td>
                   </tr>
                 ))}
               </tbody>
@@ -560,8 +662,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th className="text-left py-2">Scouters</th>
                       <th className="text-left py-2">Auto Total</th>
                       <th className="text-left py-2">Auto L1</th>
-                      <th className="text-left py-2">Auto L2</th>
-                      <th className="text-left py-2">Auto L3</th>
+                      <th className="text-left py-2">Auto Net</th>
                       <th className="text-left py-2">Auto L4</th>
                       <th className="text-left py-2">Auto Net</th>
                       <th className="text-left py-2">Teleop Total</th>
@@ -571,6 +672,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th className="text-left py-2">Teleop L4</th>
                       <th className="text-left py-2">Teleop Net</th>
                       <th className="text-left py-2">Teleop Prosser</th>
+                      <th className="text-left py-2">High Climb</th>
+                      <th className="text-left py-2">Died</th>
+                      <th className="text-left py-2">Driver Skill</th>
+                      <th className="text-left py-2">Robot Speed</th>
+                      <th className="text-left py-2">Defense</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -585,6 +691,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         <td className="py-2">{m.avgAutoL4.toFixed(2)}</td>
                         <td className="py-2">{m.avgAutoNet.toFixed(2)}</td>
                         <td className="py-2">{m.avgTeleopTotal.toFixed(2)}</td>
+                        <td className="py-2">{m.highClimb}</td>
+                        <td className="py-2">{m.died}</td>
+                        <td className="py-2">{m.driverSkill}</td>
+                        <td className="py-2">{m.robotSpeed}</td>
+                        <td className="py-2">{m.defense}</td>
                         <td className="py-2">{m.avgTeleopL1.toFixed(2)}</td>
                         <td className="py-2">{m.avgTeleopL2.toFixed(2)}</td>
                         <td className="py-2">{m.avgTeleopL3.toFixed(2)}</td>
