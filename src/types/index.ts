@@ -32,18 +32,15 @@ export interface ScoutingData {
     l3: number;
     l4: number;
     hasAuto: boolean;
-    // numeric counts for shots scored via net/prosser in autonomous
-    net?: number;
-    prosser?: number;
+    // net/prosser removed from auto (only tracked in teleop)
   };
   teleop: {
     l1: number;
     l2: number;
     l3: number;
     l4: number;
-    // numeric counts for shots scored via net/prosser in teleop (not percentages)
-    net?: number;
-    prosser?: number;
+    net?: boolean;
+    prosser?: boolean;
   };
   endgame: {
     climb: 'none' | 'low' | 'deep';
