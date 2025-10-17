@@ -2,42 +2,26 @@ import { useState, useMemo, useEffect } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
 import { fetchServerScouting, deleteScoutingFromServer } from '../services/syncService';
-import { ArrowLeft, BarChart3, Download } from 'lucide-react';
+import { ArrowLeft, BarChart3, Filter, Download } from 'lucide-react';
 
 interface DataAnalysisProps {
   onBack: () => void;
 }
 
-type TeamStats = {
-  teamKey: string; // frcXXXX
-  team: string; // display without frc
-  count: number;
-  avgAuto: number;
-  avgAutoL1: number;
-  avgAutoL2: number;
-  avgAutoL3: number;
-  avgAutoL4: number;
-  avgTeleop: number;
-  avgTeleopL1: number;
-  avgTeleopL2: number;
-  avgTeleopL3: number;
-  avgTeleopL4: number;
-  pctTeleopNet: number; // 0-100
-  pctTeleopProsser: number; // 0-100
-};
-
 export function DataAnalysis({ onBack }: DataAnalysisProps) {
-  const [rows, setRows] = useState<ScoutingData[]>([]);
+  const [data, setData] = useState<ScoutingData[]>([]);
   const [loadingServer, setLoadingServer] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Try to fetch server data first (so incognito sessions show server rows)
     let mounted = true;
     (async () => {
       setLoadingServer(true);
       try {
         const serverRows: any[] = await fetchServerScouting();
         if (!mounted) return;
+        // map server shape to ScoutingData expected by the UI
         const mapped = serverRows.map((r: any) => ({
           id: r.id,
           matchKey: r.match_key,
@@ -45,138 +29,121 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           scouter: r.scouter_name,
           alliance: r.alliance,
           position: r.position,
-          auto: r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false },
-          teleop: r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0, net: false, prosser: false },
-          endgame: r.payload?.endgame || { climb: 'none' },
+            auto: { ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }) },
+            teleop: { ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }), net: r.payload?.teleop?.net ?? false, prosser: r.payload?.teleop?.prosser ?? false },
+          endgame: { ...(r.payload?.endgame || { climb: 'none' }), died: r.payload?.endgame?.died ?? 'none' },
           defense: r.payload?.defense || 'none',
+            // algae removed — keep compatibility by ignoring
           timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
         }));
-        setRows(mapped as ScoutingData[]);
+        setData(mapped as ScoutingData[]);
         setServerError(null);
       } catch (e: any) {
         console.error('Failed to fetch server scouting records:', e);
         setServerError(String(e?.message || e));
+        // fallback to local data if server request fails
         const local = DataService.getScoutingData();
-        setRows(local as ScoutingData[]);
+        setData(local as ScoutingData[]);
       } finally {
         setLoadingServer(false);
       }
     })();
     return () => { mounted = false; };
   }, []);
+  const [filters, setFilters] = useState({
+    alliance: 'all',
+    team: '',
+    sortBy: 'timestamp',
+    sortOrder: 'desc' as 'asc' | 'desc',
+  });
 
-  // Build list of teams from saved matches (so we include teams with no scouting rows)
-  const allTeams = useMemo(() => {
-    const matches = DataService.getMatches() || [];
-    const teamSet = new Set<string>();
-    matches.forEach((m: any) => {
-      ['red', 'blue'].forEach((a: any) => {
-        (m.alliances?.[a]?.team_keys || []).forEach((tk: string) => teamSet.add(tk));
-      });
-    });
-    if (teamSet.size === 0) {
-      rows.forEach(r => teamSet.add(r.teamKey));
+  const filteredAndSortedData = useMemo(() => {
+    let filtered = [...data];
+
+    // Apply filters
+    if (filters.alliance !== 'all') {
+      filtered = filtered.filter(d => d.alliance === filters.alliance);
     }
-    return Array.from(teamSet).sort((a, b) => a.localeCompare(b));
-  }, [rows]);
 
-  const teamStats = useMemo(() => {
-    const byTeam: Record<string, ScoutingData[]> = {};
-    rows.forEach(r => {
-      byTeam[r.teamKey] = byTeam[r.teamKey] || [];
-      byTeam[r.teamKey].push(r);
-    });
+    if (filters.team) {
+      filtered = filtered.filter(d => 
+        d.teamKey.toLowerCase().includes(filters.team.toLowerCase())
+      );
+    }
 
-    const stats: TeamStats[] = allTeams.map((tk) => {
-      const entries = byTeam[tk] || [];
-      const count = entries.length;
-      const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
-
-      const autoL1 = entries.map(e => e.auto.l1 || 0);
-      const autoL2 = entries.map(e => e.auto.l2 || 0);
-      const autoL3 = entries.map(e => e.auto.l3 || 0);
-      const autoL4 = entries.map(e => e.auto.l4 || 0);
-      const teleopL1 = entries.map(e => e.teleop.l1 || 0);
-      const teleopL2 = entries.map(e => e.teleop.l2 || 0);
-      const teleopL3 = entries.map(e => e.teleop.l3 || 0);
-      const teleopL4 = entries.map(e => e.teleop.l4 || 0);
-      const teleopNet = entries.map(e => e.teleop.net ? 1 : 0);
-      const teleopProsser = entries.map(e => e.teleop.prosser ? 1 : 0);
-
-      const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
-
-      const avgAutoL1 = avg(autoL1);
-      const avgAutoL2 = avg(autoL2);
-      const avgAutoL3 = avg(autoL3);
-      const avgAutoL4 = avg(autoL4);
-      const avgTeleopL1 = avg(teleopL1);
-      const avgTeleopL2 = avg(teleopL2);
-      const avgTeleopL3 = avg(teleopL3);
-      const avgTeleopL4 = avg(teleopL4);
-
-      const avgAuto = avg([avgAutoL1, avgAutoL2, avgAutoL3, avgAutoL4]);
-      const avgTeleop = avg([avgTeleopL1, avgTeleopL2, avgTeleopL3, avgTeleopL4]);
-
-      const pctTeleopNet = Math.round(avg(teleopNet) * 100);
-      const pctTeleopProsser = Math.round(avg(teleopProsser) * 100);
-
-      return {
-        teamKey: tk,
-        team: tk.replace(/^frc/, ''),
-        count,
-        avgAuto: Math.round(avgAuto * 100) / 100,
-        avgAutoL1: Math.round(avgAutoL1 * 100) / 100,
-        avgAutoL2: Math.round(avgAutoL2 * 100) / 100,
-        avgAutoL3: Math.round(avgAutoL3 * 100) / 100,
-        avgAutoL4: Math.round(avgAutoL4 * 100) / 100,
-        avgTeleop: Math.round(avgTeleop * 100) / 100,
-        avgTeleopL1: Math.round(avgTeleopL1 * 100) / 100,
-        avgTeleopL2: Math.round(avgTeleopL2 * 100) / 100,
-        avgTeleopL3: Math.round(avgTeleopL3 * 100) / 100,
-        avgTeleopL4: Math.round(avgTeleopL4 * 100) / 100,
-        pctTeleopNet,
-        pctTeleopProsser,
-      } as TeamStats;
-    });
-
-    return stats;
-  }, [rows, allTeams]);
-
-  const [sortBy, setSortBy] = useState<keyof TeamStats | 'team' | 'count'>('team');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-
-  const sorted = useMemo(() => {
-    const copy = [...teamStats];
-    copy.sort((a, b) => {
-      const aVal: any = (a as any)[sortBy];
-      const bVal: any = (b as any)[sortBy];
-      if (typeof aVal === 'string') {
-        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal: any, bVal: any;
+      
+      switch (filters.sortBy) {
+        case 'team':
+          aVal = a.teamKey;
+          bVal = b.teamKey;
+          break;
+        case 'totalScore':
+          aVal = a.auto.l1 + a.auto.l2 + a.auto.l3 + a.auto.l4 + 
+                 a.teleop.l1 + a.teleop.l2 + a.teleop.l3 + a.teleop.l4;
+          bVal = b.auto.l1 + b.auto.l2 + b.auto.l3 + b.auto.l4 + 
+                 b.teleop.l1 + b.teleop.l2 + b.teleop.l3 + b.teleop.l4;
+          break;
+        case 'l1Total':
+          aVal = a.auto.l1 + a.teleop.l1;
+          bVal = b.auto.l1 + b.teleop.l1;
+          break;
+        default:
+          aVal = a.timestamp;
+          bVal = b.timestamp;
       }
-      if (aVal === bVal) return 0;
-      return sortOrder === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
-    });
-    return copy;
-  }, [teamStats, sortBy, sortOrder]);
 
-  const toggleSort = (key: keyof TeamStats | 'team' | 'count') => {
-    if (sortBy === key) {
-      setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(key as any);
-      setSortOrder('desc');
-    }
-  };
+      if (filters.sortOrder === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      }
+      return aVal < bVal ? 1 : -1;
+    });
+
+    return filtered;
+  }, [data, filters]);
 
   const exportToCSV = () => {
-    const headers = ['Team', 'Count', 'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Avg', 'Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Avg', 'Teleop Net %', 'Teleop Prosser %'];
-    const rowsCsv = sorted.map(t => [t.team, t.count, t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAuto, t.avgTeleopL1, t.avgTeleopL2, t.avgTeleopL3, t.avgTeleopL4, t.avgTeleop, t.pctTeleopNet, t.pctTeleopProsser]);
-    const csv = [headers, ...rowsCsv].map(r => r.join(',')).join('\n');
+    const headers = [
+      'Match', 'Team', 'Scouter', 'Alliance', 'Position',
+      'Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Move',
+      'Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Net', 'Teleop Prosser',
+      'Climb', 'Driver Skill', 'Robot Speed', 'Died', 'Defense', 'Timestamp'
+    ];
+
+    const rows = filteredAndSortedData.map(d => [
+      d.matchKey,
+      d.teamKey.replace('frc', ''),
+      d.scouter,
+      d.alliance,
+      d.position,
+  d.auto.l1,
+  d.auto.l2,
+  d.auto.l3,
+  d.auto.l4,
+  d.auto.hasAuto ? 'Yes' : 'No',
+  // auto.net/auto.prosser removed
+    d.teleop.l1,
+      d.teleop.l2,
+      d.teleop.l3,
+      d.teleop.l4,
+      d.teleop.net ? 'Yes' : 'No',
+      d.teleop.prosser ? 'Yes' : 'No',
+      d.endgame.climb,
+  d.endgame.driverSkill ?? '',
+  d.endgame.robotSpeed ?? '',
+  (d.endgame.died === 'none' ? "Didn't die" : d.endgame.died === 'partway' ? 'Died partway' : d.endgame.died === 'start' ? 'Died at start' : ''),
+      d.defense,
+      new Date(d.timestamp).toLocaleString()
+    ]);
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `frc-team-stats-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `frc-scouting-data-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -192,9 +159,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       setDeleteInProgress(true);
       setDeleteError(null);
       try {
+        // attempt to delete server-side first
         await deleteScoutingFromServer();
+        // then clear local
         DataService.clearScoutingData();
-        setRows([]);
+        setData([]);
         setShowConfirmClearData(false);
       } catch (e: any) {
         console.error('Failed to delete scouting data from server:', e);
@@ -205,120 +174,253 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     })();
   };
 
+  const calculateTotalScore = (data: ScoutingData) => {
+    const autoTotal = data.auto.l1 + data.auto.l2 + data.auto.l3 + data.auto.l4;
+    const teleopTotal = data.teleop.l1 + data.teleop.l2 + data.teleop.l3 + data.teleop.l4 + (data.teleop.net ? 1 : 0) + (data.teleop.prosser ? 1 : 0);
+    return autoTotal + teleopTotal;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={onBack} className="p-2 rounded bg-gray-100 hover:bg-gray-200 mr-2">
-              <ArrowLeft className="w-4 h-4 text-gray-700" />
-            </button>
-            <BarChart3 className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Team Analysis</h1>
-          </div>
-          {serverError && (
-            <div className="mt-2 text-red-600">Server: {serverError}</div>
-          )}
-          <div className="flex items-center gap-2">
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
             <button
-              onClick={exportToCSV}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+              onClick={onBack}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
             >
-              <Download className="w-4 h-4" />
-              Export CSV
+              <ArrowLeft className="w-5 h-5" />
+              Back to Admin Panel
             </button>
-            <button
-              onClick={async () => {
-                setLoadingServer(true);
-                try {
-                  const serverRows: any[] = await fetchServerScouting();
-                  const mapped = serverRows.map((r: any) => ({
-                    id: r.id,
-                    matchKey: r.match_key,
-                    teamKey: r.team_key,
-                    scouter: r.scouter_name,
-                    alliance: r.alliance,
-                    position: r.position,
-                    auto: r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false },
-                    teleop: r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0, net: false, prosser: false },
-                    endgame: r.payload?.endgame || { climb: 'none' },
-                    defense: r.payload?.defense || 'none',
-                    timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
-                  }));
-                  setRows(mapped as ScoutingData[]);
-                  setServerError(null);
-                } catch (e: any) {
-                  console.error('Failed to fetch server scouting records:', e);
-                  setServerError(String(e?.message || e));
-                } finally {
-                  setLoadingServer(false);
-                }
-              }}
-              className="ml-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-            >
-              {loadingServer ? 'Refreshing...' : 'Refresh from server'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exportToCSV}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+              <button
+                onClick={async () => {
+                  setLoadingServer(true);
+                  try {
+                    const serverRows: any[] = await fetchServerScouting();
+                    const mapped = serverRows.map((r: any) => ({
+                      id: r.id,
+                      matchKey: r.match_key,
+                      teamKey: r.team_key,
+                      scouter: r.scouter_name,
+                      alliance: r.alliance,
+                      position: r.position,
+                      auto: r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false },
+                      teleop: r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 },
+                      endgame: r.payload?.endgame || { climb: 'none' },
+                      defense: r.payload?.defense || 'none',
+                      algae: r.payload?.algae ?? 0,
+                      timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
+                    }));
+                    setData(mapped as ScoutingData[]);
+                    setServerError(null);
+                  } catch (e: any) {
+                    console.error('Failed to fetch server scouting records:', e);
+                    setServerError(String(e?.message || e));
+                  } finally {
+                    setLoadingServer(false);
+                  }
+                }}
+                className="ml-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {loadingServer ? 'Refreshing...' : 'Refresh from server'}
+              </button>
+            </div>
             <button
               onClick={() => setShowConfirmClearData(true)}
-              className="ml-2 px-4 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600"
+              className="ml-3 flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors"
             >
-              Clear Data
+              Clear Scouting Data
             </button>
+
+          </div>
+
+          <div className="flex items-center gap-3">
+            <BarChart3 className="w-8 h-8 text-blue-600" />
+            <h1 className="text-2xl font-bold text-gray-900">Data Analysis</h1>
           </div>
         </div>
 
+        {/* Filters */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 font-medium text-gray-900">Team</th>
-                  <th className="text-left py-3 font-medium text-gray-900">Entries</th>
-                  <th onClick={() => toggleSort('avgAutoL1')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L1</th>
-                  <th onClick={() => toggleSort('avgAutoL2')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L2</th>
-                  <th onClick={() => toggleSort('avgAutoL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L3</th>
-                  <th onClick={() => toggleSort('avgAutoL4')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L4</th>
-                  <th onClick={() => toggleSort('avgTeleopL1')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L1</th>
-                  <th onClick={() => toggleSort('avgTeleopL2')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L2</th>
-                  <th onClick={() => toggleSort('avgTeleopL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L3</th>
-                  <th onClick={() => toggleSort('avgTeleopL4')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L4</th>
-                  <th onClick={() => toggleSort('pctTeleopNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Net %</th>
-                  <th onClick={() => toggleSort('pctTeleopProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Prosser %</th>
-                  <th onClick={() => toggleSort('avgAuto')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Avg</th>
-                  <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Avg</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((t) => (
-                  <tr key={t.teamKey} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 font-medium text-gray-900">{t.team}</td>
-                    <td className="py-3 text-gray-600">{t.count}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoL1.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoL2.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoL3.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoL4.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopL1.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopL2.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopL3.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopL4.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.pctTeleopNet}%</td>
-                    <td className="py-3 text-gray-600">{t.pctTeleopProsser}%</td>
-                    <td className="py-3 text-gray-600">{t.avgAuto.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleop.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-gray-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Filters & Sorting</h2>
           </div>
+          <div className="grid md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Alliance
+              </label>
+              <select
+                value={filters.alliance}
+                onChange={(e) => setFilters({ ...filters, alliance: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Alliances</option>
+                <option value="red">Red Alliance</option>
+                <option value="blue">Blue Alliance</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Team Filter
+              </label>
+              <input
+                type="text"
+                value={filters.team}
+                onChange={(e) => setFilters({ ...filters, team: e.target.value })}
+                placeholder="Search by team number"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sort By
+              </label>
+              <select
+                value={filters.sortBy}
+                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="timestamp">Date</option>
+                <option value="team">Team Number</option>
+                <option value="totalScore">Total Score</option>
+                <option value="l1Total">L1 Total</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Order
+              </label>
+              <select
+                value={filters.sortOrder}
+                onChange={(e) => setFilters({ ...filters, sortOrder: e.target.value as 'asc' | 'desc' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          {serverError && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 text-red-800">
+              Failed to load server data: {serverError}
+            </div>
+          )}
+          {deleteError && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 mb-4 text-red-800">
+              Failed to delete server data: {deleteError}
+            </div>
+          )}
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Scouting Data ({filteredAndSortedData.length} entries)
+          </h2>
+          
+          {filteredAndSortedData.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No scouting data found with current filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 font-medium text-gray-900">Team</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Alliance</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Auto L1-L4</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Teleop L1-L4</th>
+                    {/* Auto Net/Prosser removed */}
+                    <th className="text-left py-3 font-medium text-gray-900">Total</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Climb</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Driver Skill</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Robot Speed</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Died</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Defense</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Teleop Net</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Teleop Prosser</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Scouter</th>
+                    <th className="text-left py-3 font-medium text-gray-900">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData.map((entry) => (
+                    <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 font-medium text-gray-900">
+                        {entry.teamKey.replace('frc', '')}
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded text-white ${
+                          entry.alliance === 'red' ? 'bg-red-500' : 'bg-blue-500'
+                        }`}>
+                          {entry.alliance.toUpperCase()} {entry.position}
+                        </span>
+                      </td>
+                      <td className="py-3 text-gray-600">
+                        {entry.auto.l1}/{entry.auto.l2}/{entry.auto.l3}/{entry.auto.l4}
+                      </td>
+                      <td className="py-3 text-gray-600">
+                        {entry.teleop.l1}/{entry.teleop.l2}/{entry.teleop.l3}/{entry.teleop.l4}
+                      </td>
+                      {/* Auto Net/Prosser removed */}
+                      <td className="py-3 font-medium text-gray-900">
+                        {calculateTotalScore(entry)}
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${
+                          entry.endgame.climb === 'deep' ? 'bg-green-100 text-green-800' :
+                          entry.endgame.climb === 'low' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {entry.endgame.climb}
+                        </span>
+                      </td>
+                      <td className="py-3 text-gray-600">{entry.endgame.driverSkill ?? ''}</td>
+                      <td className="py-3 text-gray-600">{entry.endgame.robotSpeed ?? ''}</td>
+                      <td className="py-3 text-gray-600">{entry.endgame.died === 'none' ? "Didn't die" : entry.endgame.died === 'partway' ? 'Died partway' : entry.endgame.died === 'start' ? 'Died at start' : ''}</td>
+                      <td className="py-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${
+                          entry.defense === 'great' ? 'bg-green-100 text-green-800' :
+                          entry.defense === 'ok' ? 'bg-yellow-100 text-yellow-800' :
+                          entry.defense === 'bad' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {entry.defense}
+                        </span>
+                      </td>
+                      <td className="py-3 text-gray-600">{entry.teleop.net ? 'Yes' : 'No'}</td>
+                      <td className="py-3 text-gray-600">{entry.teleop.prosser ? 'Yes' : 'No'}</td>
+                      <td className="py-3 text-gray-600">{entry.scouter}</td>
+                      <td className="py-3 text-gray-600">
+                        {new Date(entry.timestamp).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
-
       {showConfirmClearData && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-sm">
             <h3 className="text-lg font-semibold mb-2">Confirm clear scouting data</h3>
             <p className="text-gray-600 mb-4">Are you sure you want to permanently delete all scouting data? This cannot be undone.</p>
-            {deleteError && <p className="text-red-600 mb-2">{deleteError}</p>}
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowConfirmClearData(false)}
