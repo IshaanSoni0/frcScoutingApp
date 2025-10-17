@@ -202,12 +202,6 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 onIncrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: (prev.auto.net || 0) + 1 } }))}
                 onDecrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: Math.max(0, (prev.auto.net || 0) - 1) } }))}
               />
-              <ScoreButton
-                label="Prosser"
-                value={formData.auto.prosser || 0}
-                onIncrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: (prev.auto.prosser || 0) + 1 } }))}
-                onDecrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, prosser: Math.max(0, (prev.auto.prosser || 0) - 1) } }))}
-              />
             </div>
             <label className="flex items-center gap-2">
               <input

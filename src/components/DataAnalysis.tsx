@@ -18,7 +18,6 @@ type TeamStats = {
   avgAutoL3: number;
   avgAutoL4: number;
   avgAutoNet: number;
-  avgAutoProsser: number;
   avgTeleop: number;
   avgTeleopL1: number;
   avgTeleopL2: number;
@@ -54,7 +53,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           auto: {
             ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }),
             net: typeof r.payload?.auto?.net === 'number' ? r.payload.auto.net : (r.payload?.auto?.net ? 1 : 0),
-            prosser: typeof r.payload?.auto?.prosser === 'number' ? r.payload.auto.prosser : (r.payload?.auto?.prosser ? 1 : 0),
+            // legacy auto prosser removed - ignore payload auto.prosser
           },
           teleop: {
             ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }),
@@ -97,7 +96,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           auto: {
             ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }),
             net: typeof r.payload?.auto?.net === 'number' ? r.payload.auto.net : (r.payload?.auto?.net ? 1 : 0),
-            prosser: typeof r.payload?.auto?.prosser === 'number' ? r.payload.auto.prosser : (r.payload?.auto?.prosser ? 1 : 0),
+            // legacy auto prosser removed - ignore payload auto.prosser
           },
           teleop: {
             ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }),
@@ -153,9 +152,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const teleopL3 = entries.map(e => e.teleop.l3 || 0);
       const teleopL4 = entries.map(e => e.teleop.l4 || 0);
     const teleopNet = entries.map(e => e.teleop.net ? 1 : 0);
-    const teleopProsser = entries.map(e => (typeof e.teleop.prosser === 'number' ? e.teleop.prosser : (e.teleop.prosser ? 1 : 0)));
-    const autoNet = entries.map(e => (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0)));
-    const autoProsser = entries.map(e => (typeof e.auto.prosser === 'number' ? e.auto.prosser : (e.auto.prosser ? 1 : 0)));
+  const teleopProsser = entries.map(e => (typeof e.teleop.prosser === 'number' ? e.teleop.prosser : (e.teleop.prosser ? 1 : 0)));
+  const autoNet = entries.map(e => (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0)));
 
       const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
 
@@ -168,8 +166,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const avgTeleopL3 = avg(teleopL3);
       const avgTeleopL4 = avg(teleopL4);
 
-    const avgAutoNet = avg(autoNet);
-    const avgAutoProsser = avg(autoProsser);
+  const avgAutoNet = avg(autoNet);
     // compute per-entry total pieces for auto (L1-L4 + net + prosser) and average those totals
     const autoTotals = entries.map(e => {
       const l1 = e.auto.l1 || 0;
@@ -177,12 +174,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const l3 = e.auto.l3 || 0;
       const l4 = e.auto.l4 || 0;
       const netVal = (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0));
-      const prosVal = (typeof e.auto.prosser === 'number' ? e.auto.prosser : (e.auto.prosser ? 1 : 0));
-      return l1 + l2 + l3 + l4 + netVal + prosVal;
+      return l1 + l2 + l3 + l4 + netVal; // prosser removed from auto totals
     });
     const avgAuto = avg(autoTotals);
 
-    const avgTeleopProsser = avg(teleopProsser);
+  const avgTeleopProsser = avg(teleopProsser);
     const avgTeleopNet = avg(teleopNet);
     // compute per-entry total pieces for teleop (L1-L4 + net + prosser) and average those totals
     const teleopTotals = entries.map(e => {
@@ -205,8 +201,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         avgAutoL2: Math.round(avgAutoL2 * 100) / 100,
         avgAutoL3: Math.round(avgAutoL3 * 100) / 100,
         avgAutoL4: Math.round(avgAutoL4 * 100) / 100,
-  avgAutoNet: Math.round(avgAutoNet * 100) / 100,
-  avgAutoProsser: Math.round(avgAutoProsser * 100) / 100,
+    avgAutoNet: Math.round(avgAutoNet * 100) / 100,
         avgTeleop: Math.round(avgTeleop * 100) / 100,
         avgTeleopL1: Math.round(avgTeleopL1 * 100) / 100,
         avgTeleopL2: Math.round(avgTeleopL2 * 100) / 100,
@@ -333,11 +328,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
-  if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Prosser', 'Auto Avg');
+  if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Avg');
   if (showTeleop) headers.push('Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Prosser', 'Teleop Avg', 'Teleop Net');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
-  if (showAuto) base.push(t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAutoNet, t.avgAutoProsser, t.avgAuto);
+  if (showAuto) base.push(t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAutoNet, t.avgAuto);
   if (showTeleop) base.push(t.avgTeleopL1, t.avgTeleopL2, t.avgTeleopL3, t.avgTeleopL4, t.avgTeleopProsser, t.avgTeleop, t.avgTeleopNet);
       return base;
     });
@@ -507,7 +502,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <th onClick={() => toggleSort('avgAutoL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L3</th>
                   <th onClick={() => toggleSort('avgAutoL4')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L4</th>
                   <th onClick={() => toggleSort('avgAutoNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Net</th>
-                  <th onClick={() => toggleSort('avgAutoProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Prosser</th>
                   <th onClick={() => toggleSort('avgTeleopL1')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L1</th>
                   <th onClick={() => toggleSort('avgTeleopL2')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L2</th>
                   <th onClick={() => toggleSort('avgTeleopL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L3</th>
@@ -532,7 +526,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <td className="py-3 text-gray-600">{t.avgAutoL3.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgAutoL4.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgAutoNet.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoProsser.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleopL1.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleopL2.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleopL3.toFixed(2)}</td>
@@ -571,7 +564,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th className="text-left py-2">Auto L3</th>
                       <th className="text-left py-2">Auto L4</th>
                       <th className="text-left py-2">Auto Net</th>
-                      <th className="text-left py-2">Auto Prosser</th>
                       <th className="text-left py-2">Teleop Total</th>
                       <th className="text-left py-2">Teleop L1</th>
                       <th className="text-left py-2">Teleop L2</th>
@@ -592,7 +584,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         <td className="py-2">{m.avgAutoL3.toFixed(2)}</td>
                         <td className="py-2">{m.avgAutoL4.toFixed(2)}</td>
                         <td className="py-2">{m.avgAutoNet.toFixed(2)}</td>
-                        <td className="py-2">{m.avgAutoPros.toFixed(2)}</td>
                         <td className="py-2">{m.avgTeleopTotal.toFixed(2)}</td>
                         <td className="py-2">{m.avgTeleopL1.toFixed(2)}</td>
                         <td className="py-2">{m.avgTeleopL2.toFixed(2)}</td>
