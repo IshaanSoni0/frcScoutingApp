@@ -18,6 +18,7 @@ type TeamStats = {
   avgAutoL3: number;
   avgAutoL4: number;
   avgAutoNet: number;
+  avgAutoProsser: number;
   avgTeleop: number;
   avgTeleopL1: number;
   avgTeleopL2: number;
@@ -113,9 +114,10 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const teleopL2 = entries.map(e => e.teleop.l2 || 0);
       const teleopL3 = entries.map(e => e.teleop.l3 || 0);
       const teleopL4 = entries.map(e => e.teleop.l4 || 0);
-  const teleopNet = entries.map(e => e.teleop.net ? 1 : 0);
-  const teleopProsser = entries.map(e => (typeof e.teleop.prosser === 'number' ? e.teleop.prosser : (e.teleop.prosser ? 1 : 0)));
-  const autoNet = entries.map(e => (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0)));
+    const teleopNet = entries.map(e => e.teleop.net ? 1 : 0);
+    const teleopProsser = entries.map(e => (typeof e.teleop.prosser === 'number' ? e.teleop.prosser : (e.teleop.prosser ? 1 : 0)));
+    const autoNet = entries.map(e => (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0)));
+    const autoProsser = entries.map(e => (typeof e.auto.prosser === 'number' ? e.auto.prosser : (e.auto.prosser ? 1 : 0)));
 
       const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
 
@@ -128,16 +130,15 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const avgTeleopL3 = avg(teleopL3);
       const avgTeleopL4 = avg(teleopL4);
 
-  const avgAutoNet = avg(autoNet);
-  // include autoNet into average auto (numeric addition)
-  const avgAuto = avg([avgAutoL1, avgAutoL2, avgAutoL3, avgAutoL4, avgAutoNet]);
+    const avgAutoNet = avg(autoNet);
+    const avgAutoProsser = avg(autoProsser);
+    // include autoNet and autoProsser into average auto (numeric addition)
+    const avgAuto = avg([avgAutoL1, avgAutoL2, avgAutoL3, avgAutoL4, avgAutoNet, avgAutoProsser]);
 
-  const avgTeleopProsser = avg(teleopProsser);
-  const avgTeleopNet = avg(teleopNet);
-  // include prosser count into teleop average as numeric addition
-  const avgTeleop = avg([avgTeleopL1, avgTeleopL2, avgTeleopL3, avgTeleopL4, avgTeleopProsser]);
-
-  const pctTeleopNet = Math.round(avgTeleopNet * 100);
+    const avgTeleopProsser = avg(teleopProsser);
+    const avgTeleopNet = avg(teleopNet);
+    // include prosser count into teleop average as numeric addition
+    const avgTeleop = avg([avgTeleopL1, avgTeleopL2, avgTeleopL3, avgTeleopL4, avgTeleopProsser]);
 
       return {
         teamKey: tk,
@@ -148,7 +149,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         avgAutoL2: Math.round(avgAutoL2 * 100) / 100,
         avgAutoL3: Math.round(avgAutoL3 * 100) / 100,
         avgAutoL4: Math.round(avgAutoL4 * 100) / 100,
-        avgAutoNet: Math.round(avgAutoNet * 100) / 100,
+  avgAutoNet: Math.round(avgAutoNet * 100) / 100,
+  avgAutoProsser: Math.round(avgAutoProsser * 100) / 100,
         avgTeleop: Math.round(avgTeleop * 100) / 100,
         avgTeleopL1: Math.round(avgTeleopL1 * 100) / 100,
         avgTeleopL2: Math.round(avgTeleopL2 * 100) / 100,
@@ -198,11 +200,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
-  if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Avg');
+  if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Prosser', 'Auto Avg');
   if (showTeleop) headers.push('Teleop L1', 'Teleop L2', 'Teleop L3', 'Teleop L4', 'Teleop Prosser', 'Teleop Avg', 'Teleop Net');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
-  if (showAuto) base.push(t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAutoNet, t.avgAuto);
+  if (showAuto) base.push(t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAutoNet, t.avgAutoProsser, t.avgAuto);
   if (showTeleop) base.push(t.avgTeleopL1, t.avgTeleopL2, t.avgTeleopL3, t.avgTeleopL4, t.avgTeleopProsser, t.avgTeleop, t.avgTeleopNet);
       return base;
     });
@@ -370,6 +372,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <th onClick={() => toggleSort('avgAutoL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L3</th>
                   <th onClick={() => toggleSort('avgAutoL4')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L4</th>
                   <th onClick={() => toggleSort('avgAutoNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Net</th>
+                  <th onClick={() => toggleSort('avgAutoProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Prosser</th>
                   <th onClick={() => toggleSort('avgTeleopL1')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L1</th>
                   <th onClick={() => toggleSort('avgTeleopL2')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L2</th>
                   <th onClick={() => toggleSort('avgTeleopL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop L3</th>
@@ -390,6 +393,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <td className="py-3 text-gray-600">{t.avgAutoL3.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgAutoL4.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgAutoNet.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600">{t.avgAutoProsser.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleopL1.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleopL2.toFixed(2)}</td>
                     <td className="py-3 text-gray-600">{t.avgTeleopL3.toFixed(2)}</td>
