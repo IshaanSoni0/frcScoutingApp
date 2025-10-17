@@ -13,6 +13,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [selectedScouting, setSelectedScouting] = useState<any | null>(null);
 
   useEffect(() => {
     // Register service worker for PWA
@@ -51,13 +52,15 @@ function App() {
     setCurrentState('login');
   };
 
-  const handleMatchSelect = (match: Match) => {
+  const handleMatchSelect = (match: Match, existing?: any) => {
     setSelectedMatch(match);
+    setSelectedScouting(existing || null);
     setCurrentState('scouting');
   };
 
   const handleScoutingComplete = () => {
     setSelectedMatch(null);
+    setSelectedScouting(null);
     setCurrentState('matches');
     // Reload matches in case they were updated
     const storedMatches = DataService.getMatches();
@@ -83,6 +86,7 @@ function App() {
         match={selectedMatch}
         user={user}
         onBack={handleBackToMatches}
+        existing={selectedScouting}
         onSubmit={handleScoutingComplete}
       />
     );

@@ -163,6 +163,18 @@ export class DataService {
     }
   }
 
+  static updateScoutingData(record: any): void {
+    try {
+      const data = this.getScoutingData() as any[];
+      const updated = data.map(d => (d.id === record.id ? { ...d, ...record, synced: false, updatedAt: Date.now() } : d));
+      localStorage.setItem(STORAGE_KEYS.SCOUTING_DATA, JSON.stringify(updated));
+    } catch (e) {
+      // ignore
+      // eslint-disable-next-line no-console
+      console.error('Failed updating scouting data', e);
+    }
+  }
+
   static clearAllPending(): void {
     try {
       localStorage.removeItem(STORAGE_KEYS.PENDING_SCOUTING);

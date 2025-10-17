@@ -9,15 +9,29 @@ interface ScoutingFormProps {
   user: User;
   onBack: () => void;
   onSubmit: () => void;
+  existing?: any;
 }
 
-export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProps) {
-  const [formData, setFormData] = useState({
+export function ScoutingForm({ match, user, onBack, onSubmit, existing }: ScoutingFormProps) {
+  const [formData, setFormData] = useState(() => ({
     auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false, net: 0, prosser: 0 },
   teleop: { l1: 0, l2: 0, l3: 0, l4: 0, net: 0, prosser: 0 },
   endgame: { climb: 'none' as 'none' | 'low' | 'deep', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: 'none' as 'none' | 'partway' | 'start' },
     defense: 'none' as 'none' | 'bad' | 'ok' | 'great',
-  });
+  }));
+
+  // Prefill when editing an existing record
+  React.useEffect(() => {
+    if (existing) {
+      setFormData({
+        auto: { l1: existing.auto?.l1 || 0, l2: existing.auto?.l2 || 0, l3: existing.auto?.l3 || 0, l4: existing.auto?.l4 || 0, hasAuto: existing.auto?.hasAuto || false, net: existing.auto?.net || 0, prosser: existing.auto?.prosser || 0 },
+        teleop: { l1: existing.teleop?.l1 || 0, l2: existing.teleop?.l2 || 0, l3: existing.teleop?.l3 || 0, l4: existing.teleop?.l4 || 0, net: existing.teleop?.net || 0, prosser: existing.teleop?.prosser || 0 },
+        endgame: { climb: existing.endgame?.climb || 'none', driverSkill: existing.endgame?.driverSkill || 'medium', robotSpeed: existing.endgame?.robotSpeed || 'medium', died: existing.endgame?.died || 'none' },
+        defense: existing.defense || 'none',
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -42,20 +56,26 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
     e.preventDefault();
     setIsSubmitting(true);
 
+  // build payload; if editing existing, preserve its id
   const scoutingData: any = {
-      // do not set `id` here — let DataService.assign a proper UUID so Supabase uuid columns are satisfied
-      // id: `${match.key}_${getTeamKey()}_${Date.now()}`,
-      matchKey: match.key,
-      teamKey: getTeamKey(),
-      scouter: user.username,
-      alliance: user.alliance,
-      position: user.position,
+    ...(existing || {}),
+    id: (existing ? existing.id : undefined),
+    matchKey: match.key,
+    teamKey: getTeamKey(),
+    scouter: user.username,
+    alliance: user.alliance,
+    position: user.position,
     ...formData,
-      timestamp: Date.now(),
+    timestamp: Date.now(),
   } as any;
 
     try {
-      DataService.saveScoutingData(scoutingData);
+      if (existing) {
+        // update existing
+        DataService.updateScoutingData(scoutingData);
+      } else {
+        DataService.saveScoutingData(scoutingData);
+      }
       if (isOnline) {
         const start = Date.now();
         try {

@@ -8,7 +8,8 @@ import { useEffect, useState } from 'react';
 interface MatchListProps {
   matches: Match[];
   user: User;
-  onMatchSelect: (match: Match) => void;
+  // second arg: optional existing scouting record (local or server) mapped to local shape
+  onMatchSelect: (match: Match, existing?: any) => void;
   onBack?: () => void;
 }
 
@@ -115,7 +116,43 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
           {orderedMatches.map((match) => (
             <div
               key={match.key}
-              onClick={() => onMatchSelect(match)}
+              onClick={() => {
+                // attempt to find existing record for this scouter
+                const localScouting = DataService.getScoutingData() || [];
+                const local = localScouting.find((s: any) => s.matchKey === match.key && s.scouter === user.username);
+                if (local) {
+                  onMatchSelect(match, local);
+                  return;
+                }
+                // check server records fetched earlier
+                const server = serverScouting.find((r: any) => (r.match_key === match.key || r.match_key === match.key) && r.scouter_name === user.username);
+                if (server) {
+                  const mapped = {
+                    id: server.id,
+                    matchKey: server.match_key,
+                    teamKey: server.team_key,
+                    scouter: server.scouter_name,
+                    alliance: server.alliance,
+                    position: server.position,
+                    auto: {
+                      ...(server.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }),
+                      net: typeof server.payload?.auto?.net === 'number' ? server.payload.auto.net : (server.payload?.auto?.net ? 1 : 0),
+                      prosser: typeof server.payload?.auto?.prosser === 'number' ? server.payload.auto.prosser : (server.payload?.auto?.prosser ? 1 : 0),
+                    },
+                    teleop: {
+                      ...(server.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }),
+                      net: typeof server.payload?.teleop?.net === 'number' ? server.payload.teleop.net : (server.payload?.teleop?.net ? 1 : 0),
+                      prosser: typeof server.payload?.teleop?.prosser === 'number' ? server.payload.teleop.prosser : (server.payload?.teleop?.prosser ? 1 : 0),
+                    },
+                    endgame: server.payload?.endgame || { climb: 'none' },
+                    defense: server.payload?.defense || 'none',
+                    timestamp: server.timestamp ? Date.parse(server.timestamp) : Date.now(),
+                  };
+                  onMatchSelect(match, mapped);
+                  return;
+                }
+                onMatchSelect(match);
+              }}
               className={`bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer ${isScoutedByUser(match) ? 'opacity-90 border-l-4 border-green-500' : 'border-l-4 border-blue-500'}`}
             >
               <div className="flex justify-between items-start mb-4">
