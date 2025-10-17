@@ -132,13 +132,31 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
     const avgAutoNet = avg(autoNet);
     const avgAutoProsser = avg(autoProsser);
-    // include autoNet and autoProsser into average auto (numeric addition)
-    const avgAuto = avg([avgAutoL1, avgAutoL2, avgAutoL3, avgAutoL4, avgAutoNet, avgAutoProsser]);
+    // compute per-entry total pieces for auto (L1-L4 + net + prosser) and average those totals
+    const autoTotals = entries.map(e => {
+      const l1 = e.auto.l1 || 0;
+      const l2 = e.auto.l2 || 0;
+      const l3 = e.auto.l3 || 0;
+      const l4 = e.auto.l4 || 0;
+      const netVal = (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0));
+      const prosVal = (typeof e.auto.prosser === 'number' ? e.auto.prosser : (e.auto.prosser ? 1 : 0));
+      return l1 + l2 + l3 + l4 + netVal + prosVal;
+    });
+    const avgAuto = avg(autoTotals);
 
     const avgTeleopProsser = avg(teleopProsser);
     const avgTeleopNet = avg(teleopNet);
-    // include prosser count into teleop average as numeric addition
-    const avgTeleop = avg([avgTeleopL1, avgTeleopL2, avgTeleopL3, avgTeleopL4, avgTeleopProsser]);
+    // compute per-entry total pieces for teleop (L1-L4 + net + prosser) and average those totals
+    const teleopTotals = entries.map(e => {
+      const l1 = e.teleop.l1 || 0;
+      const l2 = e.teleop.l2 || 0;
+      const l3 = e.teleop.l3 || 0;
+      const l4 = e.teleop.l4 || 0;
+      const netVal = (typeof e.teleop.net === 'number' ? e.teleop.net : (e.teleop.net ? 1 : 0));
+      const prosVal = (typeof e.teleop.prosser === 'number' ? e.teleop.prosser : (e.teleop.prosser ? 1 : 0));
+      return l1 + l2 + l3 + l4 + netVal + prosVal;
+    });
+    const avgTeleop = avg(teleopTotals);
 
       return {
         teamKey: tk,
