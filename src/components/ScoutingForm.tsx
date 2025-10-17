@@ -16,7 +16,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
   const [formData, setFormData] = useState(() => ({
     auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false, net: 0, prosser: 0 },
   teleop: { l1: 0, l2: 0, l3: 0, l4: 0, net: 0, prosser: 0 },
-  endgame: { climb: 'none' as 'none' | 'low' | 'deep', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: 'none' as 'none' | 'partway' | 'start' },
+  endgame: { climb: 'none' as 'none' | 'low' | 'high', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: 'none' as 'none' | 'partway' | 'start' },
     defense: 'none' as 'none' | 'bad' | 'ok' | 'great',
   }));
 
@@ -272,14 +272,14 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 {[
                   { value: 'none', label: 'No Climb' },
                   { value: 'low', label: 'Low Climb' },
-                  { value: 'deep', label: 'Deep Climb' }
+                  { value: 'high', label: 'High Climb' }
                 ].map((option) => (
                   <button
                     key={option.value}
                     type="button"
                     onClick={() => setFormData(prev => ({
                       ...prev,
-                      endgame: { ...prev.endgame, climb: option.value as 'none' | 'low' | 'deep' }
+                      endgame: { ...prev.endgame, climb: option.value as 'none' | 'low' | 'high' }
                     }))}
                     className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
                       formData.endgame.climb === option.value

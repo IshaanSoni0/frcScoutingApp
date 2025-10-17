@@ -46,7 +46,7 @@ export interface ScoutingData {
     prosser?: number;
   };
   endgame: {
-    climb: 'none' | 'low' | 'deep';
+    climb: 'none' | 'low' | 'high';
     driverSkill?: 'low' | 'medium' | 'high';
     robotSpeed?: 'slow' | 'medium' | 'fast';
   died?: 'none' | 'partway' | 'start';
