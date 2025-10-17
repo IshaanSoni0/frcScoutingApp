@@ -166,13 +166,26 @@ export class DataService {
   static updateScoutingData(record: any): void {
     try {
       const data = this.getScoutingData() as any[];
-      const updated = data.map(d => (d.id === record.id ? { ...d, ...record, synced: false, updatedAt: Date.now() } : d));
+      let found = false;
+      const updated = data.map(d => {
+        if (d.id === record.id) {
+          found = true;
+          return { ...d, ...record, synced: false, updatedAt: Date.now() };
+        }
+        return d;
+      });
+      if (!found) {
+        // insert new local record (server-origin or first-time edit)
+        const rec = { ...record, id: record.id || uuidv4(), clientId: record.clientId || this.getClientId(), createdAt: record.createdAt || Date.now(), synced: false, updatedAt: Date.now() };
+        updated.push(rec);
+      }
       localStorage.setItem(STORAGE_KEYS.SCOUTING_DATA, JSON.stringify(updated));
       // ensure this id is in the pending queue so syncService will push the update
       try {
         const pending = this.getPendingScouting();
-        if (!pending.includes(record.id)) {
-          pending.push(record.id);
+        const pid = record.id || (found ? record.id : updated[updated.length - 1].id);
+        if (!pending.includes(pid)) {
+          pending.push(pid);
           localStorage.setItem(STORAGE_KEYS.PENDING_SCOUTING, JSON.stringify(pending));
           // notify other tabs/listeners
           try {
