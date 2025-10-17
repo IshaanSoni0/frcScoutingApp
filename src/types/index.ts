@@ -32,15 +32,18 @@ export interface ScoutingData {
     l3: number;
     l4: number;
     hasAuto: boolean;
-    // net/prosser removed from auto (only tracked in teleop)
+    // numeric counts for net/prosser during auto
+    net?: number;
+    prosser?: number;
   };
   teleop: {
     l1: number;
     l2: number;
     l3: number;
     l4: number;
-    net?: boolean;
-    prosser?: boolean;
+    // numeric counts for net/prosser during teleop
+    net?: number;
+    prosser?: number;
   };
   endgame: {
     climb: 'none' | 'low' | 'deep';

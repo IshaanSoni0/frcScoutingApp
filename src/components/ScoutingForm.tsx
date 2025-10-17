@@ -221,15 +221,15 @@ export function ScoutingForm({ match, user, onBack, onSubmit }: ScoutingFormProp
             <div className="flex justify-center gap-4 mt-4">
               <ScoreButton
                 label="Net"
-                value={formData.teleop.net ? 1 : 0}
-                onIncrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: true } }))}
-                onDecrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: false } }))}
+                value={formData.teleop.net || 0}
+                onIncrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: (prev.teleop.net || 0) + 1 } }))}
+                onDecrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: Math.max(0, (prev.teleop.net || 0) - 1) } }))}
               />
               <ScoreButton
                 label="Prosser"
-                value={formData.teleop.prosser ? 1 : 0}
-                onIncrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: true } }))}
-                onDecrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: false } }))}
+                value={formData.teleop.prosser || 0}
+                onIncrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: (prev.teleop.prosser || 0) + 1 } }))}
+                onDecrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: Math.max(0, (prev.teleop.prosser || 0) - 1) } }))}
               />
             </div>
             
