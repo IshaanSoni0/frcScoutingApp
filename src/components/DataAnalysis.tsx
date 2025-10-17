@@ -12,13 +12,11 @@ type TeamStats = {
   teamKey: string; // frcXXXX
   team: string; // display without frc
   count: number;
-  // average number of pieces scored in autonomous per match
   avgAuto: number;
   avgAutoL1: number;
   avgAutoL2: number;
   avgAutoL3: number;
   avgAutoL4: number;
-  // average number of pieces scored in teleop per match
   avgTeleop: number;
   avgTeleopL1: number;
   avgTeleopL2: number;
@@ -26,7 +24,6 @@ type TeamStats = {
   avgTeleopL4: number;
   pctTeleopNet: number; // 0-100
   pctTeleopProsser: number; // 0-100
-  avgTotalPieces: number; // average total pieces (auto + teleop) per match
 };
 
 export function DataAnalysis({ onBack }: DataAnalysisProps) {
@@ -95,37 +92,30 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const count = entries.length;
       const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
 
-  const autoL1 = entries.map(e => e.auto.l1 || 0);
-  const autoL2 = entries.map(e => e.auto.l2 || 0);
-  const autoL3 = entries.map(e => e.auto.l3 || 0);
-  const autoL4 = entries.map(e => e.auto.l4 || 0);
-  const teleopL1 = entries.map(e => e.teleop.l1 || 0);
-  const teleopL2 = entries.map(e => e.teleop.l2 || 0);
-  const teleopL3 = entries.map(e => e.teleop.l3 || 0);
-  const teleopL4 = entries.map(e => e.teleop.l4 || 0);
+      const autoL1 = entries.map(e => e.auto.l1 || 0);
+      const autoL2 = entries.map(e => e.auto.l2 || 0);
+      const autoL3 = entries.map(e => e.auto.l3 || 0);
+      const autoL4 = entries.map(e => e.auto.l4 || 0);
+      const teleopL1 = entries.map(e => e.teleop.l1 || 0);
+      const teleopL2 = entries.map(e => e.teleop.l2 || 0);
+      const teleopL3 = entries.map(e => e.teleop.l3 || 0);
+      const teleopL4 = entries.map(e => e.teleop.l4 || 0);
       const teleopNet = entries.map(e => e.teleop.net ? 1 : 0);
       const teleopProsser = entries.map(e => e.teleop.prosser ? 1 : 0);
 
       const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
 
-  const avgAutoL1 = avg(autoL1);
-  const avgAutoL2 = avg(autoL2);
-  const avgAutoL3 = avg(autoL3);
-  const avgAutoL4 = avg(autoL4);
-  const avgTeleopL1 = avg(teleopL1);
-  const avgTeleopL2 = avg(teleopL2);
-  const avgTeleopL3 = avg(teleopL3);
-  const avgTeleopL4 = avg(teleopL4);
+      const avgAutoL1 = avg(autoL1);
+      const avgAutoL2 = avg(autoL2);
+      const avgAutoL3 = avg(autoL3);
+      const avgAutoL4 = avg(autoL4);
+      const avgTeleopL1 = avg(teleopL1);
+      const avgTeleopL2 = avg(teleopL2);
+      const avgTeleopL3 = avg(teleopL3);
+      const avgTeleopL4 = avg(teleopL4);
 
-  // Compute per-entry piece totals and average those. This yields the average number
-  // of pieces scored per match in auto/teleop, which is what the user requested.
-  const autoPieces = entries.map(e => (e.auto.l1 || 0) + (e.auto.l2 || 0) + (e.auto.l3 || 0) + (e.auto.l4 || 0));
-  const teleopPieces = entries.map(e => (e.teleop.l1 || 0) + (e.teleop.l2 || 0) + (e.teleop.l3 || 0) + (e.teleop.l4 || 0));
-  const totalPieces = entries.map((_, i) => autoPieces[i] + teleopPieces[i]);
-
-  const avgAuto = avg(autoPieces);
-  const avgTeleop = avg(teleopPieces);
-  const avgTotal = avg(totalPieces);
+      const avgAuto = avg([avgAutoL1, avgAutoL2, avgAutoL3, avgAutoL4]);
+      const avgTeleop = avg([avgTeleopL1, avgTeleopL2, avgTeleopL3, avgTeleopL4]);
 
       const pctTeleopNet = Math.round(avg(teleopNet) * 100);
       const pctTeleopProsser = Math.round(avg(teleopProsser) * 100);
@@ -134,13 +124,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         teamKey: tk,
         team: tk.replace(/^frc/, ''),
         count,
-  avgAuto: Math.round(avgAuto * 100) / 100,
+        avgAuto: Math.round(avgAuto * 100) / 100,
         avgAutoL1: Math.round(avgAutoL1 * 100) / 100,
         avgAutoL2: Math.round(avgAutoL2 * 100) / 100,
         avgAutoL3: Math.round(avgAutoL3 * 100) / 100,
         avgAutoL4: Math.round(avgAutoL4 * 100) / 100,
-  avgTeleop: Math.round(avgTeleop * 100) / 100,
-  avgTotalPieces: Math.round(avgTotal * 100) / 100,
+        avgTeleop: Math.round(avgTeleop * 100) / 100,
         avgTeleopL1: Math.round(avgTeleopL1 * 100) / 100,
         avgTeleopL2: Math.round(avgTeleopL2 * 100) / 100,
         avgTeleopL3: Math.round(avgTeleopL3 * 100) / 100,
