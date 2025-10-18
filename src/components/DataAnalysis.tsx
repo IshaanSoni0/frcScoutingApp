@@ -13,12 +13,14 @@ type TeamStats = {
   team: string; // display without frc
   count: number;
   avgAuto: number;
+  avgAutoPoints: number;
   avgAutoL1: number;
   avgAutoL2: number;
   avgAutoL3: number;
   avgAutoL4: number;
   avgAutoNet: number;
   avgTeleop: number;
+  avgTeleopPoints: number;
   avgTeleopL1: number;
   avgTeleopL2: number;
   avgTeleopL3: number;
@@ -242,6 +244,18 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     });
     const avgAuto = avg(autoTotals);
 
+    // compute average auto points per entry using scoring rules:
+    // auto: l1=3, l2=4, l3=6, l4=7, net=4
+    const autoPointsPerEntry = entries.map(e => {
+      const l1 = e.auto.l1 || 0;
+      const l2 = e.auto.l2 || 0;
+      const l3 = e.auto.l3 || 0;
+      const l4 = e.auto.l4 || 0;
+      const netVal = (typeof e.auto.net === 'number' ? e.auto.net : (e.auto.net ? 1 : 0));
+      return l1 * 3 + l2 * 4 + l3 * 6 + l4 * 7 + netVal * 4;
+    });
+    const avgAutoPoints = avg(autoPointsPerEntry);
+
   const avgTeleopProsser = avg(teleopProsser);
     const avgTeleopNet = avg(teleopNet);
     // compute per-entry total pieces for teleop (L1-L4 + net + prosser) and average those totals
@@ -256,17 +270,32 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     });
     const avgTeleop = avg(teleopTotals);
 
+    // compute average teleop points per entry using scoring rules:
+    // teleop: l1=2, l2=3, l3=4, l4=5, prosser=6, net=4
+    const teleopPointsPerEntry = entries.map(e => {
+      const l1 = e.teleop.l1 || 0;
+      const l2 = e.teleop.l2 || 0;
+      const l3 = e.teleop.l3 || 0;
+      const l4 = e.teleop.l4 || 0;
+      const netVal = (typeof e.teleop.net === 'number' ? e.teleop.net : (e.teleop.net ? 1 : 0));
+      const prosVal = (typeof e.teleop.prosser === 'number' ? e.teleop.prosser : (e.teleop.prosser ? 1 : 0));
+      return l1 * 2 + l2 * 3 + l3 * 4 + l4 * 5 + prosVal * 6 + netVal * 4;
+    });
+    const avgTeleopPoints = avg(teleopPointsPerEntry);
+
       return {
         teamKey: tk,
         team: tk.replace(/^frc/, ''),
         count,
         avgAuto: Math.round(avgAuto * 100) / 100,
+        avgAutoPoints: Math.round(avgAutoPoints * 100) / 100,
         avgAutoL1: Math.round(avgAutoL1 * 100) / 100,
         avgAutoL2: Math.round(avgAutoL2 * 100) / 100,
         avgAutoL3: Math.round(avgAutoL3 * 100) / 100,
         avgAutoL4: Math.round(avgAutoL4 * 100) / 100,
   avgAutoNet: Math.round(avgAutoNet * 100) / 100,
         avgTeleop: Math.round(avgTeleop * 100) / 100,
+  avgTeleopPoints: Math.round(avgTeleopPoints * 100) / 100,
         avgTeleopL1: Math.round(avgTeleopL1 * 100) / 100,
         avgTeleopL2: Math.round(avgTeleopL2 * 100) / 100,
         avgTeleopL3: Math.round(avgTeleopL3 * 100) / 100,
@@ -462,14 +491,14 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
-    if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Avg');
-    if (showTeleop) headers.push('Tele L1', 'Tele L2', 'Tele L3', 'Tele L4', 'Tele Prosser', 'Tele Avg', 'Tele Net');
+    if (showAuto) headers.push('Auto L1', 'Auto L2', 'Auto L3', 'Auto L4', 'Auto Net', 'Auto Avg', 'Auto Avg Points');
+    if (showTeleop) headers.push('Tele L1', 'Tele L2', 'Tele L3', 'Tele L4', 'Tele Prosser', 'Tele Avg', 'Tele Avg Points', 'Tele Net');
     // endgame columns
     headers.push('High Climb', 'Died (count/matches)', 'Driver Skill', 'Robot Speed', 'Defense');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
-  if (showAuto) base.push(t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAutoNet, t.avgAuto);
-  if (showTeleop) base.push(t.avgTeleopL1, t.avgTeleopL2, t.avgTeleopL3, t.avgTeleopL4, t.avgTeleopProsser, t.avgTeleop, t.avgTeleopNet);
+  if (showAuto) base.push(t.avgAutoL1, t.avgAutoL2, t.avgAutoL3, t.avgAutoL4, t.avgAutoNet, t.avgAuto, t.avgAutoPoints);
+  if (showTeleop) base.push(t.avgTeleopL1, t.avgTeleopL2, t.avgTeleopL3, t.avgTeleopL4, t.avgTeleopProsser, t.avgTeleop, t.avgTeleopPoints, t.avgTeleopNet);
   base.push(`${t.highClimbCount}/${t.matchesPlayed}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.defense);
       return base;
     });
@@ -646,6 +675,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th onClick={() => toggleSort('avgTeleopNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Tele Net</th>
                       <th onClick={() => toggleSort('avgTeleopProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Tele Prosser</th>
                       <th onClick={() => toggleSort('avgAuto')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Avg</th>
+                      <th onClick={() => toggleSort('avgAutoPoints')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Avg Auto Points</th>
+                      <th onClick={() => toggleSort('avgTeleopPoints')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Avg Teleop Points</th>
                       <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Teleop Avg</th>
                       <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Matches Scouted</th>
                       <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">High Climb</th>
@@ -676,6 +707,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopNet.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopProsser.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgAuto.toFixed(2)}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgAutoPoints.toFixed(2)}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopPoints.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleop.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.matchesPlayed}/{t.matchesScheduled}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.highClimbCount}/{t.matchesPlayed}</td>
