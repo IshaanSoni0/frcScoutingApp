@@ -39,6 +39,28 @@ function App() {
     });
   }, []);
 
+  // show a one-time cleanup success popup if present after a Force Refresh
+  const [cleanupSummary, setCleanupSummary] = useState<{ removed: number; fixed: number; pendingRemoved: number } | null>(null);
+  useEffect(() => {
+    try {
+      const ok = localStorage.getItem('frc-cleanup-success');
+      if (ok) {
+        const raw = localStorage.getItem('frc-cleanup-summary');
+        if (raw) {
+          const obj = JSON.parse(raw);
+          setCleanupSummary({ removed: obj.removed || 0, fixed: obj.fixed || 0, pendingRemoved: obj.pendingRemoved || 0 });
+        } else {
+          setCleanupSummary({ removed: 0, fixed: 0, pendingRemoved: 0 });
+        }
+        // clear the flags so we only show once
+        localStorage.removeItem('frc-cleanup-success');
+        localStorage.removeItem('frc-cleanup-summary');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   const activateUpdate = () => {
     if (!waitingWorker) return;
     try {
@@ -144,6 +166,17 @@ function App() {
           onMatchSelect={handleMatchSelect}
           onBack={handleLogout}
         />
+        {cleanupSummary && (
+          <div className="fixed bottom-6 left-6 z-50">
+            <div className="bg-green-600 text-white rounded px-4 py-3 shadow-lg">
+              <div className="font-semibold">Update applied</div>
+              <div className="text-sm">Cleaned {cleanupSummary.removed} malformed rows, fixed {cleanupSummary.fixed} records, removed {cleanupSummary.pendingRemoved} invalid pending ids.</div>
+              <div className="mt-2 text-right">
+                <button onClick={() => setCleanupSummary(null)} className="underline">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        )}
         {maybeUpdateBanner}
       </>
     );

@@ -191,23 +191,14 @@ function ForceRefreshControl() {
     setWorking(true);
     try {
       // 1) backup and clean local data (keeps valid rows, removes bad ones)
-      let backupStr = '';
       try {
         const summary = await DataService.cleanAndNormalize();
-        backupStr = summary.backup || '';
-        // offer a download of the backup immediately
+        // persist a brief summary so the app can show a success popup after reload
         try {
-          const blob = new Blob([backupStr], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `frc-backup-${new Date().toISOString()}.json`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
+          localStorage.setItem('frc-cleanup-summary', JSON.stringify({ removed: summary.removed, fixed: summary.fixed, pendingRemoved: summary.pendingRemoved }));
+          localStorage.setItem('frc-cleanup-success', '1');
         } catch (e) {
-          // ignore download failures
+          // ignore storage failures
         }
       } catch (e) {
         // if cleaning failed, continue but log

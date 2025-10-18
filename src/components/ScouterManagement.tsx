@@ -93,7 +93,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
         if (!mounted) return;
         if (Array.isArray(server) && server.length > 0) {
           // user-facing scouters are stored via useLocalStorage hook; update only if server returns rows
-          setScouters((prev) => {
+          setScouters(() => {
             // map server rows to local shape and merge
             const mapped = server.map((s: any) => ({ id: s.id, name: s.name, alliance: s.alliance, position: s.position, isRemote: s.is_remote ?? s.isRemote ?? false, updatedAt: s.updated_at ? Date.parse(s.updated_at) : Date.now(), deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null }));
             // simple replace to prefer server authoritative scouter list
