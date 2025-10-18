@@ -330,8 +330,29 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       byMatch[e.matchKey] = byMatch[e.matchKey] || [];
       byMatch[e.matchKey].push(e);
     });
-    const matches = Object.keys(byMatch).map(mk => {
+    // also include scheduled matches from the matches list even if no scouters have scouted them yet
+    const matchesList = DataService.getMatches() || [];
+    const scheduledKeys = new Set<string>();
+    matchesList.forEach((m: any) => {
+      const keys: string[] = [ ...(m.alliances?.red?.team_keys || []), ...(m.alliances?.blue?.team_keys || []) ];
+      if (keys.includes(teamKey)) scheduledKeys.add(m.key);
+    });
+
+    const allMatchKeys = Array.from(new Set([ ...Object.keys(byMatch), ...Array.from(scheduledKeys) ]));
+
+    const matches = allMatchKeys.map(mk => {
       const scouterEntries = byMatch[mk];
+      if (!scouterEntries || scouterEntries.length === 0) {
+        const matchInfo = matchesList.find((m: any) => m.key === mk);
+        const matchLabel = matchInfo ? `${matchInfo.comp_level} ${matchInfo.match_number}` : mk;
+        return {
+          matchKey: mk,
+          matchLabel,
+          scouterCount: 0,
+          notScouted: true,
+        } as any;
+      }
+      
       const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
       const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
 
@@ -692,28 +713,37 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   </thead>
                   <tbody>
                     {teamMatches.map(m => (
-                      <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
-                        <td className="py-2 align-top break-words pl-3">{m.matchLabel}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.scouterCount}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoTotal.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoL1.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoL2.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoL3.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoL4.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoNet.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopTotal.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopL1.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopL2.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopL3.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopL4.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopNet.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopPros.toFixed(2)}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.highClimb}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.died}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.driverSkill}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.robotSpeed}</td>
-                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.defense}</td>
-                      </tr>
+                      m.notScouted ? (
+                        <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
+                          <td className="py-2 align-top break-words pl-3">{m.matchLabel}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300" colSpan={19}>
+                            <div className="italic text-gray-500 p-3 bg-gray-50 rounded">This match has not been scouted</div>
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
+                          <td className="py-2 align-top break-words pl-3">{m.matchLabel}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.scouterCount}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgAutoTotal.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgAutoL1.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgAutoL2.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgAutoL3.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgAutoL4.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgAutoNet.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopTotal.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopL1.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopL2.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopL3.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopL4.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopNet.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopPros.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.highClimb}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.died}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.driverSkill}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.robotSpeed}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.defense}</td>
+                        </tr>
+                      )
                     ))}
                   </tbody>
                 </table>
