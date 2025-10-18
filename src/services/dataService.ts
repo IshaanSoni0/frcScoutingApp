@@ -219,8 +219,7 @@ export class DataService {
   // Migration scaffold: keep a numeric data version in localStorage and apply
   // idempotent migrations when the app loads.
   static async migrateIfNeeded(): Promise<void> {
-    const SCHEMA_KEY = 'frc-data-version';
-    const LATEST = 2;
+  const SCHEMA_KEY = 'frc-data-version';
     const vRaw = localStorage.getItem(SCHEMA_KEY);
     const v = vRaw ? Number(vRaw) : 0;
     try {
@@ -229,7 +228,8 @@ export class DataService {
         const rows = this.getScoutingData();
         const updated = rows.map(r => {
           try {
-            if (r?.endgame?.climb === 'deep') {
+            const climb = r && r.endgame ? (r.endgame as any).climb : undefined;
+            if (climb === 'deep') {
               return { ...r, endgame: { ...(r.endgame || {}), climb: 'high' } };
             }
           } catch (e) {}
