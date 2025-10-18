@@ -436,7 +436,23 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       };
     });
 
-    setTeamMatches(matches.sort((a, b) => a.matchLabel.localeCompare(b.matchLabel)));
+    const levelOrder: Record<string, number> = { qm: 1, qf: 2, sf: 3, f: 4, ef: 0, qm_alt: 1 };
+    const extractLevelAndNumber = (m: any) => {
+      // try to read from label "<comp_level> <match_number>" or fallback to matchKey
+      const matchInfo = (DataService.getMatches() || []).find((x: any) => x.key === m.matchKey);
+      const level = matchInfo?.comp_level || (m.matchLabel ? m.matchLabel.split(' ')[0].toLowerCase() : 'qm');
+      const num = matchInfo?.match_number || Number((m.matchLabel || '').split(' ')[1]) || 0;
+      return { level: level.toString().toLowerCase(), num: Number(num) };
+    };
+
+    setTeamMatches(matches.sort((a, b) => {
+      const A = extractLevelAndNumber(a);
+      const B = extractLevelAndNumber(b);
+      const aRank = levelOrder[A.level] ?? 5;
+      const bRank = levelOrder[B.level] ?? 5;
+      if (aRank !== bRank) return aRank - bRank;
+      return A.num - B.num;
+    }));
   };
 
   const closeTeamDetail = () => {
