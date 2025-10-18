@@ -174,7 +174,89 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             {username === 'admin6560' ? 'Admin Login' : 'Start Scouting'}
           </button>
         </form>
+        <div className="mt-4 border-t pt-4">
+          <h4 className="text-sm text-gray-500 mb-2">Developer / Admin</h4>
+          <ForceRefreshControl />
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ForceRefreshControl() {
+  const [showConfirm, setShowConfirm] = React.useState(false);
+  const [clearStorage, setClearStorage] = React.useState(false);
+  const [working, setWorking] = React.useState(false);
+
+  const doClearAndReload = async () => {
+    setWorking(true);
+    try {
+      // unregister service workers
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+      }
+      // clear caches
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      if (clearStorage && window.localStorage) {
+        localStorage.clear();
+      }
+      // best-effort IndexedDB deletion for modern browsers
+      if (clearStorage && 'indexedDB' in window && typeof indexedDB.databases === 'function') {
+        try {
+          const dbs = await indexedDB.databases();
+          await Promise.all(dbs.map(db => {
+            if (!db.name) return Promise.resolve();
+            return new Promise(res => {
+              const req = indexedDB.deleteDatabase(db.name as string);
+              req.onsuccess = req.onerror = req.onblocked = res;
+            });
+          }));
+        } catch (e) {
+          // ignore
+        }
+      }
+      // reload the page
+      location.reload();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Force refresh failed', e);
+      alert('Force refresh failed - see console for details');
+    } finally {
+      setWorking(false);
+      setShowConfirm(false);
+      setClearStorage(false);
+    }
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => setShowConfirm(true)}
+        className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors duration-200"
+      >
+        Force refresh (clear caches)
+      </button>
+
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold mb-2">Force refresh</h3>
+            <p className="text-gray-600 mb-3">This will unregister service workers and clear cached assets so the app loads the latest code.</p>
+            <label className="flex items-center gap-2 mb-4">
+              <input type="checkbox" checked={clearStorage} onChange={(e) => setClearStorage(e.target.checked)} />
+              <span className="text-sm text-gray-600">Also clear local data (localStorage & IndexedDB). Warning: this will remove pending unsynced rows.</span>
+            </label>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowConfirm(false)} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">Cancel</button>
+              <button onClick={doClearAndReload} disabled={working} className="px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700">{working ? 'Working...' : 'Confirm'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
