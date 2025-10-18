@@ -175,7 +175,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </button>
         </form>
         <div className="mt-4 border-t pt-4">
-          <h4 className="text-sm text-gray-500 mb-2">Developer / Admin</h4>
           <ForceRefreshControl />
         </div>
       </div>
