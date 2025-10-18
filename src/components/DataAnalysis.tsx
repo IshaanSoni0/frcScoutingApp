@@ -675,9 +675,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th onClick={() => toggleSort('avgTeleopNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Tele Net</th>
                       <th onClick={() => toggleSort('avgTeleopProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Tele Prosser</th>
                       <th onClick={() => toggleSort('avgAuto')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Avg</th>
+                      <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Teleop Avg</th>
                       <th onClick={() => toggleSort('avgAutoPoints')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Avg Auto Points</th>
                       <th onClick={() => toggleSort('avgTeleopPoints')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Avg Teleop Points</th>
-                      <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Teleop Avg</th>
                       <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Matches Scouted</th>
                       <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">High Climb</th>
                       <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Died</th>
@@ -707,9 +707,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopNet.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopProsser.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgAuto.toFixed(2)}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleop.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgAutoPoints.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopPoints.toFixed(2)}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleop.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.matchesPlayed}/{t.matchesScheduled}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.highClimbCount}/{t.matchesPlayed}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.diedCount}/{t.matchesPlayed}</td>
