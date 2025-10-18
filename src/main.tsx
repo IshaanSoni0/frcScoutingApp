@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { initializeSyncService } from './services/syncService';
+import { DataService } from './services/dataService';
 
 // On startup, detect and unregister older service workers that may be
 // intercepting requests with incorrect cached paths (this helps GitHub Pages
@@ -42,6 +43,13 @@ async function cleanupOldServiceWorkers() {
     // Reload so the page loads without the old service worker intercepting
     window.location.reload();
     return;
+  }
+
+  // Run data migrations early so persisted data shapes are up-to-date
+  try {
+    await DataService.migrateIfNeeded();
+  } catch (e) {
+    // ignore migration errors here; app will still boot
   }
 
   createRoot(document.getElementById('root')!).render(

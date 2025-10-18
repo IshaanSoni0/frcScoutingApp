@@ -215,4 +215,52 @@ export class DataService {
       await migrateLocalToServer();
     }
   }
+
+  // Migration scaffold: keep a numeric data version in localStorage and apply
+  // idempotent migrations when the app loads.
+  static async migrateIfNeeded(): Promise<void> {
+    const SCHEMA_KEY = 'frc-data-version';
+    const LATEST = 2;
+    const vRaw = localStorage.getItem(SCHEMA_KEY);
+    const v = vRaw ? Number(vRaw) : 0;
+    try {
+      if (v < 1) {
+        // migration 0 -> 1: convert endgame.climb 'deep' -> 'high'
+        const rows = this.getScoutingData();
+        const updated = rows.map(r => {
+          try {
+            if (r?.endgame?.climb === 'deep') {
+              return { ...r, endgame: { ...(r.endgame || {}), climb: 'high' } };
+            }
+          } catch (e) {}
+          return r;
+        });
+        this.replaceScoutingData(updated);
+        localStorage.setItem(SCHEMA_KEY, '1');
+      }
+
+      if (v < 2) {
+        // migration 1 -> 2: coerce boolean net/prosser fields to numeric 0/1 and drop legacy auto.prosser
+        const rows = this.getScoutingData();
+        const updated = rows.map(r => {
+          try {
+            const auto = r.auto || {};
+            const teleop = r.teleop || {};
+            const coercedAutoNet = typeof auto.net === 'number' ? auto.net : (auto.net ? 1 : 0);
+            const coercedTeleNet = typeof teleop.net === 'number' ? teleop.net : (teleop.net ? 1 : 0);
+            const coercedTelePros = typeof teleop.prosser === 'number' ? teleop.prosser : (teleop.prosser ? 1 : 0);
+            return { ...r, auto: { ...auto, net: coercedAutoNet }, teleop: { ...teleop, net: coercedTeleNet, prosser: coercedTelePros } };
+          } catch (e) { return r; }
+        });
+        this.replaceScoutingData(updated);
+        localStorage.setItem(SCHEMA_KEY, '2');
+      }
+
+      // future migrations go here
+    } catch (e) {
+      // if migration fails, don't block app; leave version as-is for investigation
+      // eslint-disable-next-line no-console
+      console.error('Migration failed', e);
+    }
+  }
 }

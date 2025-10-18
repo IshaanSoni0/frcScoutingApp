@@ -47,3 +47,15 @@ self.addEventListener('fetch', event => {
       .catch(() => caches.match(event.request))
   );
 });
+
+// Listen for messages from the client (e.g. to skipWaiting and activate immediately)
+self.addEventListener('message', (event) => {
+  try {
+    const data = event.data || {};
+    if (data && data.type === 'SKIP_WAITING') {
+      self.skipWaiting();
+    }
+  } catch (e) {
+    // ignore
+  }
+});
