@@ -581,59 +581,59 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           </div>
 
         
-          <div className="overflow-x-auto">
+              <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 font-medium text-gray-900">Team</th>
-                  <th className="text-left py-3 font-medium text-gray-900">Entries</th>
-                  <th onClick={() => toggleSort('avgAutoL1')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L1</th>
-                  <th onClick={() => toggleSort('avgAutoL2')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L2</th>
-                  <th onClick={() => toggleSort('avgAutoL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L3</th>
-                  <th onClick={() => toggleSort('avgAutoL4')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto L4</th>
-                  <th onClick={() => toggleSort('avgAutoNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Net</th>
-                  <th onClick={() => toggleSort('avgTeleopL1')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Tele L1</th>
-                  <th onClick={() => toggleSort('avgTeleopL2')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Tele L2</th>
-                  <th onClick={() => toggleSort('avgTeleopL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Tele L3</th>
-                  <th onClick={() => toggleSort('avgTeleopL4')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Tele L4</th>
-                  <th onClick={() => toggleSort('avgTeleopNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Tele Net</th>
-                  <th onClick={() => toggleSort('avgTeleopProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Tele Prosser</th>
-                  <th onClick={() => toggleSort('avgAuto')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Auto Avg</th>
-                  <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer">Teleop Avg</th>
-                  <th className="text-left py-3 font-medium text-gray-900">High Climb</th>
-                  <th className="text-left py-3 font-medium text-gray-900">Died</th>
-                  <th className="text-left py-3 font-medium text-gray-900">Driver Skill</th>
-                  <th className="text-left py-3 font-medium text-gray-900">Robot Speed</th>
-                  <th className="text-left py-3 font-medium text-gray-900">Defense</th>
+                  <th className="text-left py-3 font-medium text-gray-900 pl-3">Team</th>
+                  <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-100">Entries</th>
+                  <th onClick={() => toggleSort('avgAutoL1')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Auto L1</th>
+                  <th onClick={() => toggleSort('avgAutoL2')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Auto L2</th>
+                  <th onClick={() => toggleSort('avgAutoL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Auto L3</th>
+                  <th onClick={() => toggleSort('avgAutoL4')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Auto L4</th>
+                  <th onClick={() => toggleSort('avgAutoNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Auto Net</th>
+                  <th onClick={() => toggleSort('avgTeleopL1')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Tele L1</th>
+                  <th onClick={() => toggleSort('avgTeleopL2')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Tele L2</th>
+                  <th onClick={() => toggleSort('avgTeleopL3')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Tele L3</th>
+                  <th onClick={() => toggleSort('avgTeleopL4')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Tele L4</th>
+                  <th onClick={() => toggleSort('avgTeleopNet')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Tele Net</th>
+                  <th onClick={() => toggleSort('avgTeleopProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Tele Prosser</th>
+                  <th onClick={() => toggleSort('avgAuto')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Auto Avg</th>
+                  <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-100">Teleop Avg</th>
+                  <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-100">High Climb</th>
+                  <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-100">Died</th>
+                  <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-100">Driver Skill</th>
+                  <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-100">Robot Speed</th>
+                  <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-100">Defense</th>
                 </tr>
               </thead>
               <tbody>
                 {sorted.map((t) => (
                   <tr key={t.teamKey} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 font-medium text-gray-900">
+                    <td className="py-3 font-medium text-gray-900 pl-3">
                       <button onClick={() => openTeamDetail(t.teamKey)} className="text-left text-blue-600 hover:underline">
                         {t.team}
                       </button>
                     </td>
-                    <td className="py-3 text-gray-600">{t.count}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoL1.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoL2.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoL3.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoL4.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgAutoNet.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopL1.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopL2.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopL3.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopL4.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopNet.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleopProsser.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgAuto.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.avgTeleop.toFixed(2)}</td>
-                    <td className="py-3 text-gray-600">{t.highClimbCount}/{t.matchesPlayed}</td>
-                    <td className="py-3 text-gray-600">{t.diedCount}/{t.matchesPlayed}</td>
-                    <td className="py-3 text-gray-600">{t.driverSkill}</td>
-                    <td className="py-3 text-gray-600">{t.robotSpeed}</td>
-                    <td className="py-3 text-gray-600">{t.defense}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.count}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgAutoL1.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgAutoL2.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgAutoL3.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgAutoL4.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgAutoNet.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgTeleopL1.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgTeleopL2.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgTeleopL3.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgTeleopL4.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgTeleopNet.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgTeleopProsser.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgAuto.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.avgTeleop.toFixed(2)}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.highClimbCount}/{t.matchesPlayed}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.diedCount}/{t.matchesPlayed}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.driverSkill}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.robotSpeed}</td>
+                    <td className="py-3 text-gray-600 pl-6 border-l border-gray-100">{t.defense}</td>
                   </tr>
                 ))}
               </tbody>
@@ -656,51 +656,51 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                 <table className="w-full text-sm table-auto">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2 align-top">Match</th>
-                      <th className="text-left py-2 align-top">Scouters</th>
-                      <th className="text-left py-2 align-top">Auto Total</th>
-                      <th className="text-left py-2 align-top">Auto L1</th>
-                      <th className="text-left py-2 align-top">Auto L2</th>
-                      <th className="text-left py-2 align-top">Auto L3</th>
-                      <th className="text-left py-2 align-top">Auto L4</th>
-                      <th className="text-left py-2 align-top">Auto Net</th>
-                      <th className="text-left py-2 align-top">Tele Total</th>
-                      <th className="text-left py-2 align-top">Tele L1</th>
-                      <th className="text-left py-2 align-top">Tele L2</th>
-                      <th className="text-left py-2 align-top">Tele L3</th>
-                      <th className="text-left py-2 align-top">Tele L4</th>
-                      <th className="text-left py-2 align-top">Tele Net</th>
-                      <th className="text-left py-2 align-top">Tele Prosser</th>
-                      <th className="text-left py-2 align-top">High Climb</th>
-                      <th className="text-left py-2 align-top">Died</th>
-                      <th className="text-left py-2 align-top">Driver Skill</th>
-                      <th className="text-left py-2 align-top">Robot Speed</th>
-                      <th className="text-left py-2 align-top">Defense</th>
+                      <th className="text-left py-2 align-top pl-3">Match</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Scouters</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Auto Total</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Auto L1</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Auto L2</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Auto L3</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Auto L4</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Auto Net</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Tele Total</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Tele L1</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Tele L2</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Tele L3</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Tele L4</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Tele Net</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Tele Prosser</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">High Climb</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Died</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Driver Skill</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Robot Speed</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-100">Defense</th>
                     </tr>
                   </thead>
                   <tbody>
                     {teamMatches.map(m => (
                       <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
-                        <td className="py-2 align-top break-words">{m.matchLabel}</td>
-                        <td className="py-2 align-top">{m.scouterCount}</td>
-                        <td className="py-2 align-top">{m.avgAutoTotal.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgAutoL1.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgAutoL2.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgAutoL3.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgAutoL4.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgAutoNet.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgTeleopTotal.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgTeleopL1.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgTeleopL2.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgTeleopL3.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgTeleopL4.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgTeleopNet.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.avgTeleopPros.toFixed(2)}</td>
-                        <td className="py-2 align-top">{m.highClimb}</td>
-                        <td className="py-2 align-top">{m.died}</td>
-                        <td className="py-2 align-top">{m.driverSkill}</td>
-                        <td className="py-2 align-top">{m.robotSpeed}</td>
-                        <td className="py-2 align-top">{m.defense}</td>
+                        <td className="py-2 align-top break-words pl-3">{m.matchLabel}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.scouterCount}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoTotal.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoL1.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoL2.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoL3.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoL4.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgAutoNet.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopTotal.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopL1.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopL2.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopL3.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopL4.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopNet.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.avgTeleopPros.toFixed(2)}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.highClimb}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.died}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.driverSkill}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.robotSpeed}</td>
+                        <td className="py-2 align-top pl-6 border-l border-gray-100">{m.defense}</td>
                       </tr>
                     ))}
                   </tbody>
