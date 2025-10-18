@@ -185,12 +185,35 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
 function ForceRefreshControl() {
   const [showConfirm, setShowConfirm] = React.useState(false);
-  const [clearStorage, setClearStorage] = React.useState(false);
   const [working, setWorking] = React.useState(false);
 
   const doClearAndReload = async () => {
     setWorking(true);
     try {
+      // 1) backup and clean local data (keeps valid rows, removes bad ones)
+      let backupStr = '';
+      try {
+        const summary = await DataService.cleanAndNormalize();
+        backupStr = summary.backup || '';
+        // offer a download of the backup immediately
+        try {
+          const blob = new Blob([backupStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `frc-backup-${new Date().toISOString()}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          // ignore download failures
+        }
+      } catch (e) {
+        // if cleaning failed, continue but log
+        // eslint-disable-next-line no-console
+        console.error('Backup/clean failed', e);
+      }
       // unregister service workers
       if ('serviceWorker' in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
@@ -201,23 +224,25 @@ function ForceRefreshControl() {
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
       }
-      if (clearStorage && window.localStorage) {
-        localStorage.clear();
-      }
-      // best-effort IndexedDB deletion for modern browsers
-      if (clearStorage && 'indexedDB' in window && typeof indexedDB.databases === 'function') {
-        try {
-          const dbs = await indexedDB.databases();
-          await Promise.all(dbs.map(db => {
-            if (!db.name) return Promise.resolve();
-            return new Promise(res => {
-              const req = indexedDB.deleteDatabase(db.name as string);
-              req.onsuccess = req.onerror = req.onblocked = res;
-            });
-          }));
-        } catch (e) {
-          // ignore
+      // 2) If there is an update waiting in the service worker, activate it.
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg?.waiting) {
+          // ask the waiting worker to skip waiting (it will activate)
+          try { reg.waiting?.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
+          // reload after a short delay to allow controllerchange to fire
+          setTimeout(() => location.reload(), 500);
+          return;
         }
+      }
+      // No waiting worker found — unregister SWs and clear caches so the next load fetches fresh assets
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
       }
       // reload the page
       location.reload();
@@ -228,7 +253,6 @@ function ForceRefreshControl() {
     } finally {
       setWorking(false);
       setShowConfirm(false);
-      setClearStorage(false);
     }
   };
 
@@ -246,10 +270,7 @@ function ForceRefreshControl() {
           <div className="bg-white rounded-lg p-6 w-full max-w-sm">
             <h3 className="text-lg font-semibold mb-2">Force refresh</h3>
             <p className="text-gray-600 mb-3">This will unregister service workers and clear cached assets so the app loads the latest code.</p>
-            <label className="flex items-center gap-2 mb-4">
-              <input type="checkbox" checked={clearStorage} onChange={(e) => setClearStorage(e.target.checked)} />
-              <span className="text-sm text-gray-600">Also clear local data (localStorage & IndexedDB). Warning: this will remove pending unsynced rows.</span>
-            </label>
+            <p className="text-sm text-gray-600 mb-4">The app will automatically backup and clean local data: valid rows are preserved, malformed entries are removed.</p>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowConfirm(false)} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">Cancel</button>
               <button onClick={doClearAndReload} disabled={working} className="px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700">{working ? 'Working...' : 'Confirm'}</button>
