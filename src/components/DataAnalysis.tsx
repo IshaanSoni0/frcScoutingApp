@@ -26,6 +26,7 @@ type TeamStats = {
   avgTeleopNet: number; // numeric average for teleop net counts
   avgTeleopProsser: number; // numeric average count
   matchesPlayed: number; // distinct matches with entries
+  matchesScheduled: number; // total matches the team is scheduled to play (from matches list)
   highClimbCount: number; // number of matches where majority reported high climb
   diedCount: number; // number of matches where majority reported died
   driverSkill: string; // Low/Medium/High or N/A
@@ -144,6 +145,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       byTeam[r.teamKey].push(r);
     });
 
+    const matchesList = DataService.getMatches() || [];
+
     const stats: TeamStats[] = allTeams.map((tk) => {
       const entries = byTeam[tk] || [];
       const count = entries.length;
@@ -155,6 +158,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       });
       const matchKeys = Object.keys(byMatch);
       const matchesPlayed = matchKeys.length;
+
+      // compute how many scheduled matches this team has (from matches list)
+      const matchesScheduled = matchesList.filter((m: any) => {
+        const keys: string[] = [ ...(m.alliances?.red?.team_keys || []), ...(m.alliances?.blue?.team_keys || []) ];
+        return keys.includes(tk);
+      }).length;
 
       // helper for majority: returns true if >=50% of scouters reported the predicate
       const majority = (arr: any[], fn: (v: any) => boolean) => {
@@ -264,7 +273,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         avgTeleopL4: Math.round(avgTeleopL4 * 100) / 100,
         avgTeleopNet: Math.round(avgTeleopNet * 100) / 100,
         avgTeleopProsser: Math.round(avgTeleopProsser * 100) / 100,
-        matchesPlayed,
+  matchesPlayed,
+  matchesScheduled,
         highClimbCount,
         diedCount,
         driverSkill: avgDriver === 0 ? 'N/A' : mapBackDriver(avgDriver),
@@ -600,6 +610,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th onClick={() => toggleSort('avgTeleopProsser')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Tele Prosser</th>
                       <th onClick={() => toggleSort('avgAuto')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Avg</th>
                       <th onClick={() => toggleSort('avgTeleop')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Teleop Avg</th>
+                      <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Matches Scouted</th>
                       <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">High Climb</th>
                       <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Died</th>
                       <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driver Skill</th>
@@ -629,6 +640,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopProsser.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgAuto.toFixed(2)}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleop.toFixed(2)}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.matchesPlayed}/{t.matchesScheduled}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.highClimbCount}/{t.matchesPlayed}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.diedCount}/{t.matchesPlayed}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.driverSkill}</td>
