@@ -521,6 +521,51 @@ export async function performFullRefresh(options?: { reload?: boolean }) {
   }
 }
 
+// Perform a hard refresh: attempt to push pending, then clear all local site data
+// (localStorage keys, caches, service workers) and reload. This mirrors a manual
+// "clear site data" + reload that browsers perform.
+export async function performHardRefresh() {
+  try {
+    // 1) Try to push pending data to server first, but don't block if it fails
+    try {
+      await migrateLocalToServer();
+    } catch (e) {
+      // ignore push failures
+      // eslint-disable-next-line no-console
+      console.warn('performHardRefresh: migrateLocalToServer failed', e);
+    }
+
+    // 2) Clear localStorage completely (mirrors manual clear-site-data)
+    try {
+      localStorage.clear();
+    } catch (e) {
+      // ignore
+    }
+
+    // 3) Unregister service workers and clear caches
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // 4) Reload page so app boots clean and pulls fresh server data
+    window.location.reload();
+    return 'hard-reloaded';
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('performHardRefresh failed', e);
+    throw e;
+  }
+}
+
 // Notify other windows/tabs/components that server scouting may have changed.
 function notifyServerScoutingUpdated() {
   try {

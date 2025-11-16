@@ -3,7 +3,7 @@ import { User } from '../types';
 import { Users, Shield } from 'lucide-react';
 import { DataService } from '../services/dataService';
 import supabase from '../services/supabaseClient';
-import { migrateLocalToServer } from '../services/syncService';
+import { migrateLocalToServer, performHardRefresh } from '../services/syncService';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -285,7 +285,27 @@ function ForceRefreshControl() {
             )}
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowConfirm(false)} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">Cancel</button>
-              <button onClick={doClearAndReload} disabled={working} className="px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700">{working ? 'Working...' : 'Confirm'}</button>
+              <button
+                onClick={async () => {
+                  // perform a hard clear that truly clears local storage + caches (mirrors manual clear)
+                  try {
+                    setWorking(true);
+                    setStatusMessage('Performing hard refresh...');
+                    await performHardRefresh();
+                  } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.error('Hard refresh failed', e);
+                    alert('Hard refresh failed - see console for details');
+                  } finally {
+                    setWorking(false);
+                  }
+                }}
+                disabled={working}
+                className="px-3 py-2 rounded bg-red-800 text-white hover:bg-red-900"
+              >
+                {working ? 'Working...' : 'Hard refresh'}
+              </button>
+              <button onClick={doClearAndReload} disabled={working} className="px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700">{working ? 'Working...' : 'Soft refresh'}</button>
             </div>
           </div>
         </div>
