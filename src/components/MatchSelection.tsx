@@ -35,7 +35,7 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
     try {
       const sel = DataService.getSelectedEvent();
       if (sel) setSelectedEvent(sel);
-      const stored = DataService.getMatches() || [];
+      const stored = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
       if (stored && stored.length > 0) {
         const sorted = stored.slice().sort(compareMatches);
         setMatches(sorted as Match[]);
@@ -45,11 +45,11 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
     }
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'frc-matches' || e.key === 'frc-selected-event') {
+          if (e.key === 'frc-matches' || e.key === 'frc-selected-event') {
         try {
           const sel = DataService.getSelectedEvent();
           if (sel) setSelectedEvent(sel);
-          const stored = DataService.getMatches() || [];
+          const stored = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
           setMatches((stored as any[]).slice().sort(compareMatches));
         } catch (err) {
           // ignore
@@ -57,12 +57,12 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
       }
     };
     const onServer = () => {
-      try {
-        const sel = DataService.getSelectedEvent();
-        if (sel) setSelectedEvent(sel);
-        const stored = DataService.getMatches() || [];
-        setMatches((stored as any[]).slice().sort(compareMatches));
-      } catch (err) {}
+        try {
+          const sel = DataService.getSelectedEvent();
+          if (sel) setSelectedEvent(sel);
+          const stored = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
+          setMatches((stored as any[]).slice().sort(compareMatches));
+        } catch (err) {}
     };
     window.addEventListener('storage', onStorage);
     window.addEventListener('server-scouting-updated', onServer as EventListener);

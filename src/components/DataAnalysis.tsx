@@ -144,7 +144,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
   // Build list of teams from saved matches (so we include teams with no scouting rows)
   const allTeams = useMemo(() => {
-    const matches = DataService.getMatches() || [];
+    const matches = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
     const teamSet = new Set<string>();
     matches.forEach((m: any) => {
       ['red', 'blue'].forEach((a: any) => {
@@ -164,7 +164,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       byTeam[r.teamKey].push(r);
     });
 
-    const matchesList = DataService.getMatches() || [];
+    const matchesList = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
 
     const stats: TeamStats[] = allTeams.map((tk) => {
       const entries = byTeam[tk] || [];
@@ -377,7 +377,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       byMatch[e.matchKey].push(e);
     });
     // also include scheduled matches from the matches list even if no scouters have scouted them yet
-    const matchesList = DataService.getMatches() || [];
+    const matchesList = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
     const scheduledKeys = new Set<string>();
     matchesList.forEach((m: any) => {
       const keys: string[] = [ ...(m.alliances?.red?.team_keys || []), ...(m.alliances?.blue?.team_keys || []) ];
@@ -453,7 +453,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const mapBackSpeed = (v: number) => v <= 1.5 ? 'Slow' : v <= 2.5 ? 'Medium' : 'Fast';
       const mapBackDefense = (v: number) => v <= 1.5 ? 'None/Bad' : v <= 2.5 ? 'OK' : 'Great';
 
-      const matchInfo = (DataService.getMatches() || []).find((m: any) => m.key === mk);
+      const matchInfo = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt).find((m: any) => m.key === mk);
       const matchLabel = matchInfo ? `${matchInfo.comp_level} ${matchInfo.match_number}` : mk;
 
       return {
@@ -485,7 +485,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     const levelOrder: Record<string, number> = { qm: 1, qf: 2, sf: 3, f: 4, ef: 0, qm_alt: 1 };
     const extractLevelAndNumber = (m: any) => {
       // try to read from label "<comp_level> <match_number>" or fallback to matchKey
-      const matchInfo = (DataService.getMatches() || []).find((x: any) => x.key === m.matchKey);
+      const matchInfo = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt).find((x: any) => x.key === m.matchKey);
       const level = matchInfo?.comp_level || (m.matchLabel ? m.matchLabel.split(' ')[0].toLowerCase() : 'qm');
       const num = matchInfo?.match_number || Number((m.matchLabel || '').split(' ')[1]) || 0;
       return { level: level.toString().toLowerCase(), num: Number(num) };

@@ -82,12 +82,12 @@ function App() {
         .catch(console.error);
     }
 
-    // Load matches from storage
-    const storedMatches = DataService.getMatches();
+    // Load matches from storage (exclude deleted matches)
+    const storedMatches = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
     setMatches(storedMatches);
 
     const onServer = () => {
-      const s = DataService.getMatches();
+      const s = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
       setMatches(s);
     };
     window.addEventListener('server-scouting-updated', onServer as EventListener);

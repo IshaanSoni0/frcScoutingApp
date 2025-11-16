@@ -733,10 +733,18 @@ export async function deleteMatchesFromServer(keys: string[]) {
   if (!client) throw new Error('Supabase client not configured; cannot delete matches.');
 
   try {
-    const { error } = await client.from('matches').delete().in('key', keys);
+    // Prefer soft-delete: set deleted_at so clients can reconcile deletions deterministically
+    const now = new Date().toISOString();
+    const { error } = await client.from('matches').update({ deleted_at: now }).in('key', keys);
     if (error) {
-      // bubble up descriptive error
-      throw new Error('deleteMatchesFromServer: ' + (error.message || JSON.stringify(error)));
+      // If the DB doesn't support updates to deleted_at, fallback to hard delete
+      try {
+        const { error: delErr } = await client.from('matches').delete().in('key', keys);
+        if (delErr) throw delErr;
+        return true;
+      } catch (e) {
+        throw new Error('deleteMatchesFromServer: ' + (error.message || JSON.stringify(error)));
+      }
     }
     return true;
   } catch (e) {
