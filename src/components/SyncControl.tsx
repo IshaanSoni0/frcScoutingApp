@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { performFullRefresh } from '../services/syncService';
 
 interface SyncControlProps {
   onSync: () => Promise<string | void> | void;
@@ -29,6 +30,14 @@ export function SyncControl({ onSync, onCheck }: SyncControlProps) {
 
   const handleCheck = async () => {
     if (!onCheck) return;
+    try {
+      // Ensure we pull authoritative server state before running the check
+      await performFullRefresh({ reload: false });
+    } catch (e) {
+      // proceed even if refresh fails
+      // eslint-disable-next-line no-console
+      console.warn('SyncControl: performFullRefresh failed', e);
+    }
     try {
       const data = await onCheck();
       if (Array.isArray(data)) {
