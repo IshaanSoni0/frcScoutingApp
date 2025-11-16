@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, Match } from './types';
 import { DataService } from './services/dataService';
+import { performFullRefresh } from './services/syncService';
 import { LoginPage } from './components/LoginPage';
 import { MatchList } from './components/MatchList';
 import { ScoutingForm } from './components/ScoutingForm';
@@ -102,11 +103,22 @@ function App() {
     }
   }, [currentState]);
 
-  const handleLogin = (userData: User) => {
+  const handleLogin = async (userData: User) => {
     setUser(userData);
+    try {
+      // Ensure we pull authoritative server state before showing matches so scouters see latest assignments
+      await performFullRefresh({ reload: false });
+    } catch (e) {
+      // ignore errors but continue to show UI
+      // eslint-disable-next-line no-console
+      console.warn('handleLogin: performFullRefresh failed', e);
+    }
     if (userData.isAdmin) {
       setCurrentState('admin');
     } else {
+      // reload matches from storage (exclude deleted)
+      const stored = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
+      setMatches(stored as Match[]);
       setCurrentState('matches');
     }
   };
