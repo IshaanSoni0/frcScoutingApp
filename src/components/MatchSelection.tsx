@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Event, Match } from '../types';
 import { fetchEvents, fetchEventMatches, getRuntimeTbaKey, setRuntimeTbaKey, clearRuntimeTbaKey } from '../services/tbaApi';
 import { DataService } from '../services/dataService';
-import { migrateLocalToServer, pushMatchesToServer, deleteMatchesFromServer, fetchServerMatches } from '../services/syncService';
+import { migrateLocalToServer, pushMatchesToServer, deleteMatchesFromServer, fetchServerMatches, performFullRefresh } from '../services/syncService';
 import { ArrowLeft, Calendar, Search, Download } from 'lucide-react';
 import { readableMatchLabel, compareMatches } from '../utils/match';
 
@@ -159,10 +159,11 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
                 onClick={async () => {
                   setServerLoading(true);
                   try {
+                    await performFullRefresh({ reload: false });
                     const rows = await fetchServerMatches();
                     setServerMatches(rows as any[]);
                   } catch (e) {
-                    console.error('Failed to fetch server matches', e);
+                    console.error('Failed to refresh server matches', e);
                     setServerMatches([]);
                   } finally {
                     setServerLoading(false);

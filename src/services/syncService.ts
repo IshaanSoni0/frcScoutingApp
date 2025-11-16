@@ -443,6 +443,84 @@ export async function migrateLocalToServer() {
   return summary;
 }
 
+// Perform a full client refresh: clean local data, push pending rows, pull server state,
+// then optionally activate waiting service worker or clear caches and reload the page.
+export async function performFullRefresh(options?: { reload?: boolean }) {
+  const doReload = options?.reload !== false;
+  try {
+    // 1) clean local data (non-destructive)
+    try {
+      // dynamic import DataService to avoid subtle circular issues
+      // but DataService is already imported at top; call directly
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const summary = await DataService.cleanAndNormalize();
+      try {
+        localStorage.setItem('frc-cleanup-summary', JSON.stringify({ removed: summary.removed, fixed: summary.fixed, pendingRemoved: summary.pendingRemoved }));
+        localStorage.setItem('frc-cleanup-success', '1');
+      } catch (e) {
+        // ignore
+      }
+    } catch (e) {
+      // cleaning failed; continue
+      // eslint-disable-next-line no-console
+      console.warn('performFullRefresh: cleanAndNormalize failed', e);
+    }
+
+    // 2) perform migration (push pending -> pull server)
+    try {
+      await migrateLocalToServer();
+    } catch (e) {
+      // bubble up or continue — we'll still attempt activation/clear
+      // eslint-disable-next-line no-console
+      console.warn('performFullRefresh: migrateLocalToServer failed', e);
+    }
+
+    // broadcast update to any listeners (migrateLocalToServer also calls notify, but be explicit)
+    try {
+      notifyServerScoutingUpdated();
+    } catch (e) {}
+
+    if (!doReload) return 'refreshed';
+
+    // 3) If there's a waiting service worker, request skipWaiting so it activates immediately
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg?.waiting) {
+          try { reg.waiting?.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
+          // wait briefly for controllerchange then reload
+          setTimeout(() => window.location.reload(), 500);
+          return 'activated-waiting-worker';
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // 4) No waiting worker: unregister and clear caches then reload so fresh assets are fetched
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    window.location.reload();
+    return 'reloaded';
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('performFullRefresh failed', e);
+    throw e;
+  }
+}
+
 // Notify other windows/tabs/components that server scouting may have changed.
 function notifyServerScoutingUpdated() {
   try {

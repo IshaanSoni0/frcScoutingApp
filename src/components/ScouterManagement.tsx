@@ -4,7 +4,7 @@ import { uuidv4 } from '../utils/uuid';
 // DataService not required here; scouters persisted via useLocalStorage
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
-import { pushScoutersToServer, migrateLocalToServer, fetchServerScouters } from '../services/syncService';
+import { pushScoutersToServer, performFullRefresh, fetchServerScouters } from '../services/syncService';
 import { getSupabaseInfo } from '../services/supabaseClient';
 import { SyncControl } from './SyncControl';
 
@@ -87,7 +87,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     let mounted = true;
     (async () => {
       try {
-        await migrateLocalToServer();
+        await performFullRefresh({ reload: false });
         // fetch server scouters to update local view (SyncControl already does this but we want immediate refresh)
         const server = await fetchServerScouters();
         if (!mounted) return;
@@ -171,7 +171,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
               </button>
             </div>
       <div className="flex items-center gap-3">
-        <SyncControl onSync={() => migrateLocalToServer()} onCheck={() => fetchServerScouters()} />
+        <SyncControl onSync={() => performFullRefresh()} onCheck={() => fetchServerScouters()} />
       </div>
           </div>
           <div className="flex items-center justify-between gap-3">

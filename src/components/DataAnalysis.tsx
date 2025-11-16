@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
-import { fetchServerScouting, deleteScoutingFromServer } from '../services/syncService';
+import { fetchServerScouting, deleteScoutingFromServer, performFullRefresh } from '../services/syncService';
 import { ArrowLeft, BarChart3, Download } from 'lucide-react';
 
 interface DataAnalysisProps {
@@ -585,6 +585,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               onClick={async () => {
                 setLoadingServer(true);
                 try {
+                  // perform full clean+sync and then fetch fresh server scouting rows
+                  await performFullRefresh({ reload: false });
                   const serverRows: any[] = await fetchServerScouting();
                   const mapped = serverRows.map((r: any) => ({
                     id: r.id,
@@ -610,7 +612,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   setRows(mapped as ScoutingData[]);
                   setServerError(null);
                 } catch (e: any) {
-                  console.error('Failed to fetch server scouting records:', e);
+                  console.error('Failed to refresh server scouting records:', e);
                   setServerError(String(e?.message || e));
                 } finally {
                   setLoadingServer(false);
