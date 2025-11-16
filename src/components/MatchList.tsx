@@ -24,12 +24,21 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
   const [serverScouting, setServerScouting] = useState<any[]>([]);
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'frc-scouting-data' || e.key === 'frc-pending-scouting') {
+      if (!e) return;
+      if (e.key === 'frc-scouting-data' || e.key === 'frc-pending-scouting' || e.key === 'frc-matches') {
         setTick(t => t + 1);
       }
     };
+    const onServer = () => {
+      // server-scouting-updated indicates matches/scouters may have changed
+      setTick(t => t + 1);
+    };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener('server-scouting-updated', onServer as EventListener);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('server-scouting-updated', onServer as EventListener);
+    };
   }, []);
 
   // load server-side scouting records once and refresh when online

@@ -3,6 +3,7 @@ import { User } from '../types';
 import { Users, Shield } from 'lucide-react';
 import { DataService } from '../services/dataService';
 import supabase from '../services/supabaseClient';
+import { migrateLocalToServer } from '../services/syncService';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -185,12 +186,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 function ForceRefreshControl() {
   const [showConfirm, setShowConfirm] = React.useState(false);
   const [working, setWorking] = React.useState(false);
+  const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
 
   const doClearAndReload = async () => {
     setWorking(true);
     try {
       // 1) backup and clean local data (keeps valid rows, removes bad ones)
       try {
+        setStatusMessage('Cleaning local data...');
         const summary = await DataService.cleanAndNormalize();
         // persist a brief summary so the app can show a success popup after reload
         try {
@@ -203,7 +206,22 @@ function ForceRefreshControl() {
         // if cleaning failed, continue but log
         // eslint-disable-next-line no-console
         console.error('Backup/clean failed', e);
+        setStatusMessage('Cleaning failed, continuing with refresh');
       }
+      // 1b) attempt to sync with server so pending scouting is pushed and matches/scouters pulled
+      try {
+        if (DataService.isOnline()) {
+          setStatusMessage('Syncing with server...');
+          await migrateLocalToServer();
+          setStatusMessage('Sync completed');
+        }
+      } catch (e) {
+        // log and continue - we'll still try to clear caches and reload
+        // eslint-disable-next-line no-console
+        console.warn('ForceRefresh: migrateLocalToServer failed', e);
+        setStatusMessage('Sync failed, continuing to clear caches');
+      }
+
       // unregister service workers
       if ('serviceWorker' in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
@@ -214,7 +232,7 @@ function ForceRefreshControl() {
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
       }
-      // 2) If there is an update waiting in the service worker, activate it.
+  // 2) If there is an update waiting in the service worker, activate it.
       if ('serviceWorker' in navigator) {
         const reg = await navigator.serviceWorker.getRegistration();
         if (reg?.waiting) {
@@ -235,6 +253,7 @@ function ForceRefreshControl() {
         await Promise.all(keys.map(k => caches.delete(k)));
       }
       // reload the page
+      setStatusMessage('Reloading...');
       location.reload();
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -261,6 +280,9 @@ function ForceRefreshControl() {
             <h3 className="text-lg font-semibold mb-2">Force refresh</h3>
             <p className="text-gray-600 mb-3">This will unregister service workers and clear cached assets so the app loads the latest code.</p>
             <p className="text-sm text-gray-600 mb-4">The app will automatically backup and clean local data: valid rows are preserved, malformed entries are removed.</p>
+            {statusMessage && (
+              <div className="mb-3 text-sm text-gray-700">{statusMessage}</div>
+            )}
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowConfirm(false)} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">Cancel</button>
               <button onClick={doClearAndReload} disabled={working} className="px-3 py-2 rounded bg-red-600 text-white hover:bg-red-700">{working ? 'Working...' : 'Confirm'}</button>

@@ -85,6 +85,13 @@ function App() {
     // Load matches from storage
     const storedMatches = DataService.getMatches();
     setMatches(storedMatches);
+
+    const onServer = () => {
+      const s = DataService.getMatches();
+      setMatches(s);
+    };
+    window.addEventListener('server-scouting-updated', onServer as EventListener);
+    window.addEventListener('storage', (e) => { if (e.key === 'frc-matches') onServer(); });
   }, []);
 
   // Ensure matches are reloaded whenever we transition to the matches view (e.g., after logout/login or role switch)

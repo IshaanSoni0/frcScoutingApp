@@ -38,6 +38,7 @@ type TeamStats = {
 
 export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [rows, setRows] = useState<ScoutingData[]>([]);
+  const [matchesVersion, setMatchesVersion] = useState(0);
   const [loadingServer, setLoadingServer] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [teamFilter, setTeamFilter] = useState('');
@@ -85,6 +86,22 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       }
     })();
     return () => { mounted = false; };
+  }, []);
+
+  // Listen for server-side updates and local storage changes so components using
+  // matches recompute when matches are updated from the server (fixes stale UI on phones)
+  useEffect(() => {
+    const onServer = () => setMatchesVersion(v => v + 1);
+    const onStorage = (e: StorageEvent) => {
+      if (!e) return;
+      if (e.key === 'frc-matches' || e.key === 'frc-selected-event') setMatchesVersion(v => v + 1);
+    };
+    window.addEventListener('server-scouting-updated', onServer as EventListener);
+    window.addEventListener('storage', onStorage as EventListener);
+    return () => {
+      window.removeEventListener('server-scouting-updated', onServer as EventListener);
+      window.removeEventListener('storage', onStorage as EventListener);
+    };
   }, []);
 
   // auto-refresh when the component mounts (helpful when navigated to from admin panel)
@@ -138,7 +155,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       rows.forEach(r => teamSet.add(r.teamKey));
     }
     return Array.from(teamSet).sort((a, b) => a.localeCompare(b));
-  }, [rows]);
+  }, [rows, matchesVersion]);
 
   const teamStats = useMemo(() => {
     const byTeam: Record<string, ScoutingData[]> = {};
@@ -313,7 +330,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     });
 
     return stats;
-  }, [rows, allTeams]);
+  }, [rows, allTeams, matchesVersion]);
 
   const [sortBy, setSortBy] = useState<keyof TeamStats | 'team' | 'count'>('team');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -330,7 +347,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       return sortOrder === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
     });
     return copy;
-  }, [teamStats, sortBy, sortOrder]);
+  }, [teamStats, sortBy, sortOrder, matchesVersion]);
 
   // apply UI filters
   const filtered = useMemo(() => {
@@ -338,7 +355,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const matches = t.team.includes(teamFilter) || t.teamKey.includes(teamFilter) || t.team.toLowerCase().includes(teamFilter.toLowerCase());
       return matches && t.count >= (minEntries || 0);
     });
-  }, [sorted, teamFilter, minEntries]);
+  }, [sorted, teamFilter, minEntries, matchesVersion]);
 
   const toggleSort = (key: keyof TeamStats | 'team' | 'count') => {
     if (sortBy === key) {

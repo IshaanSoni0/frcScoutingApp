@@ -56,8 +56,18 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
         }
       }
     };
+    const onServer = () => {
+      try {
+        const sel = DataService.getSelectedEvent();
+        if (sel) setSelectedEvent(sel);
+        const stored = DataService.getMatches() || [];
+        setMatches((stored as any[]).slice().sort(compareMatches));
+      } catch (err) {}
+    };
     window.addEventListener('storage', onStorage);
+    window.addEventListener('server-scouting-updated', onServer as EventListener);
     return () => window.removeEventListener('storage', onStorage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadMatches = async (eventKey: string) => {
