@@ -41,20 +41,11 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
     };
   }, []);
 
-  // load server-side scouting records once and refresh when online
+  // load server-side scouting records once (manual refresh available)
   useEffect(() => {
     let mounted = true;
-    async function loadServer() {
+    async function loadServerOnce() {
       try {
-        // Ensure any pending local rows are pushed and authoritative server state is pulled
-        try {
-          await performFullRefresh({ reload: false });
-        } catch (e) {
-          // don't block fetching server rows if the full refresh fails; log and continue
-          // eslint-disable-next-line no-console
-          console.warn('MatchList: performFullRefresh failed', e);
-        }
-
         const data = await fetchServerScouting();
         if (!mounted) return;
         setServerScouting(Array.isArray(data) ? data : []);
@@ -66,22 +57,8 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
       }
     }
 
-    loadServer();
-
-    // refresh when coming back online
-    const onOnline = () => {
-      loadServer();
-    };
-    const onServerUpdated = () => {
-      loadServer();
-    };
-    window.addEventListener('online', onOnline);
-    window.addEventListener('server-scouting-updated', onServerUpdated as EventListener);
-    return () => {
-      mounted = false;
-      window.removeEventListener('online', onOnline);
-      window.removeEventListener('server-scouting-updated', onServerUpdated as EventListener);
-    };
+    loadServerOnce();
+    return () => { mounted = false; };
   }, []);
 
   const localScouting = DataService.getScoutingData() || [];
@@ -111,7 +88,22 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
               {user.username}
             </span>
               {onBack && (
-                <div className="ml-auto">
+                <div className="ml-auto flex flex-col items-end gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        // manual refresh: fetch latest scouting records from server
+                        const data = await fetchServerScouting();
+                        setServerScouting(Array.isArray(data) ? data : []);
+                      } catch (e) {
+                        // eslint-disable-next-line no-console
+                        console.warn('MatchList: manual refresh failed', e);
+                      }
+                    }}
+                    className="text-sm bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-md"
+                  >
+                    Refresh
+                  </button>
                   <button
                     onClick={onBack}
                     className="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-md"
