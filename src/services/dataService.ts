@@ -42,6 +42,14 @@ export class DataService {
       const pending = this.getPendingScouting();
       pending.push(record.id);
       localStorage.setItem(STORAGE_KEYS.PENDING_SCOUTING, JSON.stringify(pending));
+      // Attempt a background sync when online so saves propagate to server quickly
+      try {
+        // don't await - fire-and-forget
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        this.syncData();
+      } catch (e) {
+        // ignore sync errors here
+      }
     } catch (e) {
       // ignore write errors
       // eslint-disable-next-line no-console
