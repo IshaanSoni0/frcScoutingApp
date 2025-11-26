@@ -36,111 +36,117 @@ async function sendBatchToServer(records: any[]) {
 
 async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: number }): Promise<number> {
   const batchSize = options?.batchSize || 50;
-  // TEMP LOG: measure pushPendingToServer duration
+  if (_pushLock) {
+    // eslint-disable-next-line no-console
+    console.debug('SyncService: pushPendingToServer skipped because another push is running');
+    return 0;
+  }
+  _pushLock = true;
   try {
-    // eslint-disable-next-line no-console
-    console.time('sync:pushPendingToServer');
-  } catch (e) {}
-  const maxRetries = options?.maxRetries || 5;
-
-  const pending = DataService.getPendingScouting();
-  if (!pending || pending.length === 0) return 0;
-
-  const all = DataService.getScoutingData() as any[];
-  const records = all.filter(r => pending.includes(r.id));
-  if (records.length === 0) return 0;
-
-  // Normalize ids: Supabase expects UUIDs for primary keys. If any local record uses a non-UUID id
-  // (for example, composed of match/team/timestamp), generate a proper UUID and persist the change
-  // so the pending queue and local storage reference the new UUIDs.
-  const { uuidv4 } = await import('../utils/uuid');
-  let mutated = false;
-  const idMap: Record<string, string> = {};
-  const newAll = all.map((r: any) => {
-    const isUuidLike = typeof r.id === 'string' && r.id.length === 36 && r.id.includes('-');
-    if (!isUuidLike) {
-      const newId = uuidv4();
-      idMap[r.id] = newId;
-      mutated = true;
-      return { ...r, id: newId };
+    if (!_pushTimerActive) {
+      try { console.time('sync:pushPendingToServer'); _pushTimerActive = true; } catch (e) {}
     }
-    return r;
-  });
-  if (mutated) {
-    // persist updated records and update pending queue
-    DataService.replaceScoutingData(newAll);
-    const newPending = DataService.getPendingScouting().map((pid: string) => idMap[pid] || pid);
-    DataService.setPendingScouting(newPending);
-    // refresh local pointers
-    // eslint-disable-next-line no-console
-    console.debug('SyncService: normalized non-UUID ids for pending scouting records', { idMap });
-    // recalc records to send
-    const refreshedAll = newAll;
-    // eslint-disable-next-line no-shadow
-    const refreshedRecords = refreshedAll.filter((r: any) => newPending.includes(r.id));
-    // override records variable for subsequent processing
-    // @ts-ignore
-    records.length = 0; // clear
-    // @ts-ignore
-    records.push(...refreshedRecords);
-  }
+    const maxRetries = options?.maxRetries || 5;
 
-  const client = getSupabaseClient();
-  if (!client) {
-    throw new Error('Supabase client not configured; cannot push pending scouting.');
-  }
+    const pending = DataService.getPendingScouting();
+    if (!pending || pending.length === 0) return 0;
 
-  // batch and retry
-  let totalSynced = 0;
-  for (let i = 0; i < records.length; i += batchSize) {
-    const batch = records.slice(i, i + batchSize);
-    // TEMP LOG: per-batch timing
-    try { console.time(`sync:pushBatch-${i}`); } catch (e) {}
-    // map to server shape
-    const payload = batch.map(r => ({
-      id: r.id,
-      match_key: r.matchKey,
-      team_key: r.teamKey,
-      scouter_name: r.scouter,
-      alliance: r.alliance,
-      position: r.position,
-      payload: {
-        auto: r.auto,
-        teleop: r.teleop,
-        endgame: r.endgame,
-        defense: r.defense,
-      },
-      client_id: r.clientId,
-      timestamp: new Date(r.timestamp || r.createdAt).toISOString(),
-    }));
+    const all = DataService.getScoutingData() as any[];
+    const records = all.filter(r => pending.includes(r.id));
+    if (records.length === 0) return 0;
 
-    let attempt = 0;
-    while (attempt <= maxRetries) {
-      try {
-        await sendBatchToServer(payload);
-        const ids = batch.map(r => r.id);
-        DataService.markScoutingSynced(ids);
-        totalSynced += ids.length;
-        try { console.timeEnd(`sync:pushBatch-${i}`); } catch (e) {}
-        // continue to next batch
-        break;
-      } catch (err) {
-        attempt++;
-        const backoff = Math.pow(2, attempt) * 500; // exponential backoff
-        console.warn(`SyncService: batch sync failed, attempt ${attempt}, retrying in ${backoff}ms`, err);
-        await wait(backoff);
-        if (attempt > maxRetries) {
-          try { console.timeEnd(`sync:pushBatch-${i}`); } catch (e) {}
-          throw new Error('SyncService: max retries reached for batch, leaving pending');
+    // Normalize ids: Supabase expects UUIDs for primary keys. If any local record uses a non-UUID id
+    // (for example, composed of match/team/timestamp), generate a proper UUID and persist the change
+    // so the pending queue and local storage reference the new UUIDs.
+    const { uuidv4 } = await import('../utils/uuid');
+    let mutated = false;
+    const idMap: Record<string, string> = {};
+    const newAll = all.map((r: any) => {
+      const isUuidLike = typeof r.id === 'string' && r.id.length === 36 && r.id.includes('-');
+      if (!isUuidLike) {
+        const newId = uuidv4();
+        idMap[r.id] = newId;
+        mutated = true;
+        return { ...r, id: newId };
+      }
+      return r;
+    });
+    if (mutated) {
+      // persist updated records and update pending queue
+      DataService.replaceScoutingData(newAll);
+      const newPending = DataService.getPendingScouting().map((pid: string) => idMap[pid] || pid);
+      DataService.setPendingScouting(newPending);
+      // refresh local pointers
+      // eslint-disable-next-line no-console
+      console.debug('SyncService: normalized non-UUID ids for pending scouting records', { idMap });
+      // recalc records to send
+      const refreshedAll = newAll;
+      // eslint-disable-next-line no-shadow
+      const refreshedRecords = refreshedAll.filter((r: any) => newPending.includes(r.id));
+      // override records variable for subsequent processing
+      // @ts-ignore
+      records.length = 0; // clear
+      // @ts-ignore
+      records.push(...refreshedRecords);
+    }
+
+    const client = getSupabaseClient();
+    if (!client) {
+      throw new Error('Supabase client not configured; cannot push pending scouting.');
+    }
+
+    // batch and retry
+    let totalSynced = 0;
+    for (let i = 0; i < records.length; i += batchSize) {
+      const batch = records.slice(i, i + batchSize);
+      // TEMP LOG: per-batch timing (unique label to avoid collisions)
+      const batchLabel = `sync:pushBatch-${i}-${Date.now()}`;
+      try { console.time(batchLabel); } catch (e) {}
+      // map to server shape
+      const payload = batch.map(r => ({
+        id: r.id,
+        match_key: r.matchKey,
+        team_key: r.teamKey,
+        scouter_name: r.scouter,
+        alliance: r.alliance,
+        position: r.position,
+        payload: {
+          auto: r.auto,
+          teleop: r.teleop,
+          endgame: r.endgame,
+          defense: r.defense,
+        },
+        client_id: r.clientId,
+        timestamp: new Date(r.timestamp || r.createdAt).toISOString(),
+      }));
+
+      let attempt = 0;
+      while (attempt <= maxRetries) {
+        try {
+          await sendBatchToServer(payload);
+          const ids = batch.map(r => r.id);
+          DataService.markScoutingSynced(ids);
+          totalSynced += ids.length;
+          try { console.timeEnd(batchLabel); } catch (e) {}
+          // continue to next batch
+          break;
+        } catch (err) {
+          attempt++;
+          const backoff = Math.pow(2, attempt) * 500; // exponential backoff
+          console.warn(`SyncService: batch sync failed, attempt ${attempt}, retrying in ${backoff}ms`, err);
+          await wait(backoff);
+          if (attempt > maxRetries) {
+            try { console.timeEnd(batchLabel); } catch (e) {}
+            throw new Error('SyncService: max retries reached for batch, leaving pending');
+          }
         }
       }
     }
+    return totalSynced;
+  } finally {
+    try { if (_pushTimerActive) { console.timeEnd('sync:pushPendingToServer'); _pushTimerActive = false; } } catch (e) {}
+    _pushLock = false;
   }
-  return totalSynced;
-  try {
-    // eslint-disable-next-line no-console
-    console.timeEnd('sync:pushPendingToServer');
-  } catch (e) {}
 }
 // stray extra brace above removed
 
@@ -156,6 +162,10 @@ function acquireSyncLock(): boolean {
 function releaseSyncLock(): void {
   _syncLock = Math.max(0, _syncLock - 1);
 }
+
+let _pushLock = false;
+let _pushTimerActive = false;
+let _fetchScoutingLock = false;
 
 async function _migrateLocalToServerBody() {
   console.time('sync:migrateLocalToServer');
@@ -811,12 +821,22 @@ export async function fetchServerScouters() {
 export async function fetchServerScouting() {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase client not configured; cannot fetch scouting records.');
-  // TEMP LOG: time server scouting fetch
-  try { console.time('sync:fetchServerScouting'); } catch (e) {}
-  const { data, error } = await client.from('scouting_records').select('*').order('timestamp', { ascending: false }).limit(1000);
-  if (error) throw error;
-  try { console.timeEnd('sync:fetchServerScouting'); } catch (e) {}
-  return data || [];
+  if (_fetchScoutingLock) {
+    // eslint-disable-next-line no-console
+    console.debug('SyncService: fetchServerScouting skipped because another fetch is running');
+    return [];
+  }
+  _fetchScoutingLock = true;
+  try {
+    // TEMP LOG: time server scouting fetch
+    try { console.time('sync:fetchServerScouting'); } catch (e) {}
+    const { data, error } = await client.from('scouting_records').select('*').order('timestamp', { ascending: false }).limit(1000);
+    if (error) throw error;
+    try { console.timeEnd('sync:fetchServerScouting'); } catch (e) {}
+    return data || [];
+  } finally {
+    _fetchScoutingLock = false;
+  }
 }
 
 // delete all scouting records from server
