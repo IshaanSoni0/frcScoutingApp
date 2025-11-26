@@ -159,22 +159,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
                 Back to Admin Panel
               </button>
             </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={async () => {
-                try {
-                  setStatusMessage('Refreshing...');
-                  await performFullRefresh({ reload: false });
-                  setStatusMessage('Refresh complete');
-                } catch (e: any) {
-                  setStatusMessage(e?.message || String(e));
-                }
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md"
-            >
-              Refresh
-            </button>
-          </div>
+          
           </div>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
