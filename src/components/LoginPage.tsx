@@ -14,6 +14,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [password, setPassword] = useState('');
   const [alliance, _setAlliance] = useState<'red' | 'blue'>('red');
   const [position, _setPosition] = useState<1 | 2 | 3>(1);
+  const [loadingLogin, setLoadingLogin] = useState(false);
 
   const [showInvalid, setShowInvalid] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -21,6 +22,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) return;
+    setLoadingLogin(true);
 
     const name = username.trim();
     const isAdmin = name.toLowerCase() === 'admin6560';
@@ -47,6 +49,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           }
           setErrorMessage('Incorrect admin password.');
           setShowInvalid(true);
+          setLoadingLogin(false);
           return;
         }
 
@@ -62,6 +65,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           }
           setErrorMessage('Admin login failed: admin record not found or DB error. See console for details.');
           setShowInvalid(true);
+          setLoadingLogin(false);
           return;
         }
 
@@ -70,12 +74,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           // eslint-disable-next-line no-console
           console.warn('Supabase admin lookup returned no rows');
           setShowInvalid(true);
+          setLoadingLogin(false);
           return;
         }
 
         if (data.password !== password) {
           setErrorMessage('Incorrect admin password.');
           setShowInvalid(true);
+          setLoadingLogin(false);
           return;
         }
 
@@ -86,6 +92,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         // eslint-disable-next-line no-console
         console.error('Admin login exception', e);
         setShowInvalid(true);
+        setLoadingLogin(false);
         return;
       }
     }
@@ -96,9 +103,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     if (!matched) {
       setErrorMessage('The username you entered is not a registered scouter. Please check with your admin.');
       setShowInvalid(true);
+      setLoadingLogin(false);
       return;
     }
-
     try {
       // Attempt a non-destructive sync before completing login so the scouter
       // sees authoritative DB state (push pending rows, pull server rows).
@@ -156,6 +163,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              disabled={loadingLogin}
               placeholder="Enter your username"
               required
             />
@@ -168,6 +176,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  disabled={loadingLogin}
                   placeholder="Admin password"
                   required
                 />
@@ -179,10 +188,20 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            disabled={loadingLogin}
+            className={`w-full ${loadingLogin ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2`}
           >
-            {username === 'admin6560' && <Shield className="w-5 h-5" />}
-            {username === 'admin6560' ? 'Admin Login' : 'Start Scouting'}
+            {loadingLogin ? (
+              <>
+                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Logging in...</span>
+              </>
+            ) : (
+              <>
+                {username === 'admin6560' && <Shield className="w-5 h-5" />}
+                {username === 'admin6560' ? 'Admin Login' : 'Start Scouting'}
+              </>
+            )}
           </button>
         </form>
         <div className="mt-4 border-t pt-4">
