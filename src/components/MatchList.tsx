@@ -22,6 +22,7 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
 
   const [, setTick] = useState(0);
   const [serverScouting, setServerScouting] = useState<any[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (!e) return;
@@ -91,6 +92,8 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
                 <div className="ml-auto flex flex-col items-end gap-2">
                   <button
                     onClick={async () => {
+                      if (isRefreshing) return;
+                      setIsRefreshing(true);
                       try {
                         // manual refresh: run the canonical full refresh without reloading the page
                         await performFullRefresh({ reload: false });
@@ -100,11 +103,25 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
                       } catch (e) {
                         // eslint-disable-next-line no-console
                         console.warn('MatchList: manual refresh failed', e);
+                      } finally {
+                        setIsRefreshing(false);
                       }
                     }}
-                    className="text-sm bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-md"
+                    disabled={isRefreshing}
+                    aria-busy={isRefreshing}
+                    className="text-sm bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-md disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    Refresh
+                    {isRefreshing ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" strokeOpacity="0.25"></circle>
+                          <path d="M22 12a10 10 0 0 1-10 10" />
+                        </svg>
+                        <span>Refreshing</span>
+                      </>
+                    ) : (
+                      'Refresh'
+                    )}
                   </button>
                   <button
                     onClick={onBack}
