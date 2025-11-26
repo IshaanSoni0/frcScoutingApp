@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Match, User } from '../types';
 import { readableMatchLabel } from '../utils/match';
 import { DataService } from '../services/dataService';
@@ -36,6 +36,8 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const isOnline = DataService.isOnline();
+  // synchronous lock to avoid double-submit on fast multiple taps (phones)
+  const submittingRef = useRef(false);
 
   const getTeamKey = (): string => {
     const alliance = match.alliances[user.alliance];
@@ -54,6 +56,9 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // prevent double-submit synchronously
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
 
   // build payload; if editing existing, preserve its id
@@ -77,24 +82,24 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
         DataService.saveScoutingData(scoutingData);
       }
       if (isOnline) {
-        const start = Date.now();
-        try {
-          await DataService.syncData();
+        // trigger background sync but don't await it — awaiting can block UI on slow phones
+        DataService.syncData().then(() => {
           // eslint-disable-next-line no-console
-          console.debug('ScoutingForm: sync completed in', Date.now() - start, 'ms');
-        } catch (e: any) {
-          // surface error to user
-          setSubmitError(String(e?.message || e));
+          console.debug('ScoutingForm: background sync completed');
+        }).catch((e) => {
+          // log but do not block user flow
           // eslint-disable-next-line no-console
-          console.error('ScoutingForm: sync error', e);
-        }
+          console.error('ScoutingForm: background sync error', e);
+        });
       }
 
+      // call onSubmit immediately so UI can continue without waiting for network
       onSubmit();
     } catch (error) {
       console.error('Error saving scouting data:', error);
       setSubmitError(String((error as any)?.message || error));
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
