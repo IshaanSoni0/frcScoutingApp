@@ -151,17 +151,8 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
 // stray extra brace above removed
 
 // migration: push pending records then pull authoritative scouters & matches
-let _syncLock = 0;
-
-function acquireSyncLock(): boolean {
-  if (_syncLock > 0) return false;
-  _syncLock += 1;
-  return true;
-}
-
-function releaseSyncLock(): void {
-  _syncLock = Math.max(0, _syncLock - 1);
-}
+// Use a promise-based in-flight sync to coalesce concurrent requests
+let _inFlightSync: Promise<any> | null = null;
 
 let _pushLock = false;
 let _pushTimerActive = false;
@@ -499,17 +490,19 @@ async function _migrateLocalToServerBody() {
 }
 
 export async function migrateLocalToServer() {
-  if (!acquireSyncLock()) {
-    // already running elsewhere
+  if (_inFlightSync) {
     // eslint-disable-next-line no-console
-    console.debug('SyncService: migrateLocalToServer skipped because another sync is running');
-    return 'skipped';
+    console.debug('SyncService: migrateLocalToServer awaiting in-flight sync');
+    return await _inFlightSync;
   }
-  try {
-    return await _migrateLocalToServerBody();
-  } finally {
-    releaseSyncLock();
-  }
+  _inFlightSync = (async () => {
+    try {
+      return await _migrateLocalToServerBody();
+    } finally {
+      _inFlightSync = null;
+    }
+  })();
+  return await _inFlightSync;
 }
 
 // Perform a full client refresh: clean local data, push pending rows, pull server state,
@@ -538,23 +531,12 @@ export async function performFullRefresh(options?: { reload?: boolean }) {
     }
 
     // 2) perform migration (push pending -> pull server)
-    let _acquired = false;
     try {
-      _acquired = acquireSyncLock();
-      if (!_acquired) {
-        // another sync is running; skip this migration to avoid overlap
-        // eslint-disable-next-line no-console
-        console.debug('performFullRefresh: skipping migration because another sync is running');
-      } else {
-        // call internal migration body directly since we already hold the lock
-        await _migrateLocalToServerBody();
-      }
+      await migrateLocalToServer();
     } catch (e) {
       // bubble up or continue — we'll still attempt activation/clear
       // eslint-disable-next-line no-console
       console.warn('performFullRefresh: migrateLocalToServer failed', e);
-    } finally {
-      if (_acquired) releaseSyncLock();
     }
 
     // After migration, fetch authoritative matches from server and persist them
