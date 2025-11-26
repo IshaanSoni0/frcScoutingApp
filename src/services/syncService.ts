@@ -36,6 +36,11 @@ async function sendBatchToServer(records: any[]) {
 
 async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: number }): Promise<number> {
   const batchSize = options?.batchSize || 50;
+  // TEMP LOG: measure pushPendingToServer duration
+  try {
+    // eslint-disable-next-line no-console
+    console.time('sync:pushPendingToServer');
+  } catch (e) {}
   const maxRetries = options?.maxRetries || 5;
 
   const pending = DataService.getPendingScouting();
@@ -89,6 +94,8 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
   let totalSynced = 0;
   for (let i = 0; i < records.length; i += batchSize) {
     const batch = records.slice(i, i + batchSize);
+    // TEMP LOG: per-batch timing
+    try { console.time(`sync:pushBatch-${i}`); } catch (e) {}
     // map to server shape
     const payload = batch.map(r => ({
       id: r.id,
@@ -114,6 +121,7 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
         const ids = batch.map(r => r.id);
         DataService.markScoutingSynced(ids);
         totalSynced += ids.length;
+        try { console.timeEnd(`sync:pushBatch-${i}`); } catch (e) {}
         // continue to next batch
         break;
       } catch (err) {
@@ -122,17 +130,24 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
         console.warn(`SyncService: batch sync failed, attempt ${attempt}, retrying in ${backoff}ms`, err);
         await wait(backoff);
         if (attempt > maxRetries) {
+          try { console.timeEnd(`sync:pushBatch-${i}`); } catch (e) {}
           throw new Error('SyncService: max retries reached for batch, leaving pending');
         }
       }
     }
   }
   return totalSynced;
+  try {
+    // eslint-disable-next-line no-console
+    console.timeEnd('sync:pushPendingToServer');
+  } catch (e) {}
 }
 // stray extra brace above removed
 
 // migration: push pending records then pull authoritative scouters & matches
 export async function migrateLocalToServer() {
+  console.time('sync:migrateLocalToServer');
+  try {
   const client = getSupabaseClient();
   if (!client) {
     throw new Error('Supabase client not configured; cannot migrate local data.');
@@ -459,11 +474,15 @@ export async function migrateLocalToServer() {
     // ignore
   }
   return summary;
+  } finally {
+    try { console.timeEnd('sync:migrateLocalToServer'); } catch (e) {}
+  }
 }
 
 // Perform a full client refresh: clean local data, push pending rows, pull server state,
 // then optionally activate waiting service worker or clear caches and reload the page.
 export async function performFullRefresh(options?: { reload?: boolean }) {
+  try { console.time('sync:performFullRefresh'); } catch (e) {}
   const doReload = options?.reload !== false;
   try {
     // 1) clean local data (non-destructive)
@@ -593,6 +612,9 @@ export async function performFullRefresh(options?: { reload?: boolean }) {
     // eslint-disable-next-line no-console
     console.error('performFullRefresh failed', e);
     throw e;
+  }
+  finally {
+    try { console.timeEnd('sync:performFullRefresh'); } catch (e) {}
   }
 }
 
@@ -755,9 +777,11 @@ export async function fetchServerScouters() {
 export async function fetchServerScouting() {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase client not configured; cannot fetch scouting records.');
-
+  // TEMP LOG: time server scouting fetch
+  try { console.time('sync:fetchServerScouting'); } catch (e) {}
   const { data, error } = await client.from('scouting_records').select('*').order('timestamp', { ascending: false }).limit(1000);
   if (error) throw error;
+  try { console.timeEnd('sync:fetchServerScouting'); } catch (e) {}
   return data || [];
 }
 
