@@ -153,6 +153,7 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
 // migration: push pending records then pull authoritative scouters & matches
 // Use a promise-based in-flight sync to coalesce concurrent requests
 let _inFlightSync: Promise<any> | null = null;
+let _inFlightFullRefresh: Promise<any> | null = null;
 
 let _pushLock = false;
 let _pushTimerActive = false;
@@ -508,140 +509,151 @@ export async function migrateLocalToServer() {
 // Perform a full client refresh: clean local data, push pending rows, pull server state,
 // then optionally activate waiting service worker or clear caches and reload the page.
 export async function performFullRefresh(options?: { reload?: boolean }) {
-  try { console.time('sync:performFullRefresh'); } catch (e) {}
-  const doReload = options?.reload !== false;
-  try {
-    // 1) clean local data (non-destructive)
+  if (_inFlightFullRefresh) {
+    // eslint-disable-next-line no-console
+    console.debug('performFullRefresh awaiting in-flight full refresh');
+    return await _inFlightFullRefresh;
+  }
+  _inFlightFullRefresh = (async () => {
     try {
-      // dynamic import DataService to avoid subtle circular issues
-      // but DataService is already imported at top; call directly
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const summary = await DataService.cleanAndNormalize();
+      try { console.time('sync:performFullRefresh'); } catch (e) {}
+      const doReload = options?.reload !== false;
       try {
-        localStorage.setItem('frc-cleanup-summary', JSON.stringify({ removed: summary.removed, fixed: summary.fixed, pendingRemoved: summary.pendingRemoved }));
-        localStorage.setItem('frc-cleanup-success', '1');
-      } catch (e) {
-        // ignore
-      }
-    } catch (e) {
-      // cleaning failed; continue
-      // eslint-disable-next-line no-console
-      console.warn('performFullRefresh: cleanAndNormalize failed', e);
-    }
-
-    // 2) perform migration (push pending -> pull server)
-    try {
-      await migrateLocalToServer();
-    } catch (e) {
-      // bubble up or continue — we'll still attempt activation/clear
-      // eslint-disable-next-line no-console
-      console.warn('performFullRefresh: migrateLocalToServer failed', e);
-    }
-
-    // After migration, fetch authoritative matches from server and persist them
-    // This enforces server-wins for matches so other clients receive deletions
-    try {
-      const client = getSupabaseClient();
-      if (client) {
-        const { data: serverMatches, error: smErr } = await client.from('matches').select('*');
-        if (!smErr && Array.isArray(serverMatches)) {
-          const mapped = serverMatches.map((m: any) => ({ ...m, updatedAt: m.updated_at ? Date.parse(m.updated_at) : Date.now(), deletedAt: m.deleted_at ? Date.parse(m.deleted_at) : null }));
-          DataService.saveMatches(mapped as any);
-        }
-      }
-    } catch (e) {
-      // ignore fetch errors here; migration already attempted
-      // eslint-disable-next-line no-console
-      console.warn('performFullRefresh: failed to refresh authoritative matches', e);
-    }
-
-    // Also fetch authoritative scouting records from the server and replace local scouting data
-    try {
-      try {
-        const serverRows = await fetchServerScouting();
-        if (Array.isArray(serverRows)) {
-          const mapped = serverRows.map((r: any) => ({
-            id: r.id,
-            matchKey: r.match_key,
-            teamKey: r.team_key,
-            scouter: r.scouter_name,
-            alliance: r.alliance,
-            position: r.position,
-            auto: {
-              ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }),
-              net: typeof r.payload?.auto?.net === 'number' ? r.payload.auto.net : (r.payload?.auto?.net ? 1 : 0),
-            },
-            teleop: {
-              ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }),
-              net: typeof r.payload?.teleop?.net === 'number' ? r.payload.teleop.net : (r.payload?.teleop?.net ? 1 : 0),
-              prosser: typeof r.payload?.teleop?.prosser === 'number' ? r.payload.teleop.prosser : (r.payload?.teleop?.prosser ? 1 : 0),
-            },
-            endgame: r.payload?.endgame || { climb: 'none' },
-            defense: r.payload?.defense || 'none',
-            timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
-            updatedAt: r.updated_at ? Date.parse(r.updated_at) : Date.now(),
-          }));
-          // Replace local scouting data with authoritative server rows
+        // 1) clean local data (non-destructive)
+        try {
+          // dynamic import DataService to avoid subtle circular issues
+          // but DataService is already imported at top; call directly
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
-          DataService.replaceScoutingData(mapped as any[]);
+          const summary = await DataService.cleanAndNormalize();
+          try {
+            localStorage.setItem('frc-cleanup-summary', JSON.stringify({ removed: summary.removed, fixed: summary.fixed, pendingRemoved: summary.pendingRemoved }));
+            localStorage.setItem('frc-cleanup-success', '1');
+          } catch (e) {
+            // ignore
+          }
+        } catch (e) {
+          // cleaning failed; continue
+          // eslint-disable-next-line no-console
+          console.warn('performFullRefresh: cleanAndNormalize failed', e);
         }
+
+        // 2) perform migration (push pending -> pull server)
+        try {
+          await migrateLocalToServer();
+        } catch (e) {
+          // bubble up or continue — we'll still attempt activation/clear
+          // eslint-disable-next-line no-console
+          console.warn('performFullRefresh: migrateLocalToServer failed', e);
+        }
+
+        // After migration, fetch authoritative matches from server and persist them
+        // This enforces server-wins for matches so other clients receive deletions
+        try {
+          const client = getSupabaseClient();
+          if (client) {
+            const { data: serverMatches, error: smErr } = await client.from('matches').select('*');
+            if (!smErr && Array.isArray(serverMatches)) {
+              const mapped = serverMatches.map((m: any) => ({ ...m, updatedAt: m.updated_at ? Date.parse(m.updated_at) : Date.now(), deletedAt: m.deleted_at ? Date.parse(m.deleted_at) : null }));
+              DataService.saveMatches(mapped as any);
+            }
+          }
+        } catch (e) {
+          // ignore fetch errors here; migration already attempted
+          // eslint-disable-next-line no-console
+          console.warn('performFullRefresh: failed to refresh authoritative matches', e);
+        }
+
+        // Also fetch authoritative scouting records from the server and replace local scouting data
+        try {
+          try {
+            const serverRows = await fetchServerScouting();
+            if (Array.isArray(serverRows)) {
+              const mapped = serverRows.map((r: any) => ({
+                id: r.id,
+                matchKey: r.match_key,
+                teamKey: r.team_key,
+                scouter: r.scouter_name,
+                alliance: r.alliance,
+                position: r.position,
+                auto: {
+                  ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }),
+                  net: typeof r.payload?.auto?.net === 'number' ? r.payload.auto.net : (r.payload?.auto?.net ? 1 : 0),
+                },
+                teleop: {
+                  ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }),
+                  net: typeof r.payload?.teleop?.net === 'number' ? r.payload.teleop.net : (r.payload?.teleop?.net ? 1 : 0),
+                  prosser: typeof r.payload?.teleop?.prosser === 'number' ? r.payload.teleop.prosser : (r.payload?.teleop?.prosser ? 1 : 0),
+                },
+                endgame: r.payload?.endgame || { climb: 'none' },
+                defense: r.payload?.defense || 'none',
+                timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
+                updatedAt: r.updated_at ? Date.parse(r.updated_at) : Date.now(),
+              }));
+              // Replace local scouting data with authoritative server rows
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
+              DataService.replaceScoutingData(mapped as any[]);
+            }
+          } catch (e) {
+            // ignore per-call errors
+            // eslint-disable-next-line no-console
+            console.warn('performFullRefresh: failed to fetch server scouting', e);
+          }
+        } catch (e) {
+          // ignore overall
+        }
+
+        // broadcast update to any listeners (migrateLocalToServer also calls notify, but be explicit)
+        try {
+          notifyServerScoutingUpdated();
+        } catch (e) {}
+
+        if (!doReload) return 'refreshed';
+
+        // 3) If there's a waiting service worker, request skipWaiting so it activates immediately
+        try {
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg?.waiting) {
+              try { reg.waiting?.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
+              // wait briefly for controllerchange then reload
+              setTimeout(() => window.location.reload(), 500);
+              return 'activated-waiting-worker';
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        // 4) No waiting worker: unregister and clear caches then reload so fresh assets are fetched
+        try {
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+          }
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        window.location.reload();
+        return 'reloaded';
       } catch (e) {
-        // ignore per-call errors
         // eslint-disable-next-line no-console
-        console.warn('performFullRefresh: failed to fetch server scouting', e);
+        console.error('performFullRefresh failed', e);
+        throw e;
+      } finally {
+        try { console.timeEnd('sync:performFullRefresh'); } catch (e) {}
       }
-    } catch (e) {
-      // ignore overall
+    } finally {
+      _inFlightFullRefresh = null;
     }
-
-    // broadcast update to any listeners (migrateLocalToServer also calls notify, but be explicit)
-    try {
-      notifyServerScoutingUpdated();
-    } catch (e) {}
-
-    if (!doReload) return 'refreshed';
-
-    // 3) If there's a waiting service worker, request skipWaiting so it activates immediately
-    try {
-      if ('serviceWorker' in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg?.waiting) {
-          try { reg.waiting?.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
-          // wait briefly for controllerchange then reload
-          setTimeout(() => window.location.reload(), 500);
-          return 'activated-waiting-worker';
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    // 4) No waiting worker: unregister and clear caches then reload so fresh assets are fetched
-    try {
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r => r.unregister().catch(() => {})));
-      }
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    window.location.reload();
-    return 'reloaded';
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('performFullRefresh failed', e);
-    throw e;
-  }
-  finally {
-    try { console.timeEnd('sync:performFullRefresh'); } catch (e) {}
-  }
+  })();
+  return await _inFlightFullRefresh;
 }
 
 // Perform a hard refresh: attempt to push pending, then clear all local site data
