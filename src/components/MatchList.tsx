@@ -2,7 +2,7 @@ import { Match, User } from '../types';
 import { compareMatches, readableMatchLabel } from '../utils/match';
 import { Clock, Users, CheckCircle } from 'lucide-react';
 import { DataService } from '../services/dataService';
-import { fetchServerScouting } from '../services/syncService';
+import { fetchServerScouting, performFullRefresh } from '../services/syncService';
 import { useEffect, useState } from 'react';
 
 interface MatchListProps {
@@ -46,6 +46,15 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
     let mounted = true;
     async function loadServer() {
       try {
+        // Ensure any pending local rows are pushed and authoritative server state is pulled
+        try {
+          await performFullRefresh({ reload: false });
+        } catch (e) {
+          // don't block fetching server rows if the full refresh fails; log and continue
+          // eslint-disable-next-line no-console
+          console.warn('MatchList: performFullRefresh failed', e);
+        }
+
         const data = await fetchServerScouting();
         if (!mounted) return;
         setServerScouting(Array.isArray(data) ? data : []);
@@ -54,8 +63,6 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
         // eslint-disable-next-line no-console
         console.warn('MatchList: failed to fetch server scouting', e);
         setServerScouting([]);
-      } finally {
-        // noop
       }
     }
 

@@ -3,7 +3,7 @@ import { User } from '../types';
 import { Users, Shield } from 'lucide-react';
 import { DataService } from '../services/dataService';
 import supabase from '../services/supabaseClient';
-import { performHardRefresh } from '../services/syncService';
+import { performHardRefresh, performFullRefresh } from '../services/syncService';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -97,6 +97,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       setErrorMessage('The username you entered is not a registered scouter. Please check with your admin.');
       setShowInvalid(true);
       return;
+    }
+
+    try {
+      // Attempt a non-destructive sync before completing login so the scouter
+      // sees authoritative DB state (push pending rows, pull server rows).
+      await performFullRefresh({ reload: false });
+    } catch (e) {
+      // do not block login if refresh fails; proceed and warn in console
+      // eslint-disable-next-line no-console
+      console.warn('Login: performFullRefresh failed', e);
     }
 
     onLogin({

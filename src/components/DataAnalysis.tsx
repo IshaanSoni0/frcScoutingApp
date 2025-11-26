@@ -51,6 +51,15 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     (async () => {
       setLoadingServer(true);
       try {
+        // Ensure pending local rows are pushed and authoritative server state is pulled
+        try {
+          await performFullRefresh({ reload: false });
+        } catch (e) {
+          // if full refresh fails, continue to attempt to fetch server rows
+          // eslint-disable-next-line no-console
+          console.warn('DataAnalysis: performFullRefresh failed on mount', e);
+        }
+
         const serverRows: any[] = await fetchServerScouting();
         if (!mounted) return;
         const mapped = serverRows.map((r: any) => ({
@@ -77,7 +86,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         setRows(mapped as ScoutingData[]);
         setServerError(null);
       } catch (e: any) {
-        console.error('Failed to fetch server scouting records:', e);
+        console.error('Failed to fetch server scouting records on mount:', e);
         setServerError(String(e?.message || e));
         const local = DataService.getScoutingData();
         setRows(local as ScoutingData[]);
@@ -110,6 +119,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     let mounted = true;
     (async () => {
       try {
+        try {
+          await performFullRefresh({ reload: false });
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn('DataAnalysis: performFullRefresh failed during auto-refresh', e);
+        }
         const serverRows: any[] = await fetchServerScouting();
         if (!mounted) return;
         const mapped = serverRows.map((r: any) => ({
