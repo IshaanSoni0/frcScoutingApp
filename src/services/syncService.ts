@@ -702,12 +702,22 @@ export async function performHardRefresh() {
 }
 
 // Notify other windows/tabs/components that server scouting may have changed.
+let _notifyTimer: any = null;
 function notifyServerScoutingUpdated() {
   try {
-    if (typeof window !== 'undefined' && window && window.dispatchEvent) {
-      // eslint-disable-next-line no-undef
-      window.dispatchEvent(new CustomEvent('server-scouting-updated'));
-    }
+    if (typeof window === 'undefined' || !window || !window.dispatchEvent) return;
+    // coalesce multiple rapid notifications into one dispatch
+    if (_notifyTimer) return;
+    _notifyTimer = window.setTimeout(() => {
+      try {
+        // eslint-disable-next-line no-undef
+        window.dispatchEvent(new CustomEvent('server-scouting-updated'));
+      } catch (e) {
+        // ignore
+      } finally {
+        _notifyTimer = null;
+      }
+    }, 250);
   } catch (e) {
     // ignore environments without CustomEvent or window
     // eslint-disable-next-line no-console
@@ -955,15 +965,18 @@ export async function fetchServerMatches(limit = 500) {
 }
 
 let initialized = false;
+let _storageDebounceTimer: any = null;
 
 export function initializeSyncService() {
   if (initialized) return;
   initialized = true;
 
-  // attempt sync now if online
+  // attempt sync now if online. If a service worker is controlling the page, delay startup sync briefly
   if (DataService.isOnline()) {
-    // run migration (push local pending, then pull server state)
-    migrateLocalToServer().then(() => console.log('SyncService: migration complete'));
+    const startupDelay = (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker.controller) ? 500 : 0;
+    setTimeout(() => {
+      if (DataService.isOnline()) migrateLocalToServer().then(() => console.log('SyncService: migration complete'));
+    }, startupDelay);
   }
 
   // when the app comes back online, try to sync
@@ -971,10 +984,15 @@ export function initializeSyncService() {
     migrateLocalToServer().catch(() => {});
   });
 
-  // cross-tab updates: if other tab modified pending queue, react
+  // cross-tab updates: if other tab modified pending queue, react (debounced)
   window.addEventListener('storage', (e) => {
     if (e.key === 'frc-pending-scouting') {
-      if (DataService.isOnline()) migrateLocalToServer().catch(() => {});
+      if (!DataService.isOnline()) return;
+      if (_storageDebounceTimer) clearTimeout(_storageDebounceTimer);
+      _storageDebounceTimer = window.setTimeout(() => {
+        migrateLocalToServer().catch(() => {});
+        _storageDebounceTimer = null;
+      }, 250);
     }
   });
 
