@@ -92,7 +92,9 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
                   <button
                     onClick={async () => {
                       try {
-                        // manual refresh: fetch latest scouting records from server
+                        // manual refresh: run the canonical full refresh without reloading the page
+                        await performFullRefresh({ reload: false });
+                        // ensure we also refresh any cached server scouting rows the component uses
                         const data = await fetchServerScouting();
                         setServerScouting(Array.isArray(data) ? data : []);
                       } catch (e) {
