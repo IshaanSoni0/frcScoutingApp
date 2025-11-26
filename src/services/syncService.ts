@@ -494,6 +494,23 @@ export async function performFullRefresh(options?: { reload?: boolean }) {
       console.warn('performFullRefresh: migrateLocalToServer failed', e);
     }
 
+    // After migration, fetch authoritative matches from server and persist them
+    // This enforces server-wins for matches so other clients receive deletions
+    try {
+      const client = getSupabaseClient();
+      if (client) {
+        const { data: serverMatches, error: smErr } = await client.from('matches').select('*');
+        if (!smErr && Array.isArray(serverMatches)) {
+          const mapped = serverMatches.map((m: any) => ({ ...m, updatedAt: m.updated_at ? Date.parse(m.updated_at) : Date.now(), deletedAt: m.deleted_at ? Date.parse(m.deleted_at) : null }));
+          DataService.saveMatches(mapped as any);
+        }
+      }
+    } catch (e) {
+      // ignore fetch errors here; migration already attempted
+      // eslint-disable-next-line no-console
+      console.warn('performFullRefresh: failed to refresh authoritative matches', e);
+    }
+
     // broadcast update to any listeners (migrateLocalToServer also calls notify, but be explicit)
     try {
       notifyServerScoutingUpdated();
