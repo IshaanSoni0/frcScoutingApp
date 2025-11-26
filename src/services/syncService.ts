@@ -369,7 +369,25 @@ export async function migrateLocalToServer() {
           const localUpdated = l && l.updatedAt ? l.updatedAt : 0;
 
           if (s && l) {
-            if (localUpdated > serverUpdated) {
+            // If the server row has been soft-deleted, prefer the server-deleted state
+            // unless the local row contains a newer local deletion (localDeleted > serverUpdated).
+            const serverDeleted = s.deleted_at ? Date.parse(s.deleted_at) : null;
+            const localDeleted = l && l.deletedAt ? l.deletedAt : null;
+
+            if (serverDeleted && (!localDeleted || serverDeleted >= (localUpdated || 0))) {
+              // Server deletion is authoritative: accept server row (will carry deletedAt)
+              merged.push({ ...s, updatedAt: serverUpdated, deletedAt: serverDeleted });
+            } else if (localDeleted && (!serverDeleted || localDeleted > serverUpdated)) {
+              // Local deletion is newer -> push delete to server and keep local row
+              toUpsert.push({
+                key: l.key,
+                match_number: l.match_number,
+                comp_level: l.comp_level,
+                alliances: l.alliances,
+                deleted_at: l.deletedAt ? new Date(l.deletedAt).toISOString() : null,
+              });
+              merged.push(l);
+            } else if (localUpdated > serverUpdated) {
               // local wins -> upsert local
               toUpsert.push({
                 key: l.key,
