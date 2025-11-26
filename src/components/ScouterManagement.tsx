@@ -4,11 +4,11 @@ import { uuidv4 } from '../utils/uuid';
 // DataService not required here; scouters persisted via useLocalStorage
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
-import { pushScoutersToServer, performFullRefresh, fetchServerScouters, fetchServerScouting } from '../services/syncService';
-import { getSupabaseInfo } from '../services/supabaseClient';
-import { SyncControl } from './SyncControl';
 import { DataService } from '../services/dataService';
 import { readableMatchLabel } from '../utils/match';
+import { pushScoutersToServer, performFullRefresh, fetchServerScouters } from '../services/syncService';
+import { getSupabaseInfo } from '../services/supabaseClient';
+import { SyncControl } from './SyncControl';
 
 interface ScouterManagementProps {
   onBack: () => void;
@@ -17,6 +17,9 @@ interface ScouterManagementProps {
 export function ScouterManagement({ onBack }: ScouterManagementProps) {
   const [scouters, setScouters] = useLocalStorage<Scouter[]>('frc-scouters', []);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [showScoutedModal, setShowScoutedModal] = useState(false);
+  const [modalScouterName, setModalScouterName] = useState<string | null>(null);
+  const [modalScoutedMatches, setModalScoutedMatches] = useState<Array<{ matchKey: string; label: string }>>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({
     name: '',
@@ -30,9 +33,6 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     position: 1 as 1 | 2 | 3,
     isRemote: false,
   });
-  const [scouterCounts, setScouterCounts] = useState<Record<string, { count: number; matchKeys: string[] }>>({});
-  const [totalMatches, setTotalMatches] = useState<number>(0);
-  const [showMatchesFor, setShowMatchesFor] = useState<{ name: string; matchKeys: string[] } | null>(null);
 
   const addScouter = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,45 +87,6 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     }
   };
 
-  const computeScouterCounts = async () => {
-    try {
-      const serverRows: any[] = await fetchServerScouting().catch(() => []);
-      const localRows: any[] = DataService.getScoutingData() || [];
-
-      // compute total matches available locally (exclude deleted)
-      try {
-        const matches = DataService.getMatches() || [];
-        const total = Array.isArray(matches) ? matches.filter((m: any) => !m.deletedAt).length : 0;
-        setTotalMatches(total);
-      } catch (e) {
-        setTotalMatches(0);
-      }
-
-      const norm: { scouter: string; matchKey: string }[] = [];
-      serverRows.forEach(r => {
-        if (r && r.scouter_name && r.match_key) norm.push({ scouter: String(r.scouter_name), matchKey: String(r.match_key) });
-      });
-      localRows.forEach(r => {
-        if (r && r.scouter && r.matchKey) norm.push({ scouter: String(r.scouter), matchKey: String(r.matchKey) });
-      });
-
-      const seen = new Set<string>();
-      const counts: Record<string, { count: number; matchKeys: string[] }> = {};
-      for (const entry of norm) {
-        const key = `${entry.scouter.toLowerCase()}||${entry.matchKey}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        const scName = entry.scouter.toLowerCase();
-        counts[scName] = counts[scName] || { count: 0, matchKeys: [] };
-        counts[scName].count += 1;
-        counts[scName].matchKeys.push(entry.matchKey);
-      }
-      setScouterCounts(counts);
-    } catch (e) {
-      // ignore
-    }
-  };
-
   // auto-refresh when this view loads
   React.useEffect(() => {
     let mounted = true;
@@ -147,22 +108,9 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
       } catch (e) {
         // ignore refresh errors
       }
-        // compute counts after attempting refresh
-        computeScouterCounts().catch(() => {});
     })();
     return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // listen for server updates and storage events to recompute counts
-  React.useEffect(() => {
-    const handler = () => { computeScouterCounts().catch(() => {}); };
-    window.addEventListener('server-scouting-updated', handler as EventListener);
-    window.addEventListener('storage', handler as EventListener);
-    return () => {
-      window.removeEventListener('server-scouting-updated', handler as EventListener);
-      window.removeEventListener('storage', handler as EventListener);
-    };
   }, []);
 
   const showClientInfo = () => {
@@ -171,6 +119,32 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
       setStatusMessage(`Supabase: url=${info.url ? 'present' : 'missing'}, hasKey=${info.hasKey}, clientPresent=${info.clientPresent}`);
     } catch (e) {
       setStatusMessage('Failed to read Supabase info: ' + (e as any)?.message || String(e));
+    }
+  };
+
+  const openScoutedMatches = (scouterName: string) => {
+    try {
+      const selectedEvent = DataService.getSelectedEvent();
+      const allMatches = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
+      const totalMatches = selectedEvent ? allMatches.filter((m: any) => !m.event_key || m.event_key === selectedEvent) : allMatches;
+
+      const scouting = DataService.getScoutingData() || [];
+      const scoutedFor = scouting.filter((s: any) => (s.scouter || '').toLowerCase() === scouterName.toLowerCase());
+      const matchKeys = Array.from(new Set(scoutedFor.map((s: any) => s.matchKey)));
+
+      const mapped = matchKeys.map((mk: string) => {
+        const matchInfo = allMatches.find((m: any) => m.key === mk);
+        return { matchKey: mk, label: matchInfo ? readableMatchLabel(matchInfo) : mk };
+      });
+
+      setModalScouterName(scouterName);
+      setModalScoutedMatches(mapped);
+      setShowScoutedModal(true);
+    } catch (e) {
+      console.error('openScoutedMatches failed', e);
+      setModalScoutedMatches([]);
+      setModalScouterName(scouterName);
+      setShowScoutedModal(true);
     }
   };
 
@@ -335,23 +309,23 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 font-medium text-gray-900">Matches Scouted</th>
-                    <th className="text-left py-3 font-medium text-gray-900">Name</th>
-                    <th className="text-left py-3 font-medium text-gray-900">Alliance</th>
-                    <th className="text-left py-3 font-medium text-gray-900">Position</th>
-                    <th className="text-left py-3 font-medium text-gray-900">Type</th>
-                    <th className="text-left py-3 font-medium text-gray-900">Actions</th>
-                  </tr>
+                      <th className="text-left py-3 font-medium text-gray-900">Matches Scouted</th>
+                      <th className="text-left py-3 font-medium text-gray-900">Name</th>
+                      <th className="text-left py-3 font-medium text-gray-900">Alliance</th>
+                      <th className="text-left py-3 font-medium text-gray-900">Position</th>
+                      <th className="text-left py-3 font-medium text-gray-900">Type</th>
+                      <th className="text-left py-3 font-medium text-gray-900">Actions</th>
+                    </tr>
                 </thead>
                 <tbody>
                   {scouters.filter(s => !s.deletedAt).map((scouter) => (
                     <tr key={scouter.id} className="border-b border-gray-100">
-                      {editingId === scouter.id ? (
+                        {editingId === scouter.id ? (
                         <>
                             <td className="py-3">
-                              {/* empty placeholder while editing: matches column */}
+                              <div className="text-sm text-gray-600">-</div>
                             </td>
-                            <td className="py-3">
+                          <td className="py-3">
                             <input
                               type="text"
                               value={editValues.name}
@@ -408,17 +382,26 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
                         </>
                       ) : (
                         <>
+                          {/* Matches scouted count */}
                           <td className="py-3">
-                            <button
-                              onClick={() => {
-                                const key = scouter.name.toLowerCase();
-                                const info = scouterCounts[key] || { count: 0, matchKeys: [] };
-                                setShowMatchesFor({ name: scouter.name, matchKeys: info.matchKeys });
-                              }}
-                              className="text-sm text-blue-600 hover:underline"
-                            >
-                              {`${(scouterCounts[scouter.name.toLowerCase()]?.count || 0)}/${totalMatches}`}
-                            </button>
+                            {(() => {
+                              try {
+                                const selectedEvent = DataService.getSelectedEvent();
+                                const allMatches = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
+                                const matchesForEvent = selectedEvent ? allMatches.filter((m: any) => !m.event_key || m.event_key === selectedEvent) : allMatches;
+                                const total = matchesForEvent.length;
+                                const scouting = DataService.getScoutingData() || [];
+                                const scoutedKeys = Array.from(new Set(scouting.filter((r: any) => (r.scouter || '').toLowerCase() === scouter.name.toLowerCase()).map((r: any) => r.matchKey)));
+                                const scoutedCount = scoutedKeys.filter((k: string) => matchesForEvent.some((m: any) => m.key === k)).length;
+                                return (
+                                  <button onClick={() => openScoutedMatches(scouter.name)} className="text-sm text-blue-600 hover:underline">
+                                    {scoutedCount}/{total}
+                                  </button>
+                                );
+                              } catch (e) {
+                                return <div className="text-sm text-gray-600">0/0</div>;
+                              }
+                            })()}
                           </td>
                           <td className="py-3 text-gray-900">{scouter.name}</td>
                           <td className="py-3">
@@ -461,32 +444,28 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
             </div>
           )}
         </div>
-
-        {/* Matches modal */}
-        {showMatchesFor && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black opacity-50" onClick={() => setShowMatchesFor(null)} />
-            <div className="bg-white rounded-lg shadow-lg z-10 max-w-lg w-full p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Matches scouted by {showMatchesFor.name}</h3>
-                <button onClick={() => setShowMatchesFor(null)} className="text-gray-600 hover:text-gray-900">Close</button>
-              </div>
-              <div className="max-h-64 overflow-auto">
-                {showMatchesFor.matchKeys.length === 0 ? (
-                  <div className="text-gray-500">No matches recorded.</div>
+        {showScoutedModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h3 className="text-lg font-semibold mb-2">Matches scouted by {modalScouterName}</h3>
+              <div className="max-h-64 overflow-y-auto mb-4">
+                {modalScoutedMatches.length === 0 ? (
+                  <div className="text-sm text-gray-600">No matches scouted yet.</div>
                 ) : (
-                  <ul className="list-disc pl-5 space-y-1">
-                    {showMatchesFor.matchKeys.map((mk) => (
-                      <li key={mk} className="text-gray-800">{readableMatchLabel({ key: mk })} <span className="text-sm text-gray-500">({mk})</span></li>
+                  <ul className="list-disc pl-5 text-sm">
+                    {modalScoutedMatches.map(m => (
+                      <li key={m.matchKey} className="py-1">{m.label} <span className="text-xs text-gray-400">({m.matchKey})</span></li>
                     ))}
                   </ul>
                 )}
+              </div>
+              <div className="flex justify-end">
+                <button onClick={() => { setShowScoutedModal(false); setModalScoutedMatches([]); setModalScouterName(null); }} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">Close</button>
               </div>
             </div>
           </div>
         )}
       </div>
     </div>
-  </div>
   );
 }
