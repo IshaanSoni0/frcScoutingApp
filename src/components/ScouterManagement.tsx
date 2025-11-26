@@ -6,9 +6,8 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
 import { DataService } from '../services/dataService';
 import { readableMatchLabel } from '../utils/match';
-import { pushScoutersToServer, performFullRefresh, fetchServerScouters } from '../services/syncService';
-import { getSupabaseInfo } from '../services/supabaseClient';
-import { SyncControl } from './SyncControl';
+import { pushScoutersToServer, performFullRefresh } from '../services/syncService';
+// no direct supabase client usage here
 
 interface ScouterManagementProps {
   onBack: () => void;
@@ -57,35 +56,7 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     setNewScouter({ name: '', alliance: 'red', position: 1, isRemote: false });
   };
 
-  const exportScouters = () => {
-    try {
-      const raw = JSON.stringify(scouters, null, 2);
-      navigator.clipboard?.writeText(raw);
-      // also trigger a download
-      const blob = new Blob([raw], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `scouters-${Date.now()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setStatusMessage('Exported scouters to clipboard and downloaded file');
-    } catch (e) {
-      setStatusMessage('Failed to export scouters: ' + (e as any)?.message || String(e));
-    }
-  };
-
-  const forcePushScouters = async () => {
-    try {
-      setStatusMessage('Forcing push to server...');
-      const res = await pushScoutersToServer(scouters);
-      setStatusMessage(String(res || 'Force push completed'));
-    } catch (e: any) {
-      setStatusMessage(e?.message ? String(e.message) : String(e));
-    }
-  };
+  
 
   // auto-refresh when this view loads
   React.useEffect(() => {
@@ -93,17 +64,12 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
     (async () => {
       try {
         await performFullRefresh({ reload: false });
-        // fetch server scouters to update local view (SyncControl already does this but we want immediate refresh)
-        const server = await fetchServerScouters();
-        if (!mounted) return;
-        if (Array.isArray(server) && server.length > 0) {
-          // user-facing scouters are stored via useLocalStorage hook; update only if server returns rows
-          setScouters(() => {
-            // map server rows to local shape and merge
-            const mapped = server.map((s: any) => ({ id: s.id, name: s.name, alliance: s.alliance, position: s.position, isRemote: s.is_remote ?? s.isRemote ?? false, updatedAt: s.updated_at ? Date.parse(s.updated_at) : Date.now(), deletedAt: s.deleted_at ? Date.parse(s.deleted_at) : null }));
-            // simple replace to prefer server authoritative scouter list
-            return mapped as any;
-          });
+        // prefer local saved scouters (performFullRefresh will update local storage); read from DataService
+        try {
+          const local = DataService.getScouters() || [];
+          if (mounted && Array.isArray(local) && local.length > 0) setScouters(local as any);
+        } catch (e) {
+          // ignore
         }
       } catch (e) {
         // ignore refresh errors
@@ -113,20 +79,12 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const showClientInfo = () => {
-    try {
-      const info = getSupabaseInfo();
-      setStatusMessage(`Supabase: url=${info.url ? 'present' : 'missing'}, hasKey=${info.hasKey}, clientPresent=${info.clientPresent}`);
-    } catch (e) {
-      setStatusMessage('Failed to read Supabase info: ' + (e as any)?.message || String(e));
-    }
-  };
+  
 
   const openScoutedMatches = (scouterName: string) => {
     try {
-      const selectedEvent = DataService.getSelectedEvent();
       const allMatches = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
-      const totalMatches = selectedEvent ? allMatches.filter((m: any) => !m.event_key || m.event_key === selectedEvent) : allMatches;
+      // use allMatches directly; totalMatches not needed here
 
       const scouting = DataService.getScoutingData() || [];
       const scoutedFor = scouting.filter((s: any) => (s.scouter || '').toLowerCase() === scouterName.toLowerCase());
@@ -201,9 +159,22 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
                 Back to Admin Panel
               </button>
             </div>
-      <div className="flex items-center gap-3">
-        <SyncControl onSync={() => performFullRefresh()} onCheck={() => fetchServerScouters()} />
-      </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={async () => {
+                try {
+                  setStatusMessage('Refreshing...');
+                  await performFullRefresh({ reload: false });
+                  setStatusMessage('Refresh complete');
+                } catch (e: any) {
+                  setStatusMessage(e?.message || String(e));
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md"
+            >
+              Refresh
+            </button>
+          </div>
           </div>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -211,9 +182,20 @@ export function ScouterManagement({ onBack }: ScouterManagementProps) {
               <h1 className="text-2xl font-bold text-gray-900">Scouter Management</h1>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={exportScouters} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-md">Export</button>
-              <button onClick={forcePushScouters} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md">Force Push</button>
-              <button onClick={showClientInfo} className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded-md">Client Info</button>
+              <button
+                onClick={async () => {
+                  try {
+                    setStatusMessage('Refreshing...');
+                    await performFullRefresh({ reload: false });
+                    setStatusMessage('Refresh complete');
+                  } catch (e: any) {
+                    setStatusMessage(e?.message || String(e));
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md"
+              >
+                Refresh
+              </button>
             </div>
           </div>
         </div>
