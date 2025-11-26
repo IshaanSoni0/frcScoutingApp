@@ -511,6 +511,46 @@ export async function performFullRefresh(options?: { reload?: boolean }) {
       console.warn('performFullRefresh: failed to refresh authoritative matches', e);
     }
 
+    // Also fetch authoritative scouting records from the server and replace local scouting data
+    try {
+      try {
+        const serverRows = await fetchServerScouting();
+        if (Array.isArray(serverRows)) {
+          const mapped = serverRows.map((r: any) => ({
+            id: r.id,
+            matchKey: r.match_key,
+            teamKey: r.team_key,
+            scouter: r.scouter_name,
+            alliance: r.alliance,
+            position: r.position,
+            auto: {
+              ...(r.payload?.auto || { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false }),
+              net: typeof r.payload?.auto?.net === 'number' ? r.payload.auto.net : (r.payload?.auto?.net ? 1 : 0),
+            },
+            teleop: {
+              ...(r.payload?.teleop || { l1: 0, l2: 0, l3: 0, l4: 0 }),
+              net: typeof r.payload?.teleop?.net === 'number' ? r.payload.teleop.net : (r.payload?.teleop?.net ? 1 : 0),
+              prosser: typeof r.payload?.teleop?.prosser === 'number' ? r.payload.teleop.prosser : (r.payload?.teleop?.prosser ? 1 : 0),
+            },
+            endgame: r.payload?.endgame || { climb: 'none' },
+            defense: r.payload?.defense || 'none',
+            timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
+            updatedAt: r.updated_at ? Date.parse(r.updated_at) : Date.now(),
+          }));
+          // Replace local scouting data with authoritative server rows
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          DataService.replaceScoutingData(mapped as any[]);
+        }
+      } catch (e) {
+        // ignore per-call errors
+        // eslint-disable-next-line no-console
+        console.warn('performFullRefresh: failed to fetch server scouting', e);
+      }
+    } catch (e) {
+      // ignore overall
+    }
+
     // broadcast update to any listeners (migrateLocalToServer also calls notify, but be explicit)
     try {
       notifyServerScoutingUpdated();
