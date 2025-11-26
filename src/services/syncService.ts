@@ -145,9 +145,20 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
 // stray extra brace above removed
 
 // migration: push pending records then pull authoritative scouters & matches
-export async function migrateLocalToServer() {
+let _syncLock = 0;
+
+function acquireSyncLock(): boolean {
+  if (_syncLock > 0) return false;
+  _syncLock += 1;
+  return true;
+}
+
+function releaseSyncLock(): void {
+  _syncLock = Math.max(0, _syncLock - 1);
+}
+
+async function _migrateLocalToServerBody() {
   console.time('sync:migrateLocalToServer');
-  try {
   const client = getSupabaseClient();
   if (!client) {
     throw new Error('Supabase client not configured; cannot migrate local data.');
@@ -473,9 +484,21 @@ export async function migrateLocalToServer() {
   } catch (e) {
     // ignore
   }
+  try { console.timeEnd('sync:migrateLocalToServer'); } catch (e) {}
   return summary;
+}
+
+export async function migrateLocalToServer() {
+  if (!acquireSyncLock()) {
+    // already running elsewhere
+    // eslint-disable-next-line no-console
+    console.debug('SyncService: migrateLocalToServer skipped because another sync is running');
+    return 'skipped';
+  }
+  try {
+    return await _migrateLocalToServerBody();
   } finally {
-    try { console.timeEnd('sync:migrateLocalToServer'); } catch (e) {}
+    releaseSyncLock();
   }
 }
 
@@ -505,12 +528,23 @@ export async function performFullRefresh(options?: { reload?: boolean }) {
     }
 
     // 2) perform migration (push pending -> pull server)
+    let _acquired = false;
     try {
-      await migrateLocalToServer();
+      _acquired = acquireSyncLock();
+      if (!_acquired) {
+        // another sync is running; skip this migration to avoid overlap
+        // eslint-disable-next-line no-console
+        console.debug('performFullRefresh: skipping migration because another sync is running');
+      } else {
+        // call internal migration body directly since we already hold the lock
+        await _migrateLocalToServerBody();
+      }
     } catch (e) {
       // bubble up or continue — we'll still attempt activation/clear
       // eslint-disable-next-line no-console
       console.warn('performFullRefresh: migrateLocalToServer failed', e);
+    } finally {
+      if (_acquired) releaseSyncLock();
     }
 
     // After migration, fetch authoritative matches from server and persist them
