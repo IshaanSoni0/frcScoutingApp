@@ -185,14 +185,31 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
           {/* Autonomous Period */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Autonomous Period</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <ScoreButton
-                label="Fuel"
-                value={formData.auto.fuel}
-                onIncrement={() => handleScoreChange('auto', 'fuel', 1)}
-                onDecrement={() => handleScoreChange('auto', 'fuel', -1)}
-                size="lg"
-              />
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Fuel Scored</h4>
+              <div className="flex w-full items-center gap-0">
+                <button
+                  type="button"
+                  onClick={() => handleScoreChange('auto', 'fuel', -1)}
+                  className="flex-1 bg-red-600 text-white py-6 rounded-l-lg text-2xl font-bold hover:bg-red-700"
+                  aria-label="Decrease fuel"
+                >
+                  −
+                </button>
+
+                <div className="w-20 flex items-center justify-center text-2xl font-bold border-t border-b border-gray-200">
+                  {formData.auto.fuel}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleScoreChange('auto', 'fuel', 1)}
+                  className="flex-1 bg-green-600 text-white py-6 rounded-r-lg text-2xl font-bold hover:bg-green-700"
+                  aria-label="Increase fuel"
+                >
+                  +
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
