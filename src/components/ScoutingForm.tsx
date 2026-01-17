@@ -109,33 +109,40 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     }
   };
 
-  const ScoreButton = ({ label, value, onIncrement, onDecrement }: {
+  const ScoreButton = ({ label, value, onIncrement, onDecrement, size = 'md' }: {
     label: string;
     value: number;
     onIncrement: () => void;
     onDecrement: () => void;
-  }) => (
-    <div className="bg-gray-50 rounded-lg p-4 text-center">
-      <h4 className="text-sm font-medium text-gray-700 mb-2">{label}</h4>
-      <div className="flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={onDecrement}
-          className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center font-bold hover:bg-red-600 transition-colors"
-        >
-          −
-        </button>
-        <span className="text-2xl font-bold text-gray-900 min-w-[2ch]">{value}</span>
-        <button
-          type="button"
-          onClick={onIncrement}
-          className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold hover:bg-green-600 transition-colors"
-        >
-          +
-        </button>
+    size?: 'sm' | 'md' | 'lg';
+  }) => {
+    const outerClass = size === 'lg' ? 'bg-gray-50 rounded-lg p-8 text-center' : 'bg-gray-50 rounded-lg p-4 text-center';
+    const btnSize = size === 'lg' ? 'w-12 h-12 text-3xl' : 'w-8 h-8';
+    const valueClass = size === 'lg' ? 'text-4xl font-bold text-gray-900 min-w-[3ch]' : 'text-2xl font-bold text-gray-900 min-w-[2ch]';
+
+    return (
+      <div className={outerClass}>
+        <h4 className="text-sm font-medium text-gray-700 mb-2">{label}</h4>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={onDecrement}
+            className={`${btnSize} bg-red-500 text-white rounded-full flex items-center justify-center font-bold hover:bg-red-600 transition-colors`}
+          >
+            −
+          </button>
+          <span className={valueClass}>{value}</span>
+          <button
+            type="button"
+            onClick={onIncrement}
+            className={`${btnSize} bg-green-500 text-white rounded-full flex items-center justify-center font-bold hover:bg-green-600 transition-colors`}
+          >
+            +
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -184,6 +191,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 value={formData.auto.fuel}
                 onIncrement={() => handleScoreChange('auto', 'fuel', 1)}
                 onDecrement={() => handleScoreChange('auto', 'fuel', -1)}
+                size="lg"
               />
             </div>
 
