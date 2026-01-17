@@ -14,9 +14,15 @@ interface ScoutingFormProps {
 
 export function ScoutingForm({ match, user, onBack, onSubmit, existing }: ScoutingFormProps) {
   const [formData, setFormData] = useState(() => ({
-    auto: { l1: 0, l2: 0, l3: 0, l4: 0, hasAuto: false, net: 0, prosser: 0 },
-  teleop: { l1: 0, l2: 0, l3: 0, l4: 0, net: 0, prosser: 0 },
-  endgame: { climb: 'none' as 'none' | 'low' | 'high', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: 'none' as 'none' | 'partway' | 'start' },
+    auto: { fuel: 0, neutralZone: false, depot: false, outpost: false, climbed: false },
+    teleop: {
+      transition: { notes: '' },
+      firstOffence: { notes: '' },
+      firstDefense: { notes: '' },
+      secondOffence: { notes: '' },
+      secondDefense: { notes: '' },
+    },
+    endgame: { climb: 'none' as 'none' | 'low' | 'high', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: 'none' as 'none' | 'partway' | 'start' },
     defense: 'none' as 'none' | 'bad' | 'ok' | 'great',
   }));
 
@@ -24,8 +30,14 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
   React.useEffect(() => {
     if (existing) {
       setFormData({
-        auto: { l1: existing.auto?.l1 || 0, l2: existing.auto?.l2 || 0, l3: existing.auto?.l3 || 0, l4: existing.auto?.l4 || 0, hasAuto: existing.auto?.hasAuto || false, net: existing.auto?.net || 0, prosser: existing.auto?.prosser || 0 },
-        teleop: { l1: existing.teleop?.l1 || 0, l2: existing.teleop?.l2 || 0, l3: existing.teleop?.l3 || 0, l4: existing.teleop?.l4 || 0, net: existing.teleop?.net || 0, prosser: existing.teleop?.prosser || 0 },
+        auto: { fuel: existing.auto?.fuel || 0, neutralZone: !!existing.auto?.neutralZone, depot: !!existing.auto?.depot, outpost: !!existing.auto?.outpost, climbed: !!existing.auto?.climbed },
+        teleop: {
+          transition: { notes: existing.teleop?.transition?.notes || '' },
+          firstOffence: { notes: existing.teleop?.firstOffence?.notes || '' },
+          firstDefense: { notes: existing.teleop?.firstDefense?.notes || '' },
+          secondOffence: { notes: existing.teleop?.secondOffence?.notes || '' },
+          secondDefense: { notes: existing.teleop?.secondDefense?.notes || '' },
+        },
         endgame: { climb: existing.endgame?.climb || 'none', driverSkill: existing.endgame?.driverSkill || 'medium', robotSpeed: existing.endgame?.robotSpeed || 'medium', died: existing.endgame?.died || 'none' },
         defense: existing.defense || 'none',
       });
@@ -42,14 +54,12 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     return alliance.team_keys[user.position - 1] || '';
   };
 
-  const handleScoreChange = (period: 'auto' | 'teleop', level: 'l1' | 'l2' | 'l3' | 'l4', increment: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [period]: {
-        ...prev[period],
-        [level]: Math.max(0, prev[period][level] + increment),
-      },
-    }));
+  const handleScoreChange = (period: 'auto' | 'teleop', level: string, increment: number) => {
+    if (period === 'auto' && level === 'fuel') {
+      setFormData(prev => ({ ...prev, auto: { ...prev.auto, fuel: Math.max(0, (prev.auto as any).fuel + increment) } }));
+      return;
+    }
+    // no generic teleop numeric counters in new layout
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,96 +180,115 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
             <h2 className="text-xl font-bold text-gray-900 mb-4">Autonomous Period</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <ScoreButton
-                label="L1"
-                value={formData.auto.l1}
-                onIncrement={() => handleScoreChange('auto', 'l1', 1)}
-                onDecrement={() => handleScoreChange('auto', 'l1', -1)}
-              />
-              <ScoreButton
-                label="L2"
-                value={formData.auto.l2}
-                onIncrement={() => handleScoreChange('auto', 'l2', 1)}
-                onDecrement={() => handleScoreChange('auto', 'l2', -1)}
-              />
-              <ScoreButton
-                label="L3"
-                value={formData.auto.l3}
-                onIncrement={() => handleScoreChange('auto', 'l3', 1)}
-                onDecrement={() => handleScoreChange('auto', 'l3', -1)}
-              />
-              <ScoreButton
-                label="L4"
-                value={formData.auto.l4}
-                onIncrement={() => handleScoreChange('auto', 'l4', 1)}
-                onDecrement={() => handleScoreChange('auto', 'l4', -1)}
+                label="Fuel"
+                value={formData.auto.fuel}
+                onIncrement={() => handleScoreChange('auto', 'fuel', 1)}
+                onDecrement={() => handleScoreChange('auto', 'fuel', -1)}
               />
             </div>
-            {/* Auto Net/Prosser counters */}
-            <div className="flex justify-center gap-4 mt-4">
-              <ScoreButton
-                label="Net"
-                value={formData.auto.net || 0}
-                onIncrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: (prev.auto.net || 0) + 1 } }))}
-                onDecrement={() => setFormData(prev => ({ ...prev, auto: { ...prev.auto, net: Math.max(0, (prev.auto.net || 0) - 1) } }))}
-              />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.auto.neutralZone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, neutralZone: e.target.checked } }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Collected from Neutral Zone</span>
+              </label>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.auto.depot}
+                  onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, depot: e.target.checked } }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Collected from Depot</span>
+              </label>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.auto.outpost}
+                  onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, outpost: e.target.checked } }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Collected from Outpost</span>
+              </label>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.auto.climbed}
+                  onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, climbed: e.target.checked } }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Climbed in Auto</span>
+              </label>
             </div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={formData.auto.hasAuto}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  auto: { ...prev.auto, hasAuto: e.target.checked }
-                }))}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-gray-700">Robot moved in auto</span>
-            </label>
           </div>
 
           {/* Teleop Period */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Teleop Period</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <ScoreButton
-                label="L1"
-                value={formData.teleop.l1}
-                onIncrement={() => handleScoreChange('teleop', 'l1', 1)}
-                onDecrement={() => handleScoreChange('teleop', 'l1', -1)}
-              />
-              <ScoreButton
-                label="L2"
-                value={formData.teleop.l2}
-                onIncrement={() => handleScoreChange('teleop', 'l2', 1)}
-                onDecrement={() => handleScoreChange('teleop', 'l2', -1)}
-              />
-              <ScoreButton
-                label="L3"
-                value={formData.teleop.l3}
-                onIncrement={() => handleScoreChange('teleop', 'l3', 1)}
-                onDecrement={() => handleScoreChange('teleop', 'l3', -1)}
-              />
-              <ScoreButton
-                label="L4"
-                value={formData.teleop.l4}
-                onIncrement={() => handleScoreChange('teleop', 'l4', 1)}
-                onDecrement={() => handleScoreChange('teleop', 'l4', -1)}
-              />
-            </div>
-            <div className="flex justify-center gap-4 mt-4">
-              <ScoreButton
-                label="Net"
-                value={formData.teleop.net || 0}
-                onIncrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: (prev.teleop.net || 0) + 1 } }))}
-                onDecrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, net: Math.max(0, (prev.teleop.net || 0) - 1) } }))}
-              />
-              <ScoreButton
-                label="Prosser"
-                value={formData.teleop.prosser || 0}
-                onIncrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: (prev.teleop.prosser || 0) + 1 } }))}
-                onDecrement={() => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, prosser: Math.max(0, (prev.teleop.prosser || 0) - 1) } }))}
-              />
-            </div>
+              <div className="space-y-4">
+                {/* Transition Shift */}
+                <div className="border rounded p-3">
+                  <h3 className="font-medium text-gray-800 mb-2">Transition Shift</h3>
+                  <textarea
+                    value={formData.teleop.transition.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, transition: { notes: e.target.value } } }))}
+                    placeholder="Notes for transition shift"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                  />
+                </div>
+
+                {/* First Offence Shift */}
+                <div className="border rounded p-3">
+                  <h3 className="font-medium text-gray-800 mb-2">First Offence Shift</h3>
+                  <textarea
+                    value={formData.teleop.firstOffence.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstOffence: { notes: e.target.value } } }))}
+                    placeholder="Notes for first offence shift"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                  />
+                </div>
+
+                {/* First Defense Shift */}
+                <div className="border rounded p-3">
+                  <h3 className="font-medium text-gray-800 mb-2">First Defense Shift</h3>
+                  <textarea
+                    value={formData.teleop.firstDefense.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { notes: e.target.value } } }))}
+                    placeholder="Notes for first defense shift"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                  />
+                </div>
+
+                {/* Second Offence Shift */}
+                <div className="border rounded p-3">
+                  <h3 className="font-medium text-gray-800 mb-2">Second Offence Shift</h3>
+                  <textarea
+                    value={formData.teleop.secondOffence.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondOffence: { notes: e.target.value } } }))}
+                    placeholder="Notes for second offence shift"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                  />
+                </div>
+
+                {/* Second Defense Shift */}
+                <div className="border rounded p-3">
+                  <h3 className="font-medium text-gray-800 mb-2">Second Defense Shift</h3>
+                  <textarea
+                    value={formData.teleop.secondDefense.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { notes: e.target.value } } }))}
+                    placeholder="Notes for second defense shift"
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                  />
+                </div>
+              </div>
             
           </div>
 

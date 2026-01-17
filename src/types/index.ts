@@ -27,23 +27,18 @@ export interface ScoutingData {
   alliance: 'red' | 'blue';
   position: number;
   auto: {
-    l1: number;
-    l2: number;
-    l3: number;
-    l4: number;
-    hasAuto: boolean;
-    // numeric counts for net/prosser during auto
-    net?: number;
-    prosser?: number;
+    fuel?: number;
+    neutralZone?: boolean;
+    depot?: boolean;
+    outpost?: boolean;
+    climbed?: boolean;
   };
   teleop: {
-    l1: number;
-    l2: number;
-    l3: number;
-    l4: number;
-    // numeric counts for net/prosser during teleop
-    net?: number;
-    prosser?: number;
+    transition?: { notes?: string };
+    firstOffence?: { notes?: string };
+    firstDefense?: { notes?: string };
+    secondOffence?: { notes?: string };
+    secondDefense?: { notes?: string };
   };
   endgame: {
     climb: 'none' | 'low' | 'high';
