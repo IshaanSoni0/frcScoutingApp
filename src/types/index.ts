@@ -27,10 +27,13 @@ export interface ScoutingData {
   alliance: 'red' | 'blue';
   position: number;
   auto: {
+    // number of fuel scored in the hub during autonomous
     fuel?: number;
+    // where fuel was collected from
     neutralZone?: boolean;
     depot?: boolean;
     outpost?: boolean;
+    // climbed in auto
     climbed?: boolean;
   };
   teleop: {
@@ -48,7 +51,7 @@ export interface ScoutingData {
       launchedToSide?: boolean;
     };
     firstDefense?: {
-      defenseRating?: 'na' | 'bad' | 'average' | 'good';
+      defense?: 'na' | 'bad' | 'average' | 'good';
       neutralZone?: boolean;
       depot?: boolean;
       outpost?: boolean;
@@ -62,7 +65,7 @@ export interface ScoutingData {
       launchedToSide?: boolean;
     };
     secondDefense?: {
-      defenseRating?: 'na' | 'bad' | 'average' | 'good';
+      defense?: 'na' | 'bad' | 'average' | 'good';
       neutralZone?: boolean;
       depot?: boolean;
       outpost?: boolean;
@@ -70,16 +73,24 @@ export interface ScoutingData {
     };
   };
   endgame: {
-    trenchAbility?: 'yes' | 'no' | 'na';
-    climbLevel?: 'none' | 'level1' | 'level2' | 'level3';
-    shootingAccuracy?: 'na' | 'very inaccurate' | 'inaccurate' | 'moderately accurate' | 'accurate' | 'very accurate';
-    shootingSpeed?: 'na' | 'very slow' | 'slow' | 'average' | 'moderately fast' | 'very fast';
-    intakeSpeed?: 'na' | 'very slow' | 'slow' | 'average' | 'moderately fast' | 'very fast';
-    drivingSpeed?: 'na' | 'very slow' | 'slow' | 'average' | 'moderately fast' | 'very fast';
+    climb: 'none' | 'level1' | 'level2' | 'level3';
+    // trench capability
+    trench?: 'yes' | 'no' | 'na';
+    // shooting accuracy
+    shootingAccuracy?: 'na' | 'very_inaccurate' | 'inaccurate' | 'moderately_accurate' | 'accurate' | 'very_accurate';
+    // shooting speed
+    shootingSpeed?: 'na' | 'very_slow' | 'slow' | 'average' | 'moderately_fast' | 'very_fast';
+    // intake speed
+    intakeSpeed?: 'na' | 'very_slow' | 'slow' | 'average' | 'moderately_fast' | 'very_fast';
+    // driving speed
+    drivingSpeed?: 'na' | 'very_slow' | 'slow' | 'average' | 'moderately_fast' | 'very_fast';
+    // driving skill
     drivingSkill?: 'na' | 'poor' | 'average' | 'good' | 'excellent';
-    robotDisability?: 'none' | 'small part of match' | 'about half of match' | 'nearly the whole match';
-    robotRange?: 'na' | 'short' | 'average' | 'long' | 'very long';
-    notes?: string;
+    // robot disability
+    robotDisability?: 'none' | 'small_part' | 'about_half' | 'nearly_whole';
+    // robot range
+    robotRange?: 'na' | 'short' | 'average' | 'long' | 'very_long';
+  died?: 'none' | 'partway' | 'start';
   };
   defense: 'none' | 'bad' | 'ok' | 'great';
   timestamp: number;
