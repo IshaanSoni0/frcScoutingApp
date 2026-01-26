@@ -34,17 +34,52 @@ export interface ScoutingData {
     climbed?: boolean;
   };
   teleop: {
-    transition?: { notes?: string };
-    firstOffence?: { notes?: string };
-    firstDefense?: { notes?: string };
-    secondOffence?: { notes?: string };
-    secondDefense?: { notes?: string };
+    transition?: {
+      fuel?: number;
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+    };
+    firstOffence?: {
+      fuel?: number;
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+      launchedToSide?: boolean;
+    };
+    firstDefense?: {
+      defenseRating?: 'na' | 'bad' | 'average' | 'good';
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+      launchedToSide?: boolean;
+    };
+    secondOffence?: {
+      fuel?: number;
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+      launchedToSide?: boolean;
+    };
+    secondDefense?: {
+      defenseRating?: 'na' | 'bad' | 'average' | 'good';
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+      launchedToSide?: boolean;
+    };
   };
   endgame: {
-    climb: 'none' | 'low' | 'high';
-    driverSkill?: 'low' | 'medium' | 'high';
-    robotSpeed?: 'slow' | 'medium' | 'fast';
-  died?: 'none' | 'partway' | 'start';
+    trenchAbility?: 'yes' | 'no' | 'na';
+    climbLevel?: 'none' | 'level1' | 'level2' | 'level3';
+    shootingAccuracy?: 'na' | 'very inaccurate' | 'inaccurate' | 'moderately accurate' | 'accurate' | 'very accurate';
+    shootingSpeed?: 'na' | 'very slow' | 'slow' | 'average' | 'moderately fast' | 'very fast';
+    intakeSpeed?: 'na' | 'very slow' | 'slow' | 'average' | 'moderately fast' | 'very fast';
+    drivingSpeed?: 'na' | 'very slow' | 'slow' | 'average' | 'moderately fast' | 'very fast';
+    drivingSkill?: 'na' | 'poor' | 'average' | 'good' | 'excellent';
+    robotDisability?: 'none' | 'small part of match' | 'about half of match' | 'nearly the whole match';
+    robotRange?: 'na' | 'short' | 'average' | 'long' | 'very long';
+    notes?: string;
   };
   defense: 'none' | 'bad' | 'ok' | 'great';
   timestamp: number;

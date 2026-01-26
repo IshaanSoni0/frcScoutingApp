@@ -16,11 +16,11 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
   const [formData, setFormData] = useState(() => ({
     auto: { fuel: 0, neutralZone: false, depot: false, outpost: false, climbed: false },
     teleop: {
-      transition: { notes: '' },
-      firstOffence: { notes: '' },
-      firstDefense: { notes: '' },
-      secondOffence: { notes: '' },
-      secondDefense: { notes: '' },
+      transition: { fuel: 0, neutralZone: false, depot: false, outpost: false },
+      firstOffence: { fuel: 0, neutralZone: false, depot: false, outpost: false, launchedToSide: false },
+      firstDefense: { defenseRating: 'na', neutralZone: false, depot: false, outpost: false, launchedToSide: false },
+      secondOffence: { fuel: 0, neutralZone: false, depot: false, outpost: false, launchedToSide: false },
+      secondDefense: { defenseRating: 'na', neutralZone: false, depot: false, outpost: false, launchedToSide: false },
     },
     endgame: { climb: 'none' as 'none' | 'low' | 'high', driverSkill: 'medium' as 'low' | 'medium' | 'high', robotSpeed: 'medium' as 'slow' | 'medium' | 'fast', died: 'none' as 'none' | 'partway' | 'start' },
     defense: 'none' as 'none' | 'bad' | 'ok' | 'great',
@@ -32,13 +32,24 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
       setFormData({
         auto: { fuel: existing.auto?.fuel || 0, neutralZone: !!existing.auto?.neutralZone, depot: !!existing.auto?.depot, outpost: !!existing.auto?.outpost, climbed: !!existing.auto?.climbed },
         teleop: {
-          transition: { notes: existing.teleop?.transition?.notes || '' },
-          firstOffence: { notes: existing.teleop?.firstOffence?.notes || '' },
-          firstDefense: { notes: existing.teleop?.firstDefense?.notes || '' },
-          secondOffence: { notes: existing.teleop?.secondOffence?.notes || '' },
-          secondDefense: { notes: existing.teleop?.secondDefense?.notes || '' },
+          transition: { fuel: existing.teleop?.transition?.fuel || 0, neutralZone: !!existing.teleop?.transition?.neutralZone, depot: !!existing.teleop?.transition?.depot, outpost: !!existing.teleop?.transition?.outpost },
+          firstOffence: { fuel: existing.teleop?.firstOffence?.fuel || 0, neutralZone: !!existing.teleop?.firstOffence?.neutralZone, depot: !!existing.teleop?.firstOffence?.depot, outpost: !!existing.teleop?.firstOffence?.outpost, launchedToSide: !!existing.teleop?.firstOffence?.launchedToSide },
+          firstDefense: { defenseRating: existing.teleop?.firstDefense?.defenseRating || 'na', neutralZone: !!existing.teleop?.firstDefense?.neutralZone, depot: !!existing.teleop?.firstDefense?.depot, outpost: !!existing.teleop?.firstDefense?.outpost, launchedToSide: !!existing.teleop?.firstDefense?.launchedToSide },
+          secondOffence: { fuel: existing.teleop?.secondOffence?.fuel || 0, neutralZone: !!existing.teleop?.secondOffence?.neutralZone, depot: !!existing.teleop?.secondOffence?.depot, outpost: !!existing.teleop?.secondOffence?.outpost, launchedToSide: !!existing.teleop?.secondOffence?.launchedToSide },
+          secondDefense: { defenseRating: existing.teleop?.secondDefense?.defenseRating || 'na', neutralZone: !!existing.teleop?.secondDefense?.neutralZone, depot: !!existing.teleop?.secondDefense?.depot, outpost: !!existing.teleop?.secondDefense?.outpost, launchedToSide: !!existing.teleop?.secondDefense?.launchedToSide },
         },
-        endgame: { climb: existing.endgame?.climb || 'none', driverSkill: existing.endgame?.driverSkill || 'medium', robotSpeed: existing.endgame?.robotSpeed || 'medium', died: existing.endgame?.died || 'none' },
+        endgame: {
+          trenchAbility: existing.endgame?.trenchAbility || 'na',
+          climbLevel: existing.endgame?.climbLevel || 'none',
+          shootingAccuracy: existing.endgame?.shootingAccuracy || 'na',
+          shootingSpeed: existing.endgame?.shootingSpeed || 'na',
+          intakeSpeed: existing.endgame?.intakeSpeed || 'na',
+          drivingSpeed: existing.endgame?.drivingSpeed || 'na',
+          drivingSkill: existing.endgame?.drivingSkill || 'na',
+          robotDisability: existing.endgame?.robotDisability || 'none',
+          robotRange: existing.endgame?.robotRange || 'na',
+          notes: existing.endgame?.notes || '',
+        },
         defense: existing.defense || 'none',
       });
     }
@@ -59,7 +70,18 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
       setFormData(prev => ({ ...prev, auto: { ...prev.auto, fuel: Math.max(0, (prev.auto as any).fuel + increment) } }));
       return;
     }
-    // no generic teleop numeric counters in new layout
+    // teleop: level format "shiftName.fuel" (e.g., "firstOffence.fuel")
+    if (period === 'teleop' && level.endsWith('.fuel')) {
+      const [shift] = level.split('.');
+      setFormData(prev => ({
+        ...prev,
+        teleop: {
+          ...prev.teleop,
+          [shift]: { ...((prev.teleop as any)[shift] || {}), fuel: Math.max(0, (((prev.teleop as any)[shift]?.fuel) || 0) + increment) }
+        }
+      }));
+      return;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -262,159 +284,222 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 {/* Transition Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">Transition Shift</h3>
-                  <textarea
-                    value={formData.teleop.transition.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, transition: { notes: e.target.value } } }))}
-                    placeholder="Notes for transition shift"
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                  />
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-sm text-gray-700 mb-1">Collected From</label>
+                      <div className="flex gap-2">
+                        <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.transition.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, transition: { ...prev.teleop.transition, neutralZone: e.target.checked } } }))} /> Neutral</label>
+                        <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.transition.depot} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, transition: { ...prev.teleop.transition, depot: e.target.checked } } }))} /> Depot</label>
+                        <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.transition.outpost} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, transition: { ...prev.teleop.transition, outpost: e.target.checked } } }))} /> Outpost</label>
+                      </div>
+                    </div>
+                    <div className="w-40">
+                      <ScoreButton label="Fuel" value={formData.teleop.transition.fuel || 0} onIncrement={() => handleScoreChange('teleop', 'transition.fuel', 1)} onDecrement={() => handleScoreChange('teleop', 'transition.fuel', -1)} />
+                    </div>
+                  </div>
                 </div>
 
                 {/* First Offence Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">First Offence Shift</h3>
-                  <textarea
-                    value={formData.teleop.firstOffence.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstOffence: { notes: e.target.value } } }))}
-                    placeholder="Notes for first offence shift"
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                  />
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-sm text-gray-700 mb-1">Collected From</label>
+                      <div className="flex gap-2">
+                        <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.firstOffence.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstOffence: { ...prev.teleop.firstOffence, neutralZone: e.target.checked } } }))} /> Neutral</label>
+                        <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.firstOffence.depot} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstOffence: { ...prev.teleop.firstOffence, depot: e.target.checked } } }))} /> Depot</label>
+                        <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.firstOffence.outpost} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstOffence: { ...prev.teleop.firstOffence, outpost: e.target.checked } } }))} /> Outpost</label>
+                      </div>
+                      <label className="flex items-center gap-2 mt-2"><input type="checkbox" checked={formData.teleop.firstOffence.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstOffence: { ...prev.teleop.firstOffence, launchedToSide: e.target.checked } } }))} /> Launched to their side</label>
+                    </div>
+                    <div className="w-40">
+                      <ScoreButton label="Fuel" value={formData.teleop.firstOffence.fuel || 0} onIncrement={() => handleScoreChange('teleop', 'firstOffence.fuel', 1)} onDecrement={() => handleScoreChange('teleop', 'firstOffence.fuel', -1)} />
+                    </div>
+                  </div>
                 </div>
 
                 {/* First Defense Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">First Defense Shift</h3>
-                  <textarea
-                    value={formData.teleop.firstDefense.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { notes: e.target.value } } }))}
-                    placeholder="Notes for first defense shift"
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                  />
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-sm text-gray-700 mb-1">Defense Rating</label>
+                      <select value={formData.teleop.firstDefense.defenseRating} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, defenseRating: e.target.value as any } } }))} className="border rounded p-2">
+                        <option value="na">N/A</option>
+                        <option value="bad">Bad</option>
+                        <option value="average">Average</option>
+                        <option value="good">Good</option>
+                      </select>
+
+                      <div className="mt-2">
+                        <label className="block text-sm text-gray-700 mb-1">Collected From</label>
+                        <div className="flex gap-2">
+                          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.firstDefense.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, neutralZone: e.target.checked } } }))} /> Neutral</label>
+                          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.firstDefense.depot} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, depot: e.target.checked } } }))} /> Depot</label>
+                          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.firstDefense.outpost} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, outpost: e.target.checked } } }))} /> Outpost</label>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 mt-2"><input type="checkbox" checked={formData.teleop.firstDefense.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, launchedToSide: e.target.checked } } }))} /> Launched to their side</label>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Second Offence Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">Second Offence Shift</h3>
-                  <textarea
-                    value={formData.teleop.secondOffence.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondOffence: { notes: e.target.value } } }))}
-                    placeholder="Notes for second offence shift"
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                  />
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-sm text-gray-700 mb-1">Collected From</label>
+                      <div className="flex gap-2">
+                        <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.secondOffence.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondOffence: { ...prev.teleop.secondOffence, neutralZone: e.target.checked } } }))} /> Neutral</label>
+                        <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.secondOffence.depot} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondOffence: { ...prev.teleop.secondOffence, depot: e.target.checked } } }))} /> Depot</label>
+                        <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.secondOffence.outpost} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondOffence: { ...prev.teleop.secondOffence, outpost: e.target.checked } } }))} /> Outpost</label>
+                      </div>
+                      <label className="flex items-center gap-2 mt-2"><input type="checkbox" checked={formData.teleop.secondOffence.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondOffence: { ...prev.teleop.secondOffence, launchedToSide: e.target.checked } } }))} /> Launched to their side</label>
+                    </div>
+                    <div className="w-40">
+                      <ScoreButton label="Fuel" value={formData.teleop.secondOffence.fuel || 0} onIncrement={() => handleScoreChange('teleop', 'secondOffence.fuel', 1)} onDecrement={() => handleScoreChange('teleop', 'secondOffence.fuel', -1)} />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Second Defense Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">Second Defense Shift</h3>
-                  <textarea
-                    value={formData.teleop.secondDefense.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { notes: e.target.value } } }))}
-                    placeholder="Notes for second defense shift"
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
-                  />
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-sm text-gray-700 mb-1">Defense Rating</label>
+                      <select value={formData.teleop.secondDefense.defenseRating} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, defenseRating: e.target.value as any } } }))} className="border rounded p-2">
+                        <option value="na">N/A</option>
+                        <option value="bad">Bad</option>
+                        <option value="average">Average</option>
+                        <option value="good">Good</option>
+                      </select>
+
+                      <div className="mt-2">
+                        <label className="block text-sm text-gray-700 mb-1">Collected From</label>
+                        <div className="flex gap-2">
+                          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.secondDefense.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, neutralZone: e.target.checked } } }))} /> Neutral</label>
+                          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.secondDefense.depot} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, depot: e.target.checked } } }))} /> Depot</label>
+                          <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.secondDefense.outpost} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, outpost: e.target.checked } } }))} /> Outpost</label>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 mt-2"><input type="checkbox" checked={formData.teleop.secondDefense.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, launchedToSide: e.target.checked } } }))} /> Launched to their side</label>
+                    </div>
+                  </div>
                 </div>
               </div>
             
           </div>
 
-          {/* Endgame */}
+          {/* Endgame & General Notes */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Endgame</h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Climb</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'none', label: 'No Climb' },
-                  { value: 'low', label: 'Low Climb' },
-                  { value: 'high', label: 'High Climb' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setFormData(prev => ({
-                      ...prev,
-                      endgame: { ...prev.endgame, climb: option.value as 'none' | 'low' | 'high' }
-                    }))}
-                    className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
-                      formData.endgame.climb === option.value
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Endgame & General Notes</h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Could robot go under the trench?</label>
+                <select value={(formData.endgame as any).trenchAbility || 'na'} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, trenchAbility: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                  <option value="na">N/A</option>
+                </select>
               </div>
 
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Driver Skill</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { value: 'low', label: 'Low' },
-                    { value: 'medium', label: 'Medium' },
-                    { value: 'high', label: 'High' }
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, driverSkill: option.value as any } }))}
-                      className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
-                        formData.endgame.driverSkill === option.value
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Climb Level</label>
+                <select value={(formData.endgame as any).climbLevel || 'none'} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, climbLevel: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="none">None</option>
+                  <option value="level1">Level 1</option>
+                  <option value="level2">Level 2</option>
+                  <option value="level3">Level 3</option>
+                </select>
               </div>
 
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Robot Speed</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { value: 'slow', label: 'Slow' },
-                    { value: 'medium', label: 'Medium' },
-                    { value: 'fast', label: 'Fast' }
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, robotSpeed: option.value as any } }))}
-                      className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
-                        formData.endgame.robotSpeed === option.value
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Shooting Accuracy</label>
+                <select value={(formData.endgame as any).shootingAccuracy || 'na'} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, shootingAccuracy: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="very inaccurate">Very Inaccurate</option>
+                  <option value="inaccurate">Inaccurate</option>
+                  <option value="moderately accurate">Moderately Accurate</option>
+                  <option value="accurate">Accurate</option>
+                  <option value="very accurate">Very Accurate</option>
+                </select>
               </div>
 
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Robot Died</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { value: 'none', label: "Didn't die" },
-                    { value: 'partway', label: 'Died partway' },
-                    { value: 'start', label: 'Died at start' },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, died: option.value as any } }))}
-                      className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
-                          formData.endgame.died === option.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
-                        }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Shooting Speed</label>
+                <select value={(formData.endgame as any).shootingSpeed || 'na'} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, shootingSpeed: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="very slow">Very Slow</option>
+                  <option value="slow">Slow</option>
+                  <option value="average">Average</option>
+                  <option value="moderately fast">Moderately Fast</option>
+                  <option value="very fast">Very Fast</option>
+                </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Intake Speed</label>
+                <select value={(formData.endgame as any).intakeSpeed || 'na'} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, intakeSpeed: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="very slow">Very Slow</option>
+                  <option value="slow">Slow</option>
+                  <option value="average">Average</option>
+                  <option value="moderately fast">Moderately Fast</option>
+                  <option value="very fast">Very Fast</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Driving Speed</label>
+                <select value={(formData.endgame as any).drivingSpeed || 'na'} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, drivingSpeed: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="very slow">Very Slow</option>
+                  <option value="slow">Slow</option>
+                  <option value="average">Average</option>
+                  <option value="moderately fast">Moderately Fast</option>
+                  <option value="very fast">Very Fast</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Driving Skill</label>
+                <select value={(formData.endgame as any).drivingSkill || 'na'} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, drivingSkill: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="poor">Poor</option>
+                  <option value="average">Average</option>
+                  <option value="good">Good</option>
+                  <option value="excellent">Excellent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Robot Disability</label>
+                <select value={(formData.endgame as any).robotDisability || 'none'} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, robotDisability: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="none">None</option>
+                  <option value="small part of match">Small part of match</option>
+                  <option value="about half of match">About half of match</option>
+                  <option value="nearly the whole match">Nearly the whole match</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Robot Range</label>
+                <select value={(formData.endgame as any).robotRange || 'na'} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, robotRange: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="short">Short</option>
+                  <option value="average">Average</option>
+                  <option value="long">Long</option>
+                  <option value="very long">Very Long</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">General Notes</label>
+              <textarea value={(formData.endgame as any).notes || ''} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, notes: e.target.value } }))} className="w-full border rounded p-2 h-28" />
             </div>
           </div>
 
