@@ -281,7 +281,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                   label="Fuel Scored"
                   value={formData.auto.fuel}
                   onChange={(delta) => handleScoreChange('auto', 'fuel', delta)}
-                  size="lg"
+                  size="md"
                 />
               </div>
             </div>
