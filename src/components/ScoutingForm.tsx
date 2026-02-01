@@ -189,9 +189,9 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     size?: 'sm' | 'md' | 'lg';
   }) => {
     const outerClass = size === 'lg' ? 'bg-gray-50 rounded-lg p-8 text-center' : 'bg-gray-50 rounded-lg p-4 text-center';
-    const btnSize = size === 'lg' ? 'w-12 h-12 text-3xl' : 'w-8 h-8';
-    const valueClass = size === 'lg' ? 'text-4xl font-bold text-gray-900 min-w-[3ch]' : 'text-2xl font-bold text-gray-900 min-w-[2ch]';
-    const smallBtn = 'w-8 h-8 text-sm flex items-center justify-center rounded';
+    const btnSize = size === 'lg' ? 'w-14 h-14 text-4xl' : 'w-12 h-12 text-3xl';
+    const valueClass = size === 'lg' ? 'text-4xl font-bold text-gray-900 min-w-[4ch]' : 'text-3xl font-bold text-gray-900 min-w-[3ch]';
+    const smallBtn = 'w-12 h-12 text-base flex items-center justify-center rounded-lg touch-none';
 
     const increments = [1, 5, 10];
 
