@@ -1,5 +1,6 @@
 import { DataService } from './dataService';
 import supabase from './supabaseClient';
+import { uuidv4 } from '../utils/uuid';
 
 function getSupabaseClient() {
   return supabase;
@@ -58,7 +59,6 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
     // Normalize ids: Supabase expects UUIDs for primary keys. If any local record uses a non-UUID id
     // (for example, composed of match/team/timestamp), generate a proper UUID and persist the change
     // so the pending queue and local storage reference the new UUIDs.
-    const { uuidv4 } = await import('../utils/uuid');
     let mutated = false;
     const idMap: Record<string, string> = {};
     const newAll = all.map((r: any) => {
@@ -274,8 +274,6 @@ async function _migrateLocalToServerBody() {
             if (!isUuidLike) {
               // generate a UUID and replace the local id so future devices/tabs see the same id
               // dynamic import to avoid circular dependencies
-              // eslint-disable-next-line @typescript-eslint/no-var-requires
-              const { uuidv4 } = await import('../utils/uuid');
               const newId = uuidv4();
               upsertId = newId;
               // update localMap so merged state includes new id
@@ -738,7 +736,6 @@ export async function pushScoutersToServer(scouters: any[]) {
       let id = s.id;
       const isUuidLike = typeof id === 'string' && id.length === 36 && id.includes('-');
       if (!isUuidLike) {
-        const { uuidv4 } = await import('../utils/uuid');
         id = uuidv4();
       }
       return {
