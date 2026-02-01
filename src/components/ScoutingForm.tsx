@@ -182,36 +182,52 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     }
   };
 
-  const ScoreButton = ({ label, value, onIncrement, onDecrement, size = 'md' }: {
+  const ScoreButton = ({ label, value, onChange, size = 'md' }: {
     label: string;
     value: number;
-    onIncrement: () => void;
-    onDecrement: () => void;
+    onChange: (delta: number) => void;
     size?: 'sm' | 'md' | 'lg';
   }) => {
     const outerClass = size === 'lg' ? 'bg-gray-50 rounded-lg p-8 text-center' : 'bg-gray-50 rounded-lg p-4 text-center';
     const btnSize = size === 'lg' ? 'w-12 h-12 text-3xl' : 'w-8 h-8';
     const valueClass = size === 'lg' ? 'text-4xl font-bold text-gray-900 min-w-[3ch]' : 'text-2xl font-bold text-gray-900 min-w-[2ch]';
+    const smallBtn = 'w-8 h-8 text-sm flex items-center justify-center rounded';
+
+    const increments = [1, 5, 10];
 
     return (
       <div className={outerClass}>
         <h4 className="text-sm font-medium text-gray-700 mb-2">{label}</h4>
         <div className="flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={onDecrement}
-            className={`${btnSize} bg-red-500 text-white rounded-full flex items-center justify-center font-bold hover:bg-red-600 transition-colors`}
-          >
-            −
-          </button>
+          <div className="flex flex-col gap-1">
+            {increments.slice().reverse().map((inc) => (
+              <button
+                key={`dec-${inc}`}
+                type="button"
+                onClick={() => onChange(-inc)}
+                className={`${smallBtn} bg-red-500 text-white hover:bg-red-600 transition-colors`}
+                aria-label={`Decrease by ${inc}`}
+              >
+                −{inc}
+              </button>
+            ))}
+          </div>
+
           <span className={valueClass}>{value}</span>
-          <button
-            type="button"
-            onClick={onIncrement}
-            className={`${btnSize} bg-green-500 text-white rounded-full flex items-center justify-center font-bold hover:bg-green-600 transition-colors`}
-          >
-            +
-          </button>
+
+          <div className="flex flex-col gap-1">
+            {increments.map((inc) => (
+              <button
+                key={`inc-${inc}`}
+                type="button"
+                onClick={() => onChange(inc)}
+                className={`${smallBtn} bg-green-500 text-white hover:bg-green-600 transition-colors`}
+                aria-label={`Increase by ${inc}`}
+              >
+                +{inc}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -261,27 +277,12 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
             <div className="mb-4">
               <h4 className="text-sm font-medium text-gray-700 mb-2">Fuel Scored</h4>
               <div className="flex w-full items-center gap-0">
-                <button
-                  type="button"
-                  onClick={() => handleScoreChange('auto', 'fuel', -1)}
-                  className="flex-1 bg-red-600 text-white py-6 rounded-l-lg text-2xl font-bold hover:bg-red-700"
-                  aria-label="Decrease fuel"
-                >
-                  −
-                </button>
-
-                <div className="w-20 flex items-center justify-center text-2xl font-bold border-t border-b border-gray-200">
-                  {formData.auto.fuel}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleScoreChange('auto', 'fuel', 1)}
-                  className="flex-1 bg-green-600 text-white py-6 rounded-r-lg text-2xl font-bold hover:bg-green-700"
-                  aria-label="Increase fuel"
-                >
-                  +
-                </button>
+                <ScoreButton
+                  label="Fuel Scored"
+                  value={formData.auto.fuel}
+                  onChange={(delta) => handleScoreChange('auto', 'fuel', delta)}
+                  size="lg"
+                />
               </div>
             </div>
 
@@ -350,9 +351,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                     </label>
                   </div>
                   <div className="flex items-center gap-2 w-48">
-                    <button type="button" onClick={() => handleScoreChange('teleop', 'transition.fuel', -1)} className="w-8 h-8 bg-red-500 text-white rounded">−</button>
-                    <div className="px-3">{formData.teleop.transition.fuel}</div>
-                    <button type="button" onClick={() => handleScoreChange('teleop', 'transition.fuel', 1)} className="w-8 h-8 bg-green-500 text-white rounded">+</button>
+                    <ScoreButton label="Transition Fuel" value={formData.teleop.transition.fuel} onChange={(d) => handleScoreChange('teleop', 'transition.fuel', d)} />
                   </div>
                 </div>
 
@@ -360,9 +359,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">First Offence Shift</h3>
                   <div className="flex items-center gap-2 w-48 mb-2">
-                    <button type="button" onClick={() => handleScoreChange('teleop', 'firstOffence.fuel', -1)} className="w-8 h-8 bg-red-500 text-white rounded">−</button>
-                    <div className="px-3">{formData.teleop.firstOffence.fuel}</div>
-                    <button type="button" onClick={() => handleScoreChange('teleop', 'firstOffence.fuel', 1)} className="w-8 h-8 bg-green-500 text-white rounded">+</button>
+                    <ScoreButton label="First Offence Fuel" value={formData.teleop.firstOffence.fuel} onChange={(d) => handleScoreChange('teleop', 'firstOffence.fuel', d)} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.firstOffence.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstOffence: { ...prev.teleop.firstOffence, neutralZone: e.target.checked } } }))} className="rounded"/> <span>Neutral Zone</span></label>
@@ -396,9 +393,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">Second Offence Shift</h3>
                   <div className="flex items-center gap-2 w-48 mb-2">
-                    <button type="button" onClick={() => handleScoreChange('teleop', 'secondOffence.fuel', -1)} className="w-8 h-8 bg-red-500 text-white rounded">−</button>
-                    <div className="px-3">{formData.teleop.secondOffence.fuel}</div>
-                    <button type="button" onClick={() => handleScoreChange('teleop', 'secondOffence.fuel', 1)} className="w-8 h-8 bg-green-500 text-white rounded">+</button>
+                    <ScoreButton label="Second Offence Fuel" value={formData.teleop.secondOffence.fuel} onChange={(d) => handleScoreChange('teleop', 'secondOffence.fuel', d)} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.secondOffence.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondOffence: { ...prev.teleop.secondOffence, neutralZone: e.target.checked } } }))} className="rounded"/> <span>Neutral Zone</span></label>
