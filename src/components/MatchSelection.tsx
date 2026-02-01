@@ -96,7 +96,8 @@ export function MatchSelection({ onBack }: MatchSelectionProps) {
   const checkAvailableEvents = async () => {
     setLoading(true);
     try {
-      const year = new Date().getFullYear();
+      // Temporarily request 2025 events until the new season is published
+      const year = 2025;
       const ev = await fetchEvents(year);
       if (Array.isArray(ev) && ev.length > 0) {
         setEvents(ev as Event[]);

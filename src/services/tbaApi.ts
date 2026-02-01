@@ -27,7 +27,8 @@ function effectiveTbaKey(): string {
   return getRuntimeTbaKey() || BUILD_TBA_API_KEY || '';
 }
 
-export async function fetchEvents(year: number = new Date().getFullYear()) {
+// NOTE: default to 2025 while new-season events aren't published yet
+export async function fetchEvents(year: number = 2025) {
   try {
     const key = effectiveTbaKey();
     // use the /simple endpoint to reduce payload

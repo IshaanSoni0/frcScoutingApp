@@ -27,28 +27,69 @@ export interface ScoutingData {
   alliance: 'red' | 'blue';
   position: number;
   auto: {
-    l1: number;
-    l2: number;
-    l3: number;
-    l4: number;
-    hasAuto: boolean;
-    // numeric counts for net/prosser during auto
-    net?: number;
-    prosser?: number;
+    // number of fuel scored in the hub during autonomous
+    fuel?: number;
+    // where fuel was collected from
+    neutralZone?: boolean;
+    depot?: boolean;
+    outpost?: boolean;
+    // climbed in auto
+    climbed?: boolean;
   };
   teleop: {
-    l1: number;
-    l2: number;
-    l3: number;
-    l4: number;
-    // numeric counts for net/prosser during teleop
-    net?: number;
-    prosser?: number;
+    transition?: {
+      fuel?: number;
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+    };
+    firstOffence?: {
+      fuel?: number;
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+      launchedToSide?: boolean;
+    };
+    firstDefense?: {
+      defense?: 'na' | 'bad' | 'average' | 'good';
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+      launchedToSide?: boolean;
+    };
+    secondOffence?: {
+      fuel?: number;
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+      launchedToSide?: boolean;
+    };
+    secondDefense?: {
+      defense?: 'na' | 'bad' | 'average' | 'good';
+      neutralZone?: boolean;
+      depot?: boolean;
+      outpost?: boolean;
+      launchedToSide?: boolean;
+    };
   };
   endgame: {
-    climb: 'none' | 'low' | 'high';
-    driverSkill?: 'low' | 'medium' | 'high';
-    robotSpeed?: 'slow' | 'medium' | 'fast';
+    climb: 'none' | 'level1' | 'level2' | 'level3';
+    // trench capability
+    trench?: 'yes' | 'no' | 'na';
+    // shooting accuracy
+    shootingAccuracy?: 'na' | 'very_inaccurate' | 'inaccurate' | 'moderately_accurate' | 'accurate' | 'very_accurate';
+    // shooting speed
+    shootingSpeed?: 'na' | 'very_slow' | 'slow' | 'average' | 'moderately_fast' | 'very_fast';
+    // intake speed
+    intakeSpeed?: 'na' | 'very_slow' | 'slow' | 'average' | 'moderately_fast' | 'very_fast';
+    // driving speed
+    drivingSpeed?: 'na' | 'very_slow' | 'slow' | 'average' | 'moderately_fast' | 'very_fast';
+    // driving skill
+    drivingSkill?: 'na' | 'poor' | 'average' | 'good' | 'excellent';
+    // robot disability
+    robotDisability?: 'none' | 'small_part' | 'about_half' | 'nearly_whole';
+    // robot range
+    robotRange?: 'na' | 'short' | 'average' | 'long' | 'very_long';
   died?: 'none' | 'partway' | 'start';
   };
   defense: 'none' | 'bad' | 'ok' | 'great';
