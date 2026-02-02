@@ -191,15 +191,15 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     const outerClass = size === 'lg' ? 'bg-gray-50 rounded-lg p-8 text-center' : 'bg-gray-50 rounded-lg p-4 text-center';
     const btnSize = size === 'lg' ? 'w-14 h-14 text-4xl' : 'w-12 h-12 text-3xl';
     const valueClass = size === 'lg' ? 'text-4xl font-bold text-gray-900 min-w-[4ch]' : 'text-3xl font-bold text-gray-900 min-w-[3ch]';
-    const smallBtn = 'w-12 h-12 text-base flex items-center justify-center rounded-lg touch-none';
+    const smallBtn = 'h-12 text-base flex items-center justify-center rounded-lg touch-none w-full';
 
     const increments = [1, 5, 10];
 
     return (
       <div className={outerClass}>
         <h4 className="text-sm font-medium text-gray-700 mb-2">{label}</h4>
-        <div className="flex items-center justify-center gap-3">
-          <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-3 w-full">
+          <div className="flex flex-col gap-1 flex-1">
             {increments.slice().reverse().map((inc) => (
               <button
                 key={`dec-${inc}`}
@@ -213,9 +213,9 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
             ))}
           </div>
 
-          <span className={valueClass}>{value}</span>
+          <span className={`${valueClass} mx-3 flex-none`}>{value}</span>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 flex-1">
             {increments.map((inc) => (
               <button
                 key={`inc-${inc}`}
