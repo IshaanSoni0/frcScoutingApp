@@ -18,6 +18,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     teleop: {
       transition: { fuel: 0, neutralZone: false, depot: false, outpost: false },
       firstOffence: { fuel: 0, neutralZone: false, depot: false, outpost: false, launchedToSide: false },
+      endgame: { fuel: 0, neutralZone: false, depot: false, outpost: false, launchedToSide: false },
       firstDefense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', neutralZone: false, depot: false, outpost: false, launchedToSide: false },
       secondOffence: { fuel: 0, neutralZone: false, depot: false, outpost: false, launchedToSide: false },
       secondDefense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', neutralZone: false, depot: false, outpost: false, launchedToSide: false },
@@ -52,7 +53,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
         },
         teleop: {
           transition: {
-            fuel: existing.teleop?.transition?.fuel ?? existing.teleop?.transition?.notes ? 0 : 0,
+              fuel: existing.teleop?.transition?.fuel ?? existing.teleop?.transition?.notes ? 0 : 0,
             neutralZone: !!existing.teleop?.transition?.neutralZone,
             depot: !!existing.teleop?.transition?.depot,
             outpost: !!existing.teleop?.transition?.outpost,
@@ -64,6 +65,13 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
             outpost: !!existing.teleop?.firstOffence?.outpost,
             launchedToSide: !!existing.teleop?.firstOffence?.launchedToSide,
           },
+            endgame: {
+              fuel: existing.teleop?.endgame?.fuel ?? 0,
+              neutralZone: !!existing.teleop?.endgame?.neutralZone,
+              depot: !!existing.teleop?.endgame?.depot,
+              outpost: !!existing.teleop?.endgame?.outpost,
+              launchedToSide: !!existing.teleop?.endgame?.launchedToSide,
+            },
           firstDefense: {
             defense: existing.teleop?.firstDefense?.defense ?? existing.teleop?.firstDefense?.notes ? 'average' : 'na',
             neutralZone: !!existing.teleop?.firstDefense?.neutralZone,
@@ -405,6 +413,20 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                   </div>
                 </div>
 
+                {/* Endgame (as part of Teleop) */}
+                <div className="border rounded p-3">
+                  <h3 className="font-medium text-gray-800 mb-2">Endgame</h3>
+                  <div className="flex items-center gap-2 w-48 mb-2">
+                    <ScoreButton label="Endgame Fuel" value={formData.teleop.endgame.fuel} onChange={(d) => handleScoreChange('teleop', 'endgame.fuel', d)} />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.endgame.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, neutralZone: e.target.checked } } }))} className="rounded"/> <span>Neutral Zone</span></label>
+                    <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.endgame.depot} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, depot: e.target.checked } } }))} className="rounded"/> <span>Depot</span></label>
+                    <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.endgame.outpost} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, outpost: e.target.checked } } }))} className="rounded"/> <span>Outpost</span></label>
+                    <label className="flex items-center gap-2 col-span-1 sm:col-span-3"><input type="checkbox" checked={formData.teleop.endgame.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, launchedToSide: e.target.checked } } }))} className="rounded"/> <span>Launched fuel to our side</span></label>
+                  </div>
+                </div>
+
                 {/* Second Defense Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">Second Defense Shift</h3>
@@ -424,114 +446,6 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                     <label className="flex items-center gap-2 col-span-1 sm:col-span-3"><input type="checkbox" checked={formData.teleop.secondDefense.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, launchedToSide: e.target.checked } } }))} className="rounded"/> <span>Launched fuel to our side</span></label>
                   </div>
                 </div>
-                {/* Endgame (moved into Teleop) */}
-                <div className="border rounded p-3">
-                  <h3 className="font-medium text-gray-800 mb-2">Endgame</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Could robot go under the trench?</label>
-                      <select value={formData.endgame.trench} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, trench: e.target.value as any } }))} className="w-full border rounded p-2">
-                        <option value="no">No</option>
-                        <option value="yes">Yes</option>
-                        <option value="na">N/A</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Climb Level</label>
-                      <select value={formData.endgame.climb} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, climb: e.target.value as any } }))} className="w-full border rounded p-2">
-                        <option value="none">None</option>
-                        <option value="level1">Level 1</option>
-                        <option value="level2">Level 2</option>
-                        <option value="level3">Level 3</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Driving Skill</label>
-                      <select value={formData.endgame.drivingSkill} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, drivingSkill: e.target.value as any } }))} className="w-full border rounded p-2">
-                        <option value="na">N/A</option>
-                        <option value="poor">Poor</option>
-                        <option value="average">Average</option>
-                        <option value="good">Good</option>
-                        <option value="excellent">Excellent</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Driving Speed</label>
-                      <select value={formData.endgame.drivingSpeed} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, drivingSpeed: e.target.value as any } }))} className="w-full border rounded p-2">
-                        <option value="na">N/A</option>
-                        <option value="very_slow">Very Slow</option>
-                        <option value="slow">Slow</option>
-                        <option value="average">Average</option>
-                        <option value="moderately_fast">Moderately Fast</option>
-                        <option value="very_fast">Very Fast</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Shooting Accuracy</label>
-                      <select value={formData.endgame.shootingAccuracy} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, shootingAccuracy: e.target.value as any } }))} className="w-full border rounded p-2">
-                        <option value="na">N/A</option>
-                        <option value="very_inaccurate">Very Inaccurate</option>
-                        <option value="inaccurate">Inaccurate</option>
-                        <option value="moderately_accurate">Moderately Accurate</option>
-                        <option value="accurate">Accurate</option>
-                        <option value="very_accurate">Very Accurate</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Shooting Speed</label>
-                      <select value={formData.endgame.shootingSpeed} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, shootingSpeed: e.target.value as any } }))} className="w-full border rounded p-2">
-                        <option value="na">N/A</option>
-                        <option value="very_slow">Very Slow</option>
-                        <option value="slow">Slow</option>
-                        <option value="average">Average</option>
-                        <option value="moderately_fast">Moderately Fast</option>
-                        <option value="very_fast">Very Fast</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Intake Speed</label>
-                      <select value={formData.endgame.intakeSpeed} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, intakeSpeed: e.target.value as any } }))} className="w-full border rounded p-2">
-                        <option value="na">N/A</option>
-                        <option value="very_slow">Very Slow</option>
-                        <option value="slow">Slow</option>
-                        <option value="average">Average</option>
-                        <option value="moderately_fast">Moderately Fast</option>
-                        <option value="very_fast">Very Fast</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Robot Range</label>
-                      <select value={formData.endgame.robotRange} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, robotRange: e.target.value as any } }))} className="w-full border rounded p-2">
-                        <option value="na">N/A</option>
-                        <option value="short">Short</option>
-                        <option value="average">Average</option>
-                        <option value="long">Long</option>
-                        <option value="very_long">Very Long</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Robot Disability</label>
-                      <select value={formData.endgame.robotDisability} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, robotDisability: e.target.value as any } }))} className="w-full border rounded p-2">
-                        <option value="none">None</option>
-                        <option value="small_part">Small part of match</option>
-                        <option value="about_half">About half of match</option>
-                        <option value="nearly_whole">Nearly the whole match</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
               </div>
             
           </div>
@@ -542,6 +456,107 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">General Notes</label>
               <textarea value={formData.endgame.generalNotes} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, generalNotes: e.target.value } }))} className="w-full border rounded p-2" rows={3} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Could robot go under the trench?</label>
+                <select value={formData.endgame.trench} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, trench: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                  <option value="na">N/A</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Climb Level</label>
+                <select value={formData.endgame.climb} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, climb: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="none">None</option>
+                  <option value="level1">Level 1</option>
+                  <option value="level2">Level 2</option>
+                  <option value="level3">Level 3</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Shooting Accuracy</label>
+                <select value={formData.endgame.shootingAccuracy} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, shootingAccuracy: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="very_inaccurate">Very Inaccurate</option>
+                  <option value="inaccurate">Inaccurate</option>
+                  <option value="moderately_accurate">Moderately Accurate</option>
+                  <option value="accurate">Accurate</option>
+                  <option value="very_accurate">Very Accurate</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Shooting Speed</label>
+                <select value={formData.endgame.shootingSpeed} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, shootingSpeed: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="very_slow">Very Slow</option>
+                  <option value="slow">Slow</option>
+                  <option value="average">Average</option>
+                  <option value="moderately_fast">Moderately Fast</option>
+                  <option value="very_fast">Very Fast</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Intake Speed</label>
+                <select value={formData.endgame.intakeSpeed} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, intakeSpeed: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="very_slow">Very Slow</option>
+                  <option value="slow">Slow</option>
+                  <option value="average">Average</option>
+                  <option value="moderately_fast">Moderately Fast</option>
+                  <option value="very_fast">Very Fast</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Driving Speed</label>
+                <select value={formData.endgame.drivingSpeed} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, drivingSpeed: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="very_slow">Very Slow</option>
+                  <option value="slow">Slow</option>
+                  <option value="average">Average</option>
+                  <option value="moderately_fast">Moderately Fast</option>
+                  <option value="very_fast">Very Fast</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Driving Skill</label>
+                <select value={formData.endgame.drivingSkill} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, drivingSkill: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="poor">Poor</option>
+                  <option value="average">Average</option>
+                  <option value="good">Good</option>
+                  <option value="excellent">Excellent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Robot Disability</label>
+                <select value={formData.endgame.robotDisability} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, robotDisability: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="none">None</option>
+                  <option value="small_part">Small part of match</option>
+                  <option value="about_half">About half of match</option>
+                  <option value="nearly_whole">Nearly the whole match</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Robot Range</label>
+                <select value={formData.endgame.robotRange} onChange={(e) => setFormData(prev => ({ ...prev, endgame: { ...prev.endgame, robotRange: e.target.value as any } }))} className="w-full border rounded p-2">
+                  <option value="na">N/A</option>
+                  <option value="short">Short</option>
+                  <option value="average">Average</option>
+                  <option value="long">Long</option>
+                  <option value="very_long">Very Long</option>
+                </select>
+              </div>
             </div>
           </div>
 
