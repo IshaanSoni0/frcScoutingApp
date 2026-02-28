@@ -188,40 +188,42 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     onChange: (delta: number) => void;
     size?: 'sm' | 'md' | 'lg';
   }) => {
-    const outerClass = size === 'lg' ? 'bg-gray-50 rounded-lg p-8 text-center' : 'bg-gray-50 rounded-lg p-4 text-center';
-    const btnSize = size === 'lg' ? 'w-14 h-14 text-4xl' : 'w-12 h-12 text-3xl';
-    const valueClass = size === 'lg' ? 'text-4xl font-bold text-gray-900 min-w-[4ch]' : 'text-3xl font-bold text-gray-900 min-w-[3ch]';
-    const smallBtn = 'h-12 text-base flex items-center justify-center rounded-lg touch-none w-full';
-
+    const outerClass = size === 'lg' ? 'bg-gray-50 rounded-lg p-6 text-center' : 'bg-gray-50 rounded-lg p-3 text-center';
+    const btnClass = 'w-12 h-12 flex items-center justify-center rounded-md font-semibold select-none';
     const increments = [1, 5, 10];
 
     return (
       <div className={outerClass}>
         <h4 className="text-sm font-medium text-gray-700 mb-2">{label}</h4>
-        <div className="flex items-center gap-3 w-full">
-          <div className="flex flex-col gap-1 flex-1">
+        <div className="flex items-center justify-center gap-3">
+          {/* negative buttons in a row (red) */}
+          <div className="flex items-center gap-2">
             {increments.slice().reverse().map((inc) => (
               <button
                 key={`dec-${inc}`}
                 type="button"
                 onClick={() => onChange(-inc)}
-                className={`${smallBtn} bg-red-500 text-white hover:bg-red-600 transition-colors`}
+                className={`${btnClass} bg-red-600 text-black hover:bg-red-700`}
                 aria-label={`Decrease by ${inc}`}
               >
-                −{inc}
+                -{inc}
               </button>
             ))}
           </div>
 
-          <span className={`${valueClass} mx-3 flex-none`}>{value}</span>
+          {/* center numeric display */}
+          <div className="bg-white border rounded-md w-20 h-12 flex items-center justify-center">
+            <span className="text-xl font-bold text-black">{value}</span>
+          </div>
 
-          <div className="flex flex-col gap-1 flex-1">
+          {/* positive buttons in a row (green) */}
+          <div className="flex items-center gap-2">
             {increments.map((inc) => (
               <button
                 key={`inc-${inc}`}
                 type="button"
                 onClick={() => onChange(inc)}
-                className={`${smallBtn} bg-green-500 text-white hover:bg-green-600 transition-colors`}
+                className={`${btnClass} bg-green-400 text-black hover:bg-green-500`}
                 aria-label={`Increase by ${inc}`}
               >
                 +{inc}
