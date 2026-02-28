@@ -746,59 +746,59 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           </div>
 
         
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto" style={{ transform: 'rotateX(180deg)' }}>
+                <table className="w-full text-sm" style={{ transform: 'rotateX(180deg)' }}>
                   <thead>
                     <tr className="border-b border-gray-300">
-                                <th className="text-left py-3 font-medium text-gray-900 pl-3">Team</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Entries</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Matches Scouted</th>
-                                <th onClick={() => toggleSort('avgAutoFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Avg Fuel</th>
-                                <th onClick={() => toggleSort('avgTeleopFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Teleop Avg Fuel</th>
-                                <th onClick={() => toggleSort('avgTeleopTransition')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Transition Avg</th>
-                                <th onClick={() => toggleSort('avgTeleopFirstOffence')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">1st Offence Avg</th>
-                                <th onClick={() => toggleSort('avgTeleopSecondOffence')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">2nd Offence Avg</th>
-                                <th onClick={() => toggleSort('avgEndgameFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Endgame Avg</th>
-                                <th onClick={() => toggleSort('avgTotalFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Total Avg Fuel</th>
-                                <th onClick={() => toggleSort('avgClimbedPercent')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Climb (max, %)</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Died</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driver Skill</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driving Speed</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Trench</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Shooting Acc</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Shooting Speed</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Intake Speed</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Robot Range</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Defense</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3">Team</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Entries</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Matches Scouted</th>
+                                <th onClick={() => toggleSort('avgAutoFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Auto Avg Fuel</th>
+                                <th onClick={() => toggleSort('avgTeleopFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Teleop Avg Fuel</th>
+                                <th onClick={() => toggleSort('avgTeleopTransition')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Transition Avg</th>
+                                <th onClick={() => toggleSort('avgTeleopFirstOffence')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">1st Offence Avg</th>
+                                <th onClick={() => toggleSort('avgTeleopSecondOffence')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">2nd Offence Avg</th>
+                                <th onClick={() => toggleSort('avgEndgameFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Endgame Avg</th>
+                                <th onClick={() => toggleSort('avgTotalFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Total Avg Fuel</th>
+                                <th onClick={() => toggleSort('avgClimbedPercent')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Auto Climb (max, %)</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Died</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Driver Skill</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Driving Speed</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Trench</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Shooting Acc</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Shooting Speed</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Intake Speed</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Robot Range</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Defense</th>
                     </tr>
                   </thead>
                   <tbody>
                               {sorted.map((t) => (
                       <tr key={t.teamKey} className="border-b border-gray-300 hover:bg-gray-50">
-                        <td className="py-3 font-medium text-gray-900 pl-3">
-                          <button onClick={() => openTeamDetail(t.teamKey)} className="text-left text-blue-600 hover:underline">
+                        <td className="py-3 font-medium text-gray-900 px-3 text-center">
+                          <button onClick={() => openTeamDetail(t.teamKey)} className="text-center text-blue-600 hover:underline">
                             {t.team}
                           </button>
                         </td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.count}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.matchesPlayed}/{t.matchesScheduled}</td>
-                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgAutoFuel.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopFuel.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopTransition.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopFirstOffence.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopSecondOffence.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgEndgameFuel.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTotalFuel.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.maxClimbLevel}, {t.avgClimbedPercent.toFixed(1)}%</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.diedCount}/{t.matchesPlayed}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.driverSkill}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.robotSpeed}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.trench}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.shootingAccuracy}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.shootingSpeed}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.intakeSpeed}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.robotRange}</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.defense}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.count}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.matchesPlayed}/{t.matchesScheduled}</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgAutoFuel.toFixed(2)}</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopFuel.toFixed(2)}</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopTransition.toFixed(2)}</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopFirstOffence.toFixed(2)}</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopSecondOffence.toFixed(2)}</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgEndgameFuel.toFixed(2)}</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTotalFuel.toFixed(2)}</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.maxClimbLevel}, {t.avgClimbedPercent.toFixed(1)}%</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.diedCount}/{t.matchesPlayed}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.driverSkill}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.robotSpeed}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.trench}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.shootingAccuracy}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.shootingSpeed}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.intakeSpeed}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.robotRange}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.defense}</td>
                         
                       </tr>
                     ))}
@@ -822,57 +822,57 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                 <table className="w-full text-sm table-auto">
                   <thead>
                     <tr className="border-b border-gray-300">
-                      <th className="text-left py-2 align-top pl-3">Match</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Scouters</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Auto Avg Fuel</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Teleop Avg Fuel</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Transition Avg</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">1st Offence Avg</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">2nd Offence Avg</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Endgame Avg</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Total Avg Fuel</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">High Climb</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Died</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Trench</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Shooting Acc</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Shooting Speed</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Intake Speed</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Robot Range</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Driver Skill</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Driving Speed</th>
-                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Defense</th>
+                      <th className="text-center py-2 align-top px-3">Match</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Scouters</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Auto Avg Fuel</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Teleop Avg Fuel</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Transition Avg</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">1st Offence Avg</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">2nd Offence Avg</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Endgame Avg</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Total Avg Fuel</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">High Climb</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Died</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Trench</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Shooting Acc</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Shooting Speed</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Intake Speed</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Robot Range</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Driver Skill</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Driving Speed</th>
+                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Defense</th>
                     </tr>
                   </thead>
                   <tbody>
                     {teamMatches.map(m => (
                       m.notScouted ? (
                         <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
-                          <td className="py-2 align-top break-words pl-3">{m.matchLabel}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300" colSpan={19}>
+                          <td className="py-2 align-top break-words px-3 text-center">{m.matchLabel}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300" colSpan={19}>
                             <div className="italic text-gray-500 p-3 bg-gray-50 rounded">This match has not been scouted</div>
                           </td>
                         </tr>
                       ) : (
                         <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
-                          <td className="py-2 align-top break-words pl-3">{m.matchLabel}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.scouterCount}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgAutoFuel.toFixed(2)}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopTotal.toFixed(2)}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopTransition.toFixed(2)}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopFirstOffence.toFixed(2)}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopSecondOffence.toFixed(2)}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgEndgameFuel.toFixed(2)}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTotalFuel.toFixed(2)}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.highClimb}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.died}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.trench || 'N/A'}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.shootingAccuracy || 'N/A'}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.shootingSpeed || 'N/A'}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.intakeSpeed || 'N/A'}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.robotRange || 'N/A'}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.driverSkill}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.robotSpeed}</td>
-                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.defense}</td>
+                          <td className="py-2 align-top break-words px-3 text-center">{m.matchLabel}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.scouterCount}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgAutoFuel.toFixed(2)}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopTotal.toFixed(2)}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopTransition.toFixed(2)}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopFirstOffence.toFixed(2)}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopSecondOffence.toFixed(2)}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgEndgameFuel.toFixed(2)}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTotalFuel.toFixed(2)}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.highClimb}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.died}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.trench || 'N/A'}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.shootingAccuracy || 'N/A'}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.shootingSpeed || 'N/A'}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.intakeSpeed || 'N/A'}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.robotRange || 'N/A'}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.driverSkill}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.robotSpeed}</td>
+                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.defense}</td>
                         </tr>
                       )
                     ))}
