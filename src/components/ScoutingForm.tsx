@@ -412,20 +412,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                     <label className="flex items-center gap-2 col-span-1 sm:col-span-3"><input type="checkbox" checked={formData.teleop.secondOffence.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondOffence: { ...prev.teleop.secondOffence, launchedToSide: e.target.checked } } }))} className="rounded"/> <span>Launched fuel to our side</span></label>
                   </div>
                 </div>
-
-                {/* Endgame (as part of Teleop) */}
-                <div className="border rounded p-3">
-                  <h3 className="font-medium text-gray-800 mb-2">Endgame</h3>
-                  <div className="flex items-center gap-2 w-48 mb-2">
-                    <ScoreButton label="Endgame Fuel" value={formData.teleop.endgame.fuel} onChange={(d) => handleScoreChange('teleop', 'endgame.fuel', d)} />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.endgame.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, neutralZone: e.target.checked } } }))} className="rounded"/> <span>Neutral Zone</span></label>
-                    <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.endgame.depot} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, depot: e.target.checked } } }))} className="rounded"/> <span>Depot</span></label>
-                    <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.endgame.outpost} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, outpost: e.target.checked } } }))} className="rounded"/> <span>Outpost</span></label>
-                    <label className="flex items-center gap-2 col-span-1 sm:col-span-3"><input type="checkbox" checked={formData.teleop.endgame.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, launchedToSide: e.target.checked } } }))} className="rounded"/> <span>Launched fuel to our side</span></label>
-                  </div>
-                </div>
+                
 
                 {/* Second Defense Shift */}
                 <div className="border rounded p-3">
@@ -445,8 +432,22 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                     <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.secondDefense.outpost} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, outpost: e.target.checked } } }))} className="rounded"/> <span>Outpost</span></label>
                     <label className="flex items-center gap-2 col-span-1 sm:col-span-3"><input type="checkbox" checked={formData.teleop.secondDefense.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, launchedToSide: e.target.checked } } }))} className="rounded"/> <span>Launched fuel to our side</span></label>
                   </div>
+                  </div>
+
+                  {/* Endgame (as part of Teleop) */}
+                  <div className="border rounded p-3">
+                    <h3 className="font-medium text-gray-800 mb-2">Endgame</h3>
+                    <div className="flex items-center gap-2 w-48 mb-2">
+                      <ScoreButton label="Endgame Fuel" value={formData.teleop.endgame.fuel} onChange={(d) => handleScoreChange('teleop', 'endgame.fuel', d)} />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.endgame.neutralZone} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, neutralZone: e.target.checked } } }))} className="rounded"/> <span>Neutral Zone</span></label>
+                      <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.endgame.depot} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, depot: e.target.checked } } }))} className="rounded"/> <span>Depot</span></label>
+                      <label className="flex items-center gap-2"><input type="checkbox" checked={formData.teleop.endgame.outpost} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, outpost: e.target.checked } } }))} className="rounded"/> <span>Outpost</span></label>
+                      <label className="flex items-center gap-2 col-span-1 sm:col-span-3"><input type="checkbox" checked={formData.teleop.endgame.launchedToSide} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, endgame: { ...prev.teleop.endgame, launchedToSide: e.target.checked } } }))} className="rounded"/> <span>Launched fuel to our side</span></label>
+                    </div>
+                  </div>
                 </div>
-              </div>
             
           </div>
 
