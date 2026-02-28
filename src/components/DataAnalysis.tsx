@@ -23,6 +23,8 @@ type TeamStats = {
   matchesScheduled: number; // total matches the team is scheduled to play (from matches list)
   highClimbCount: number; // number of matches where majority reported high climb
   diedCount: number; // number of matches where majority reported died
+  avgEndgameFuel: number; // average endgame fuel (shift-style endgame fuel)
+  avgTotalFuel: number; // average total fuel per match (auto + teleop parts + endgame)
   driverSkill: string; // Low/Medium/High or N/A
   robotSpeed: string; // Slow/Medium/Fast or N/A
   defense: string; // None/Bad/OK/Great or N/A
@@ -299,6 +301,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const teleopTransition = entries.map(e => (typeof e.teleop?.transition?.fuel === 'number' ? e.teleop.transition.fuel : 0));
       const teleopFirst = entries.map(e => (typeof e.teleop?.firstOffence?.fuel === 'number' ? e.teleop.firstOffence.fuel : 0));
       const teleopSecond = entries.map(e => (typeof e.teleop?.secondOffence?.fuel === 'number' ? e.teleop.secondOffence.fuel : 0));
+      const teleopEndgame = entries.map(e => (typeof (e.endgame as any)?.fuel === 'number' ? (e.endgame as any).fuel : 0));
 
       const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
 
@@ -307,6 +310,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const avgTeleopFirstOffence = avg(teleopFirst);
       const avgTeleopSecondOffence = avg(teleopSecond);
       const avgTeleopFuel = avg(teleopTransition.map((v, i) => v + teleopFirst[i] + teleopSecond[i]));
+      const avgEndgameFuel = avg(teleopEndgame);
+      const avgTotalFuel = avg(autoFuelArr.map((v, i) => v + teleopTransition[i] + teleopFirst[i] + teleopSecond[i] + teleopEndgame[i]));
 
       const climbedArr = entries.map(e => e.auto?.climbed ? 1 : 0);
       const avgClimbedPercent = (climbedArr.length === 0 ? 0 : (sum(climbedArr) / climbedArr.length) * 100);
@@ -320,6 +325,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           avgTeleopTransition: Math.round(avgTeleopTransition * 100) / 100,
           avgTeleopFirstOffence: Math.round(avgTeleopFirstOffence * 100) / 100,
           avgTeleopSecondOffence: Math.round(avgTeleopSecondOffence * 100) / 100,
+          avgEndgameFuel: Math.round(avgEndgameFuel * 100) / 100,
+          avgTotalFuel: Math.round(avgTotalFuel * 100) / 100,
           avgClimbedPercent: Math.round(avgClimbedPercent * 100) / 100,
   matchesPlayed,
   matchesScheduled,
@@ -411,10 +418,13 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         const teleopTransition = scouterEntries.map(e => (typeof e.teleop?.transition?.fuel === 'number' ? e.teleop.transition.fuel : 0));
         const teleopFirst = scouterEntries.map(e => (typeof e.teleop?.firstOffence?.fuel === 'number' ? e.teleop.firstOffence.fuel : 0));
         const teleopSecond = scouterEntries.map(e => (typeof e.teleop?.secondOffence?.fuel === 'number' ? e.teleop.secondOffence.fuel : 0));
+        const teleopEndgame = scouterEntries.map(e => (typeof (e.endgame as any)?.fuel === 'number' ? (e.endgame as any).fuel : 0));
         const avgTeleopTransition = avg(teleopTransition);
         const avgTeleopFirst = avg(teleopFirst);
         const avgTeleopSecond = avg(teleopSecond);
         const avgTeleopTotal = avg(teleopTransition.map((v, i) => v + teleopFirst[i] + teleopSecond[i]));
+        const avgEndgame = avg(teleopEndgame);
+        const avgTotal = avg(autoFuelArr.map((v, i) => v + teleopTransition[i] + teleopFirst[i] + teleopSecond[i] + teleopEndgame[i]));
 
       // endgame majority for this match
       const majority = (arr: any[], fn: (v: any) => boolean) => {
@@ -441,7 +451,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const matchInfo = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt).find((m: any) => m.key === mk);
       const matchLabel = matchInfo ? `${matchInfo.comp_level} ${matchInfo.match_number}` : mk;
 
-      return {
+        return {
         matchKey: mk,
         matchLabel,
         scouterCount: scouterEntries.length,
@@ -450,6 +460,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         avgTeleopTransition: Math.round(avgTeleopTransition * 100) / 100,
         avgTeleopFirstOffence: Math.round(avgTeleopFirst * 100) / 100,
         avgTeleopSecondOffence: Math.round(avgTeleopSecond * 100) / 100,
+        avgEndgameFuel: Math.round(avgEndgame * 100) / 100,
+        avgTotalFuel: Math.round(avgTotal * 100) / 100,
         highClimb: isHighClimb ? 'High' : 'No',
         died: isDied ? 'Yes' : 'No',
         driverSkill: avgDriverVal === 0 ? 'N/A' : mapBackDriver(avgDriverVal),
@@ -485,12 +497,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
     if (showAuto) headers.push('Auto Avg Fuel', 'Auto Climbed %');
-    if (showTeleop) headers.push('Teleop Avg Fuel', 'Transition Avg', '1st Offence Avg', '2nd Offence Avg');
+    if (showTeleop) headers.push('Teleop Avg Fuel', 'Transition Avg', '1st Offence Avg', '2nd Offence Avg', 'Endgame Avg', 'Total Avg Fuel');
     headers.push('Matches Scouted', 'Died (count/matches)', 'Driver Skill', 'Driving Speed', 'Defense');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
       if (showAuto) base.push(t.avgAutoFuel, `${t.avgClimbedPercent.toFixed(1)}%`);
-      if (showTeleop) base.push(t.avgTeleopFuel, t.avgTeleopTransition, t.avgTeleopFirstOffence, t.avgTeleopSecondOffence);
+      if (showTeleop) base.push(t.avgTeleopFuel, t.avgTeleopTransition, t.avgTeleopFirstOffence, t.avgTeleopSecondOffence, t.avgEndgameFuel, t.avgTotalFuel);
       base.push(`${t.matchesPlayed}/${t.matchesScheduled}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.defense);
       return base;
     });
@@ -693,6 +705,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                 <th onClick={() => toggleSort('avgTeleopTransition')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Transition Avg</th>
                                 <th onClick={() => toggleSort('avgTeleopFirstOffence')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">1st Offence Avg</th>
                                 <th onClick={() => toggleSort('avgTeleopSecondOffence')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">2nd Offence Avg</th>
+                                <th onClick={() => toggleSort('avgEndgameFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Endgame Avg</th>
+                                <th onClick={() => toggleSort('avgTotalFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Total Avg Fuel</th>
                                 <th onClick={() => toggleSort('avgClimbedPercent')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Climbed %</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Died</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driver Skill</th>
@@ -715,12 +729,14 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopTransition.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopFirstOffence.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopSecondOffence.toFixed(2)}</td>
+                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgEndgameFuel.toFixed(2)}</td>
+                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTotalFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgClimbedPercent.toFixed(1)}%</td>
-                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.matchesPlayed}/{t.matchesScheduled}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.diedCount}/{t.matchesPlayed}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.driverSkill}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.robotSpeed}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.defense}</td>
+                        
                       </tr>
                     ))}
                   </tbody>
@@ -750,6 +766,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Transition Avg</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">1st Offence Avg</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">2nd Offence Avg</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Endgame Avg</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Total Avg Fuel</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">High Climb</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Died</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Driver Skill</th>
@@ -775,6 +793,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopTransition.toFixed(2)}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopFirstOffence.toFixed(2)}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTeleopSecondOffence.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgEndgameFuel.toFixed(2)}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTotalFuel.toFixed(2)}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.highClimb}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.died}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.driverSkill}</td>
