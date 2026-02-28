@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { Users, Shield } from 'lucide-react';
 import { DataService } from '../services/dataService';
@@ -18,6 +18,27 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   const [showInvalid, setShowInvalid] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Auto-refresh once per client install/session: perform a full refresh
+  // on first visit to the login page so the app loads the latest server state.
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem('frc-auto-refreshed-v1');
+      if (!flag) {
+        // Mark before performing refresh to avoid reload loops
+        localStorage.setItem('frc-auto-refreshed-v1', Date.now().toString());
+        setLoadingLogin(true);
+        performFullRefresh({ reload: true }).catch((e) => {
+          // do not block the UI if refresh fails
+          // eslint-disable-next-line no-console
+          console.warn('Login auto-refresh failed', e);
+          setLoadingLogin(false);
+        });
+      }
+    } catch (e) {
+      // ignore environments without localStorage
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
