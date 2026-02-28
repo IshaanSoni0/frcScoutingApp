@@ -25,6 +25,7 @@ type TeamStats = {
   diedCount: number; // number of matches where majority reported died
   avgEndgameFuel: number; // average endgame fuel (shift-style endgame fuel)
   avgTotalFuel: number; // average total fuel per match (auto + teleop parts + endgame)
+  maxClimbLevel: number; // maximum climb level observed (0-3)
   driverSkill: string; // Low/Medium/High or N/A
   robotSpeed: string; // Slow/Medium/Fast or N/A
   defense: string; // None/Bad/OK/Great or N/A
@@ -315,6 +316,17 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
       const climbedArr = entries.map(e => e.auto?.climbed ? 1 : 0);
       const avgClimbedPercent = (climbedArr.length === 0 ? 0 : (sum(climbedArr) / climbedArr.length) * 100);
+      const mapClimb = (c: any) => {
+        if (!c) return 0;
+        if (typeof c === 'number') return c;
+        const s = String(c).toLowerCase();
+        if (s === 'level3' || s === '3' || s === 'high') return 3;
+        if (s === 'level2' || s === '2' || s === 'medium') return 2;
+        if (s === 'level1' || s === '1' || s === 'low') return 1;
+        return 0;
+      };
+      const climbLevels = entries.map(e => mapClimb((e.endgame as any)?.climb));
+      const maxClimbLevel = climbLevels.length === 0 ? 0 : Math.max(...climbLevels);
 
       return {
         teamKey: tk,
@@ -328,6 +340,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           avgEndgameFuel: Math.round(avgEndgameFuel * 100) / 100,
           avgTotalFuel: Math.round(avgTotalFuel * 100) / 100,
           avgClimbedPercent: Math.round(avgClimbedPercent * 100) / 100,
+          maxClimbLevel,
   matchesPlayed,
   matchesScheduled,
         highClimbCount,
@@ -501,7 +514,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     headers.push('Matches Scouted', 'Died (count/matches)', 'Driver Skill', 'Driving Speed', 'Defense');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
-      if (showAuto) base.push(t.avgAutoFuel, `${t.avgClimbedPercent.toFixed(1)}%`);
+      if (showAuto) base.push(t.avgAutoFuel, `${t.maxClimbLevel}, ${t.avgClimbedPercent.toFixed(1)}%`);
       if (showTeleop) base.push(t.avgTeleopFuel, t.avgTeleopTransition, t.avgTeleopFirstOffence, t.avgTeleopSecondOffence, t.avgEndgameFuel, t.avgTotalFuel);
       base.push(`${t.matchesPlayed}/${t.matchesScheduled}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.defense);
       return base;
@@ -707,7 +720,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                 <th onClick={() => toggleSort('avgTeleopSecondOffence')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">2nd Offence Avg</th>
                                 <th onClick={() => toggleSort('avgEndgameFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Endgame Avg</th>
                                 <th onClick={() => toggleSort('avgTotalFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Total Avg Fuel</th>
-                                <th onClick={() => toggleSort('avgClimbedPercent')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Climbed %</th>
+                                <th onClick={() => toggleSort('avgClimbedPercent')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Climb (max, %)</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Died</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driver Skill</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driving Speed</th>
@@ -731,7 +744,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopSecondOffence.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgEndgameFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTotalFuel.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgClimbedPercent.toFixed(1)}%</td>
+                                  <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.maxClimbLevel}, {t.avgClimbedPercent.toFixed(1)}%</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.diedCount}/{t.matchesPlayed}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.driverSkill}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.robotSpeed}</td>
