@@ -26,6 +26,11 @@ type TeamStats = {
   avgEndgameFuel: number; // average endgame fuel (shift-style endgame fuel)
   avgTotalFuel: number; // average total fuel per match (auto + teleop parts + endgame)
   maxClimbLevel: number; // maximum climb level observed (0-3)
+  trench: string; // Yes/No/N/A
+  shootingAccuracy: string; // descriptive label or N/A
+  shootingSpeed: string;
+  intakeSpeed: string;
+  robotRange: string;
   driverSkill: string; // Low/Medium/High or N/A
   robotSpeed: string; // Slow/Medium/Fast or N/A
   defense: string; // None/Bad/OK/Great or N/A
@@ -297,6 +302,36 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const mapBackDefense = (v: number) => v <= 1.5 ? 'None/Bad' : v <= 2.5 ? 'OK' : 'Great';
       const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
 
+      // map and aggregate trench, shooting accuracy/speed, intake speed, and robot range
+      const mapShootingAccuracy = (v: any) => (
+        v === 'very_inaccurate' ? 1 : v === 'inaccurate' ? 2 : v === 'moderately_accurate' ? 3 : v === 'accurate' ? 4 : v === 'very_accurate' ? 5 : 0
+      );
+      const mapSpeedLike = (v: any) => (
+        v === 'very_slow' ? 1 : v === 'slow' ? 2 : v === 'average' ? 3 : v === 'moderately_fast' ? 4 : v === 'very_fast' ? 5 : 0
+      );
+      const mapRange = (v: any) => (
+        v === 'short' ? 1 : v === 'average' ? 2 : v === 'long' ? 3 : v === 'very_long' ? 4 : 0
+      );
+
+      const shootingAccVals = entries.map(e => mapShootingAccuracy((e.endgame as any)?.shootingAccuracy));
+      const shootingSpeedVals = entries.map(e => mapSpeedLike((e.endgame as any)?.shootingSpeed));
+      const intakeSpeedVals = entries.map(e => mapSpeedLike((e.endgame as any)?.intakeSpeed));
+      const rangeVals = entries.map(e => mapRange((e.endgame as any)?.robotRange));
+
+      const avgShootingAcc = avgOrNA(shootingAccVals);
+      const avgShootingSpeed = avgOrNA(shootingSpeedVals);
+      const avgIntakeSpeed = avgOrNA(intakeSpeedVals);
+      const avgRange = avgOrNA(rangeVals);
+
+      const mapBackShootingAcc = (v: number) => v <= 1.5 ? 'Very Inaccurate' : v <= 2.5 ? 'Inaccurate' : v <= 3.5 ? 'Moderately Accurate' : v <= 4.5 ? 'Accurate' : 'Very Accurate';
+      const mapBackSpeedLike = (v: number) => v <= 1.5 ? 'Very Slow' : v <= 2.5 ? 'Slow' : v <= 3.5 ? 'Average' : v <= 4.5 ? 'Moderately Fast' : 'Very Fast';
+      const mapBackRange = (v: number) => v <= 1.5 ? 'Short' : v <= 2.5 ? 'Average' : v <= 3.5 ? 'Long' : 'Very Long';
+
+      // trench majority
+      const trenchYes = entries.filter(e => ((e.endgame as any)?.trench === 'yes')).length;
+      const trenchNo = entries.filter(e => ((e.endgame as any)?.trench === 'no')).length;
+      const trenchVal = entries.length === 0 ? 'N/A' : (trenchYes / entries.length >= 0.5 ? 'Yes' : (trenchNo / entries.length >= 0.5 ? 'No' : 'N/A'));
+
       // New scouter shape: auto.fuel (number), teleop.{transition,firstOffence,secondOffence}.fuel
       const autoFuelArr = entries.map(e => (typeof e.auto?.fuel === 'number' ? e.auto.fuel : 0));
       const teleopTransition = entries.map(e => (typeof e.teleop?.transition?.fuel === 'number' ? e.teleop.transition.fuel : 0));
@@ -341,6 +376,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           avgTotalFuel: Math.round(avgTotalFuel * 100) / 100,
           avgClimbedPercent: Math.round(avgClimbedPercent * 100) / 100,
           maxClimbLevel,
+          trench: trenchVal,
+          shootingAccuracy: avgShootingAcc === 0 ? 'N/A' : mapBackShootingAcc(avgShootingAcc),
+          shootingSpeed: avgShootingSpeed === 0 ? 'N/A' : mapBackSpeedLike(avgShootingSpeed),
+          intakeSpeed: avgIntakeSpeed === 0 ? 'N/A' : mapBackSpeedLike(avgIntakeSpeed),
+          robotRange: avgRange === 0 ? 'N/A' : mapBackRange(avgRange),
   matchesPlayed,
   matchesScheduled,
         highClimbCount,
@@ -509,14 +549,14 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
-    if (showAuto) headers.push('Auto Avg Fuel', 'Auto Climbed %');
+    if (showAuto) headers.push('Auto Avg Fuel', 'Auto Climb (max, %)');
     if (showTeleop) headers.push('Teleop Avg Fuel', 'Transition Avg', '1st Offence Avg', '2nd Offence Avg', 'Endgame Avg', 'Total Avg Fuel');
-    headers.push('Matches Scouted', 'Died (count/matches)', 'Driver Skill', 'Driving Speed', 'Defense');
+    headers.push('Matches Scouted', 'Died (count/matches)', 'Driver Skill', 'Driving Speed', 'Trench', 'Shooting Acc', 'Shooting Speed', 'Intake Speed', 'Robot Range', 'Defense');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
       if (showAuto) base.push(t.avgAutoFuel, `${t.maxClimbLevel}, ${t.avgClimbedPercent.toFixed(1)}%`);
       if (showTeleop) base.push(t.avgTeleopFuel, t.avgTeleopTransition, t.avgTeleopFirstOffence, t.avgTeleopSecondOffence, t.avgEndgameFuel, t.avgTotalFuel);
-      base.push(`${t.matchesPlayed}/${t.matchesScheduled}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.defense);
+      base.push(`${t.matchesPlayed}/${t.matchesScheduled}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.trench, t.shootingAccuracy, t.shootingSpeed, t.intakeSpeed, t.robotRange, t.defense);
       return base;
     });
     const csv = [headers, ...rowsCsv].map(r => r.join(',')).join('\n');
@@ -724,6 +764,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Died</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driver Skill</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driving Speed</th>
+                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Trench</th>
+                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Shooting Acc</th>
+                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Shooting Speed</th>
+                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Intake Speed</th>
+                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Robot Range</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Defense</th>
                     </tr>
                   </thead>
@@ -748,6 +793,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.diedCount}/{t.matchesPlayed}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.driverSkill}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.robotSpeed}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.trench}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.shootingAccuracy}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.shootingSpeed}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.intakeSpeed}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.robotRange}</td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.defense}</td>
                         
                       </tr>
@@ -783,6 +833,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Total Avg Fuel</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">High Climb</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Died</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Trench</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Shooting Acc</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Shooting Speed</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Intake Speed</th>
+                      <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Robot Range</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Driver Skill</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Driving Speed</th>
                       <th className="text-left py-2 align-top pl-6 border-l border-gray-300">Defense</th>
@@ -810,6 +865,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.avgTotalFuel.toFixed(2)}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.highClimb}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.died}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.trench || 'N/A'}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.shootingAccuracy || 'N/A'}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.shootingSpeed || 'N/A'}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.intakeSpeed || 'N/A'}</td>
+                          <td className="py-2 align-top pl-6 border-l border-gray-300">{m.robotRange || 'N/A'}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.driverSkill}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.robotSpeed}</td>
                           <td className="py-2 align-top pl-6 border-l border-gray-300">{m.defense}</td>
