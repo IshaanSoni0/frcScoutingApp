@@ -687,13 +687,13 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <tr className="border-b border-gray-300">
                                 <th className="text-left py-3 font-medium text-gray-900 pl-3">Team</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Entries</th>
+                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Matches Scouted</th>
                                 <th onClick={() => toggleSort('avgAutoFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Avg Fuel</th>
                                 <th onClick={() => toggleSort('avgTeleopFuel')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Teleop Avg Fuel</th>
                                 <th onClick={() => toggleSort('avgTeleopTransition')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Transition Avg</th>
                                 <th onClick={() => toggleSort('avgTeleopFirstOffence')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">1st Offence Avg</th>
                                 <th onClick={() => toggleSort('avgTeleopSecondOffence')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">2nd Offence Avg</th>
                                 <th onClick={() => toggleSort('avgClimbedPercent')} className="text-left py-3 font-medium text-gray-900 cursor-pointer pl-6 border-l border-gray-300">Auto Climbed %</th>
-                                <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Matches Scouted</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Died</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driver Skill</th>
                                 <th className="text-left py-3 font-medium text-gray-900 pl-6 border-l border-gray-300">Driving Speed</th>
@@ -709,6 +709,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                           </button>
                         </td>
                         <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.count}</td>
+                        <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.matchesPlayed}/{t.matchesScheduled}</td>
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgAutoFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 pl-6 border-l border-gray-300">{t.avgTeleopTransition.toFixed(2)}</td>
