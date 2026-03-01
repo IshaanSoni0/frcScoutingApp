@@ -61,7 +61,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           await performFullRefresh({ reload: false });
         } catch (e) {
           // if full refresh fails, continue to attempt to fetch server rows
-           
+          // eslint-disable-next-line no-console
           console.warn('DataAnalysis: performFullRefresh failed on mount', e);
         }
 
@@ -141,7 +141,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         try {
           await performFullRefresh({ reload: false });
         } catch (e) {
-           
+          // eslint-disable-next-line no-console
           console.warn('DataAnalysis: performFullRefresh failed during auto-refresh', e);
         }
         const serverRows: any[] = await fetchServerScouting();
@@ -240,8 +240,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       };
 
       // endgame-related fields removed; populate default/placeholder values
-      const highClimbCount = 0;
-      const diedCount = 0;
+      let highClimbCount = 0;
+      let diedCount = 0;
       const mapDefense = (v: any) => (v === 'none' ? 1 : v === 'bad' ? 2 : v === 'ok' ? 3 : v === 'great' ? 4 : 0);
       const defVals = entries.map(e => mapDefense(e.defense));
       const avgOrNA = (arr: number[]) => {
@@ -732,7 +732,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
               <div className="w-full">
                 {showPitView && (
-                  <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <div className="p-4 bg-gray-50 rounded border">
                     {pitLoading ? (
                       <div className="italic text-gray-500 p-3">Loading pit data...</div>
                     ) : pitError ? (
@@ -740,40 +740,42 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     ) : !pitData ? (
                       <div className="italic text-gray-500 p-3">No pit scouting data for this team.</div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-800">
-                        <div>
-                          <div className="text-xs text-gray-500">Under Trench</div>
-                          <div className="mt-1 font-medium">{pitData?.underTrench ? 'Yes' : 'No'}</div>
-                        </div>
+                      <div className="text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Under Trench</div>
+                            <div className="font-medium">{pitData?.underTrench ? 'Yes' : 'No'}</div>
+                          </div>
 
-                        <div>
-                          <div className="text-xs text-gray-500">Climb Level</div>
-                          <div className="mt-1 font-medium">{pitData?.climbLevel || 'N/A'}</div>
-                        </div>
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Climb Level</div>
+                            <div className="font-medium">{pitData?.climbLevel || 'N/A'}</div>
+                          </div>
 
-                        <div>
-                          <div className="text-xs text-gray-500">Climb Positions</div>
-                          <div className="mt-1 font-medium">{pitData?.climbPositions ? Object.entries(pitData.climbPositions).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
-                        </div>
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Climb Positions</div>
+                            <div className="font-medium">{pitData?.climbPositions ? Object.entries(pitData.climbPositions).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
+                          </div>
 
-                        <div>
-                          <div className="text-xs text-gray-500">Has Auto</div>
-                          <div className="mt-1 font-medium">{pitData?.hasAuto ? 'Yes' : 'No'}</div>
-                        </div>
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Has Auto</div>
+                            <div className="font-medium">{pitData?.hasAuto ? 'Yes' : 'No'}</div>
+                          </div>
 
-                        <div>
-                          <div className="text-xs text-gray-500">Can Climb In Auto</div>
-                          <div className="mt-1 font-medium">{pitData?.canClimbInAuto ? 'Yes' : 'No'}</div>
-                        </div>
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Can Climb In Auto</div>
+                            <div className="font-medium">{pitData?.canClimbInAuto ? 'Yes' : 'No'}</div>
+                          </div>
 
-                        <div>
-                          <div className="text-xs text-gray-500">Auto Types</div>
-                          <div className="mt-1 font-medium">{pitData?.autoTypes ? Object.entries(pitData.autoTypes).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
-                        </div>
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Auto Types</div>
+                            <div className="font-medium">{pitData?.autoTypes ? Object.entries(pitData.autoTypes).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
+                          </div>
 
-                        <div className="md:col-span-2">
-                          <div className="text-xs text-gray-500">Updated</div>
-                          <div className="mt-1 font-medium">{pitData?.updatedAt ? new Date(pitData.updatedAt).toLocaleString() : 'Unknown'}</div>
+                          <div className="p-2 md:col-span-2">
+                            <div className="text-xs text-gray-500">Updated</div>
+                            <div className="font-medium">{pitData?.updatedAt ? new Date(pitData.updatedAt).toLocaleString() : 'Unknown'}</div>
+                          </div>
                         </div>
                       </div>
                     )}

@@ -5,6 +5,7 @@ import { migrateLocalToServer, upsertPitData } from './syncService';
 const STORAGE_KEYS = {
   SCOUTING_DATA: 'frc-scouting-data',
   PIT_DATA: 'frc-pit-data',
+  PIT_IMAGES: 'frc-pit-images',
   SCOUTERS: 'frc-scouters',
   MATCHES: 'frc-matches',
   SELECTED_EVENT: 'frc-selected-event',
@@ -147,6 +148,44 @@ export class DataService {
       return obj;
     } catch (e) {
       return teamKey ? null : {};
+    }
+  }
+
+  // PIT image helpers - store data URLs (small sets) per team
+  static savePitImages(teamKey: string, images: string[]): void {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.PIT_IMAGES) || '{}';
+      const obj = JSON.parse(raw || '{}');
+      obj[teamKey] = { images: images.slice(), updatedAt: Date.now() };
+      localStorage.setItem(STORAGE_KEYS.PIT_IMAGES, JSON.stringify(obj));
+      // Note: not uploading images to server here (could be added later)
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  static getPitImages(teamKey: string): string[] {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.PIT_IMAGES) || '{}';
+      const obj = JSON.parse(raw || '{}');
+      return (obj[teamKey] && obj[teamKey].images) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static deletePitImage(teamKey: string, index: number): void {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.PIT_IMAGES) || '{}';
+      const obj = JSON.parse(raw || '{}');
+      const arr = (obj[teamKey] && obj[teamKey].images) || [];
+      if (index >= 0 && index < arr.length) {
+        arr.splice(index, 1);
+        obj[teamKey] = { images: arr, updatedAt: Date.now() };
+        localStorage.setItem(STORAGE_KEYS.PIT_IMAGES, JSON.stringify(obj));
+      }
+    } catch (e) {
+      // ignore
     }
   }
 
