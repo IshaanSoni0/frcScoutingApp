@@ -161,6 +161,8 @@ export class DataService {
       // attempt to upload any data-URL images to server storage (fire-and-forget)
       (async () => {
         try {
+          // eslint-disable-next-line no-console
+          console.debug('savePitImages: starting background upload check for', teamKey);
           const storedRaw = localStorage.getItem(STORAGE_KEYS.PIT_IMAGES) || '{}';
           const stored = JSON.parse(storedRaw || '{}');
           const imgs: string[] = (stored[teamKey] && stored[teamKey].images) || [];
@@ -169,13 +171,22 @@ export class DataService {
             const v = imgs[i];
             if (typeof v === 'string' && v.startsWith('data:')) {
               try {
+                // eslint-disable-next-line no-console
+                console.debug('savePitImages: uploading image', i, 'for', teamKey);
                 const url = await uploadPitImage(teamKey, v);
                 if (url) {
                   imgs[i] = url;
                   mutated = true;
+                  // eslint-disable-next-line no-console
+                  console.debug('savePitImages: upload succeeded', i, url);
+                } else {
+                  // eslint-disable-next-line no-console
+                  console.warn('savePitImages: upload returned no URL for', teamKey, i);
                 }
               } catch (e) {
-                // ignore upload failures for individual images
+                // eslint-disable-next-line no-console
+                console.error('savePitImages: upload failed for', teamKey, i, e);
+                // continue with other images
               }
             }
           }
@@ -189,11 +200,13 @@ export class DataService {
               // eslint-disable-next-line @typescript-eslint/no-floating-promises
               upsertPitData(teamKey, pit);
             } catch (e) {
-              // ignore
+              // eslint-disable-next-line no-console
+              console.error('savePitImages: failed to upsert pit_data for', teamKey, e);
             }
           }
         } catch (e) {
-          // ignore overall upload flow errors
+          // eslint-disable-next-line no-console
+          console.error('savePitImages: unexpected error in background uploader for', teamKey, e);
         }
       })();
     } catch (e) {

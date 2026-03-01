@@ -884,8 +884,14 @@ export async function upsertPitData(teamKey: string, data: any) {
 // upload a single pit image (data URL) to Supabase Storage and return a public URL
 export async function uploadPitImage(teamKey: string, dataUrl: string) {
   const client = getSupabaseClient();
-  if (!client) throw new Error('Supabase client not configured; cannot upload pit image.');
+  if (!client) {
+    // eslint-disable-next-line no-console
+    console.error('uploadPitImage: no supabase client available');
+    throw new Error('Supabase client not configured; cannot upload pit image.');
+  }
   try {
+    // eslint-disable-next-line no-console
+    console.debug('uploadPitImage: starting upload for', teamKey);
     // convert dataURL to blob
     const res = await fetch(dataUrl);
     const blob = await res.blob();
@@ -899,6 +905,8 @@ export async function uploadPitImage(teamKey: string, dataUrl: string) {
       console.error('uploadPitImage: upload error', uploadErr);
       throw uploadErr;
     }
+    // eslint-disable-next-line no-console
+    console.debug('uploadPitImage: upload response', uploadData);
     // get public URL (Supabase returns { data: { publicUrl } })
     const publicRes: any = client.storage.from('pit-images').getPublicUrl(filename);
     const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
@@ -907,6 +915,8 @@ export async function uploadPitImage(teamKey: string, dataUrl: string) {
       console.warn('uploadPitImage: could not obtain public URL for', filename, publicRes);
       return null;
     }
+    // eslint-disable-next-line no-console
+    console.debug('uploadPitImage: completed upload ->', publicUrl);
     return publicUrl;
   } catch (err) {
     // eslint-disable-next-line no-console
