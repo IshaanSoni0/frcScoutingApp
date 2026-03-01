@@ -892,12 +892,25 @@ export async function uploadPitImage(teamKey: string, dataUrl: string) {
     const ext = (blob.type && blob.type.split('/')[1]) || 'jpg';
     const filename = `${teamKey}/${Date.now()}-${uuidv4()}.${ext}`;
     // upload to bucket 'pit-images' (bucket must exist)
-    const { error: uploadErr } = await client.storage.from('pit-images').upload(filename, blob, { upsert: false });
-    if (uploadErr) throw uploadErr;
-    // get public URL
-    const { publicURL } = client.storage.from('pit-images').getPublicUrl(filename) as any;
-    return publicURL;
+    // include contentType so Supabase stores correct metadata
+    const { data: uploadData, error: uploadErr } = await client.storage.from('pit-images').upload(filename, blob, { upsert: false, contentType: blob.type });
+    if (uploadErr) {
+      // eslint-disable-next-line no-console
+      console.error('uploadPitImage: upload error', uploadErr);
+      throw uploadErr;
+    }
+    // get public URL (Supabase returns { data: { publicUrl } })
+    const publicRes: any = client.storage.from('pit-images').getPublicUrl(filename);
+    const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
+    if (!publicUrl) {
+      // eslint-disable-next-line no-console
+      console.warn('uploadPitImage: could not obtain public URL for', filename, publicRes);
+      return null;
+    }
+    return publicUrl;
   } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('uploadPitImage: exception', err);
     throw err;
   }
 }
