@@ -387,7 +387,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                     <option value="level1">Level 1</option>
                     <option value="level2">Level 2</option>
                     <option value="level3">Level 3</option>
-                    <option value="didnt_climb">Didn\'t climb</option>
+                    <option value="didnt_climb">Didn't climb</option>
                   </select>
                 </div>
               </div>
