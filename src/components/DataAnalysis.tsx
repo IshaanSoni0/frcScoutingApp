@@ -34,9 +34,16 @@ type TeamStats = {
   driverSkill: string; // Low/Medium/High or N/A
   robotSpeed: string; // Slow/Medium/Fast or N/A
   defense: string; // None/Bad/OK/Great or N/A
+  avgDefenseTimeSeconds: number; // average total defense time in seconds (first+second)
 };
 
 export function DataAnalysis({ onBack }: DataAnalysisProps) {
+  const formatSeconds = (s: number) => {
+    if (!s || s <= 0) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
   const [rows, setRows] = useState<ScoutingData[]>([]);
   const [matchesVersion, setMatchesVersion] = useState(0);
   const [loadingServer, setLoadingServer] = useState(false);
@@ -349,6 +356,14 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const avgEndgameFuel = avg(teleopEndgame);
       const avgTotalFuel = avg(autoFuelArr.map((v, i) => v + teleopTransition[i] + teleopFirst[i] + teleopSecond[i] + teleopEndgame[i]));
 
+      // average total defense time per entry (firstDefense.duration + secondDefense.duration)
+      const defenseDurations = entries.map(e => {
+        const fd = (e.teleop as any)?.firstDefense?.duration || 0;
+        const sd = (e.teleop as any)?.secondDefense?.duration || 0;
+        return Number(fd || 0) + Number(sd || 0);
+      });
+      const avgDefenseTimeSeconds = defenseDurations.length === 0 ? 0 : Math.round((sum(defenseDurations) / defenseDurations.length));
+
       const climbedArr = entries.map(e => e.auto?.climbed ? 1 : 0);
       const avgClimbedPercent = (climbedArr.length === 0 ? 0 : (sum(climbedArr) / climbedArr.length) * 100);
       const mapClimb = (c: any) => {
@@ -376,6 +391,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
           avgTotalFuel: Math.round(avgTotalFuel * 100) / 100,
           avgClimbedPercent: Math.round(avgClimbedPercent * 100) / 100,
           maxClimbLevel,
+          avgDefenseTimeSeconds,
           trench: trenchVal,
           shootingAccuracy: avgShootingAcc === 0 ? 'N/A' : mapBackShootingAcc(avgShootingAcc),
           shootingSpeed: avgShootingSpeed === 0 ? 'N/A' : mapBackSpeedLike(avgShootingSpeed),
@@ -770,6 +786,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Intake Speed</th>
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Robot Range</th>
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Defense</th>
+                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Avg Def Time</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -799,6 +816,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.intakeSpeed}</td>
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.robotRange}</td>
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.defense}</td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{formatSeconds(t.avgDefenseTimeSeconds)}</td>
                         
                       </tr>
                     ))}
