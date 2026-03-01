@@ -3,6 +3,7 @@ import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
 import { fetchServerScouting, deleteScoutingFromServer, performFullRefresh } from '../services/syncService';
 import { ArrowLeft, BarChart3, Download } from 'lucide-react';
+import supabase from '../services/supabaseClient';
 
 interface DataAnalysisProps {
   onBack: () => void;
@@ -480,6 +481,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [teamMatches, setTeamMatches] = useState<any[]>([]);
   const [showPitView, setShowPitView] = useState(false);
+  const [serverPitData, setServerPitData] = useState<any | null>(null);
+  const [loadingPit, setLoadingPit] = useState(false);
+  const [pitError, setPitError] = useState<string | null>(null);
 
   const handleClearData = () => {
     (async () => {
@@ -503,7 +507,63 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const totalTeams = teamStats.length;
   const totalEntries = rows.length;
 
-  const selectedPitData = selectedTeam ? DataService.getPitData(selectedTeam) : null;
+  // prefer server pit data when available, otherwise fall back to local storage
+  const selectedPitDataLocal = selectedTeam ? DataService.getPitData(selectedTeam) : null;
+  const selectedPitData = serverPitData || selectedPitDataLocal;
+
+  // fetch pit data from supabase when pit view is opened for a selected team
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!selectedTeam || !showPitView) return;
+      setLoadingPit(true);
+      setPitError(null);
+      setServerPitData(null);
+      const client = supabase;
+      if (!client) {
+        setLoadingPit(false);
+        return;
+      }
+      const tableCandidates = ['pit', 'pit_data', 'pit_scouting', 'pit_scouts'];
+      try {
+        for (const table of tableCandidates) {
+          try {
+            const { data, error } = await client.from(table).select('*').eq('team_key', selectedTeam).limit(1).maybeSingle();
+            if (error) {
+              // table may not exist or other error; try next
+              continue;
+            }
+            if (data) {
+              if (!mounted) return;
+              // normalize server row fields to match local shape if necessary
+              const normalized = {
+                underTrench: data.under_trench ?? data.underTrench ?? data.under_trench === true,
+                climbLevel: data.climb_level ?? data.climbLevel ?? data.climbLevel,
+                climbPositions: data.climb_positions ?? data.climbPositions ?? data.climbPositions,
+                hasAuto: data.has_auto ?? data.hasAuto ?? false,
+                canClimbInAuto: data.can_climb_in_auto ?? data.canClimbInAuto ?? false,
+                autoTypes: data.auto_types ?? data.autoTypes ?? data.autoTypes,
+                updatedAt: data.updated_at ? Date.parse(data.updated_at) : (data.updatedAt || null),
+              };
+              setServerPitData(normalized as any);
+              setLoadingPit(false);
+              return;
+            }
+          } catch (e) {
+            // ignore and try next table
+            // eslint-disable-next-line no-console
+            console.debug('DataAnalysis: pit table check failed for', table, e);
+            continue;
+          }
+        }
+        setLoadingPit(false);
+      } catch (e: any) {
+        setPitError(String(e?.message || e));
+        setLoadingPit(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [selectedTeam, showPitView]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
