@@ -23,7 +23,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     defense: 'na' as 'na' | 'bad' | 'average' | 'good',
     robotShutdown: 'no' as 'no' | 'part' | 'full',
     dataConfidence: 'confident' as 'confident' | 'a_little_confident' | 'not_confident',
-    matchClimbed: false,
+    matchClimbed: 'didnt_climb' as 'level1' | 'level2' | 'level3' | 'didnt_climb',
   }));
 
   // Prefill when editing an existing record
@@ -50,7 +50,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
         robotShutdown: existing.robotShutdown ?? 'no',
         dataConfidence: existing.dataConfidence ?? 'confident',
         defense: existing.defense ?? 'na',
-        matchClimbed: (existing.matchClimbed ?? existing.auto?.climbed) ?? false,
+        matchClimbed: (existing.matchClimbed ?? (existing.auto?.climbed ? 'level1' : 'didnt_climb')) ?? 'didnt_climb',
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -381,15 +381,15 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                   <option value="not_confident">Not confident</option>
                 </select>
 
-                <label className="flex items-center gap-2 mt-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.matchClimbed}
-                    onChange={(e) => setFormData(prev => ({ ...prev, matchClimbed: e.target.checked }))}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-gray-700">Climbed (match)</span>
-                </label>
+                <div className="mt-3">
+                  <label className="block mb-1 font-medium text-gray-700">Climb (match)</label>
+                  <select value={formData.matchClimbed} onChange={(e) => setFormData(prev => ({ ...prev, matchClimbed: e.target.value as any }))} className="w-full border rounded p-2">
+                    <option value="level1">Level 1</option>
+                    <option value="level2">Level 2</option>
+                    <option value="level3">Level 3</option>
+                    <option value="didnt_climb">Didn\'t climb</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
