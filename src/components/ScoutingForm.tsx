@@ -216,11 +216,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     React.useEffect(() => {
       if (!running) return;
       intervalRef.current = window.setInterval(() => {
-        setElapsed((e) => {
-          const next = e + 1;
-          onChange(next);
-          return next;
-        });
+        setElapsed((e) => e + 1);
       }, 1000);
       return () => {
         if (intervalRef.current) {
@@ -244,7 +240,17 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
           Reset
         </button>
         <div className="text-lg font-mono bg-gray-100 px-3 py-2 rounded">{minutes}:{seconds}</div>
-        <button type="button" onClick={() => setRunning((r) => !r)} className={`px-3 py-2 text-sm rounded ${running ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
+        <button type="button" onClick={() => {
+          // toggle running; when stopping (running -> false) sync elapsed to parent
+          setRunning((r) => {
+            const next = !r;
+            if (r) {
+              // was running, now stopping -> persist elapsed
+              onChange(elapsed);
+            }
+            return next;
+          });
+        }} className={`px-3 py-2 text-sm rounded ${running ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
           {running ? 'Stop' : 'Start'}
         </button>
       </div>
