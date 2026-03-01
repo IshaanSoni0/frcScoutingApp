@@ -699,8 +699,45 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <div className="p-4 bg-gray-50 rounded border">
                     {!selectedPitData ? (
                       <div className="italic text-gray-500 p-3">No pit scouting data for this team.</div>
-                    ) : (
-                      <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(selectedPitData, null, 2)}</pre>
+                      ) : (
+                      <div className="text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Under Trench</div>
+                            <div className="font-medium">{selectedPitData.underTrench ? 'Yes' : 'No'}</div>
+                          </div>
+
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Climb Level</div>
+                            <div className="font-medium">{selectedPitData.climbLevel || 'N/A'}</div>
+                          </div>
+
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Climb Positions</div>
+                            <div className="font-medium">{selectedPitData.climbPositions ? Object.entries(selectedPitData.climbPositions).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
+                          </div>
+
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Has Auto</div>
+                            <div className="font-medium">{selectedPitData.hasAuto ? 'Yes' : 'No'}</div>
+                          </div>
+
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Can Climb In Auto</div>
+                            <div className="font-medium">{selectedPitData.canClimbInAuto ? 'Yes' : 'No'}</div>
+                          </div>
+
+                          <div className="p-2">
+                            <div className="text-xs text-gray-500">Auto Types</div>
+                            <div className="font-medium">{selectedPitData.autoTypes ? Object.entries(selectedPitData.autoTypes).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
+                          </div>
+
+                          <div className="p-2 md:col-span-2">
+                            <div className="text-xs text-gray-500">Updated</div>
+                            <div className="font-medium">{selectedPitData.updatedAt ? new Date(selectedPitData.updatedAt).toLocaleString() : 'Unknown'}</div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ) : (
