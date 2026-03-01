@@ -239,14 +239,14 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     const seconds = (elapsed % 60).toString().padStart(2, '0');
 
     return (
-      <div className="flex items-center gap-2">
-        <div className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">{minutes}:{seconds}</div>
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={() => setRunning((r) => !r)} className={`px-2 py-1 text-xs rounded ${running ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
-            {running ? 'Stop' : 'Start'}
-          </button>
-          <button type="button" onClick={() => { setRunning(false); setElapsed(0); onChange(0); }} className="px-2 py-1 text-xs rounded bg-gray-200">Reset</button>
-        </div>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={() => { setRunning(false); setElapsed(0); onChange(0); }} className="px-3 py-2 text-sm rounded bg-gray-200 hover:bg-gray-300">
+          Reset
+        </button>
+        <div className="text-lg font-mono bg-gray-100 px-3 py-2 rounded">{minutes}:{seconds}</div>
+        <button type="button" onClick={() => setRunning((r) => !r)} className={`px-3 py-2 text-sm rounded ${running ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
+          {running ? 'Stop' : 'Start'}
+        </button>
       </div>
     );
   }
