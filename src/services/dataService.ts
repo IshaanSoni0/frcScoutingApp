@@ -4,6 +4,7 @@ import { migrateLocalToServer } from './syncService';
 
 const STORAGE_KEYS = {
   SCOUTING_DATA: 'frc-scouting-data',
+  PIT_DATA: 'frc-pit-data',
   SCOUTERS: 'frc-scouters',
   MATCHES: 'frc-matches',
   SELECTED_EVENT: 'frc-selected-event',
@@ -116,6 +117,29 @@ export class DataService {
       localStorage.removeItem(STORAGE_KEYS.SELECTED_EVENT);
     } catch {
       // ignore
+    }
+  }
+
+  // PIT scouting helpers
+  static savePitData(teamKey: string, data: any): void {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.PIT_DATA) || '{}';
+      const obj = JSON.parse(raw || '{}');
+      obj[teamKey] = { ...(obj[teamKey] || {}), ...data, updatedAt: Date.now() };
+      localStorage.setItem(STORAGE_KEYS.PIT_DATA, JSON.stringify(obj));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  static getPitData(teamKey?: string): any {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.PIT_DATA) || '{}';
+      const obj = JSON.parse(raw || '{}');
+      if (teamKey) return obj[teamKey] || null;
+      return obj;
+    } catch (e) {
+      return teamKey ? null : {};
     }
   }
 
