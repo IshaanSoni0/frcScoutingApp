@@ -732,7 +732,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
               <div className="w-full">
                 {showPitView && (
-                  <div className="p-4 bg-gray-50 rounded border">
+                  <div className="p-4">
                     {pitLoading ? (
                       <div className="italic text-gray-500 p-3">Loading pit data...</div>
                     ) : pitError ? (
@@ -740,41 +740,41 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     ) : !pitData ? (
                       <div className="italic text-gray-500 p-3">No pit scouting data for this team.</div>
                     ) : (
-                      <div className="text-sm">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="p-2">
-                            <div className="text-xs text-gray-500">Under Trench</div>
-                            <div className="font-medium">{pitData?.underTrench ? 'Yes' : 'No'}</div>
-                          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-white border rounded-lg p-4 shadow-sm">
+                          <div className="text-xs text-gray-500">Under Trench</div>
+                          <div className="mt-1 text-sm font-medium text-gray-900">{pitData?.underTrench ? 'Yes' : 'No'}</div>
+                        </div>
 
-                          <div className="p-2">
-                            <div className="text-xs text-gray-500">Climb Level</div>
-                            <div className="font-medium">{pitData?.climbLevel || 'N/A'}</div>
-                          </div>
+                        <div className="bg-white border rounded-lg p-4 shadow-sm">
+                          <div className="text-xs text-gray-500">Climb Level</div>
+                          <div className="mt-1 text-sm font-medium text-gray-900">{pitData?.climbLevel || 'N/A'}</div>
+                        </div>
 
-                          <div className="p-2">
-                            <div className="text-xs text-gray-500">Climb Positions</div>
-                            <div className="font-medium">{pitData?.climbPositions ? Object.entries(pitData.climbPositions).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
-                          </div>
+                        <div className="bg-white border rounded-lg p-4 shadow-sm">
+                          <div className="text-xs text-gray-500">Has Auto</div>
+                          <div className="mt-1 text-sm font-medium text-gray-900">{pitData?.hasAuto ? 'Yes' : 'No'}</div>
+                        </div>
 
-                          <div className="p-2">
-                            <div className="text-xs text-gray-500">Has Auto</div>
-                            <div className="font-medium">{pitData?.hasAuto ? 'Yes' : 'No'}</div>
-                          </div>
+                        <div className="bg-white border rounded-lg p-4 shadow-sm">
+                          <div className="text-xs text-gray-500">Can Climb In Auto</div>
+                          <div className="mt-1 text-sm font-medium text-gray-900">{pitData?.canClimbInAuto ? 'Yes' : 'No'}</div>
+                        </div>
 
-                          <div className="p-2">
-                            <div className="text-xs text-gray-500">Can Climb In Auto</div>
-                            <div className="font-medium">{pitData?.canClimbInAuto ? 'Yes' : 'No'}</div>
-                          </div>
+                        <div className="bg-white border rounded-lg p-4 shadow-sm">
+                          <div className="text-xs text-gray-500">Climb Positions</div>
+                          <div className="mt-1 text-sm font-medium text-gray-900">{pitData?.climbPositions ? Object.entries(pitData.climbPositions).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
+                        </div>
 
-                          <div className="p-2">
-                            <div className="text-xs text-gray-500">Auto Types</div>
-                            <div className="font-medium">{pitData?.autoTypes ? Object.entries(pitData.autoTypes).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
-                          </div>
+                        <div className="bg-white border rounded-lg p-4 shadow-sm">
+                          <div className="text-xs text-gray-500">Auto Types</div>
+                          <div className="mt-1 text-sm font-medium text-gray-900">{pitData?.autoTypes ? Object.entries(pitData.autoTypes).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
+                        </div>
 
-                          <div className="p-2 md:col-span-2">
+                        <div className="md:col-span-3">
+                          <div className="bg-white border rounded-lg p-4 shadow-sm">
                             <div className="text-xs text-gray-500">Updated</div>
-                            <div className="font-medium">{pitData?.updatedAt ? new Date(pitData.updatedAt).toLocaleString() : 'Unknown'}</div>
+                            <div className="mt-1 text-sm font-medium text-gray-900">{pitData?.updatedAt ? new Date(pitData.updatedAt).toLocaleString() : 'Unknown'}</div>
                           </div>
                         </div>
                       </div>
