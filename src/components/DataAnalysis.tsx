@@ -452,12 +452,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     const headers = ['Team', 'Count'];
     if (showAuto) headers.push('Auto Avg Fuel', 'Auto Climb (max, %)');
     if (showTeleop) headers.push('Teleop Avg Fuel', 'Total Avg Fuel');
-    headers.push('Matches Scouted', 'Died (count/matches)', 'Driver Skill', 'Driving Speed', 'Trench', 'Shooting Acc', 'Shooting Speed', 'Intake Speed', 'Robot Range', 'Defense');
+    headers.push('Matches Scouted', 'Died (count/matches)', 'Defense');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
       if (showAuto) base.push(t.avgAutoFuel, `${t.maxClimbLevel}, ${t.avgClimbedPercent.toFixed(1)}%`);
       if (showTeleop) base.push(t.avgTeleopFuel, t.avgTotalFuel);
-      base.push(`${t.matchesPlayed}/${t.matchesScheduled}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.trench, t.shootingAccuracy, t.shootingSpeed, t.intakeSpeed, t.robotRange, t.defense);
+      base.push(`${t.matchesPlayed}/${t.matchesScheduled}`, `${t.diedCount}/${t.matchesPlayed}`, t.defense);
       return base;
     });
     const csv = [headers, ...rowsCsv].map(r => r.join(',')).join('\n');
@@ -644,13 +644,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                 <th onClick={() => toggleSort('avgTotalFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Total Avg Fuel</th>
                                 <th onClick={() => toggleSort('avgClimbedPercent')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Auto Climb (max, %)</th>
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Died</th>
-                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Driver Skill</th>
-                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Driving Speed</th>
-                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Trench</th>
-                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Shooting Acc</th>
-                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Shooting Speed</th>
-                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Intake Speed</th>
-                                <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Robot Range</th>
+                                {/* Removed: Driver Skill, Driving Speed, Trench, Shooting Acc, Shooting Speed, Intake Speed, Robot Range */}
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Defense</th>
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Avg Def Time</th>
                     </tr>
@@ -671,13 +665,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTotalFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.maxClimbLevel}, {t.avgClimbedPercent.toFixed(1)}%</td>
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.diedCount}/{t.matchesPlayed}</td>
-                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.driverSkill}</td>
-                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.robotSpeed}</td>
-                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.trench}</td>
-                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.shootingAccuracy}</td>
-                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.shootingSpeed}</td>
-                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.intakeSpeed}</td>
-                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.robotRange}</td>
+                        {/* Removed: t.driverSkill, t.robotSpeed, t.trench, t.shootingAccuracy, t.shootingSpeed, t.intakeSpeed, t.robotRange */}
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.defense}</td>
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{formatSeconds(t.avgDefenseTimeSeconds)}</td>
                         
@@ -712,22 +700,15 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">Total Avg Fuel</th>
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">High Climb</th>
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">Died</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Trench</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Shooting Acc</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Shooting Speed</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Intake Speed</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Robot Range</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Driver Skill</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Driving Speed</th>
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">Defense</th>
                     </tr>
                   </thead>
                   <tbody>
                     {teamMatches.map(m => (
-                      m.notScouted ? (
+                        m.notScouted ? (
                         <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
                           <td className="py-2 align-top break-words px-3 text-center">{m.matchLabel}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300" colSpan={19}>
+                          <td className="py-2 align-top px-3 border-l border-gray-300" colSpan={10}>
                             <div className="italic text-gray-500 p-3 bg-gray-50 rounded">This match has not been scouted</div>
                           </td>
                         </tr>
@@ -741,13 +722,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTotalFuel.toFixed(2)}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.highClimb}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.died}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.trench || 'N/A'}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.shootingAccuracy || 'N/A'}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.shootingSpeed || 'N/A'}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.intakeSpeed || 'N/A'}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.robotRange || 'N/A'}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.driverSkill}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.robotSpeed}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.defense}</td>
                         </tr>
                       )
