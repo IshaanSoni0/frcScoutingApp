@@ -14,7 +14,7 @@ interface ScoutingFormProps {
 
 export function ScoutingForm({ match, user, onBack, onSubmit, existing }: ScoutingFormProps) {
   const [formData, setFormData] = useState(() => ({
-    auto: { fuel: 0, neutralZone: false, depot: false, outpost: false, climbed: false },
+    auto: { fuel: 0, climbed: false },
     teleop: {
       offence: { fuel: 0 },
       defense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
@@ -23,6 +23,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     defense: 'na' as 'na' | 'bad' | 'average' | 'good',
     robotShutdown: 'no' as 'no' | 'part' | 'full',
     dataConfidence: 'confident' as 'confident' | 'a_little_confident' | 'not_confident',
+    matchClimbed: false,
   }));
 
   // Prefill when editing an existing record
@@ -37,9 +38,6 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
       setFormData({
         auto: {
           fuel: existing.auto?.fuel ?? legacyAutoFuel ?? 0,
-          neutralZone: !!existing.auto?.neutralZone,
-          depot: !!existing.auto?.depot,
-          outpost: !!existing.auto?.outpost,
           climbed: !!existing.auto?.climbed,
         },
         teleop: {
@@ -52,6 +50,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
         robotShutdown: existing.robotShutdown ?? 'no',
         dataConfidence: existing.dataConfidence ?? 'confident',
         defense: existing.defense ?? 'na',
+        matchClimbed: (existing.matchClimbed ?? existing.auto?.climbed) ?? false,
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -290,37 +289,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.auto.neutralZone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, neutralZone: e.target.checked } }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">Collected from Neutral Zone</span>
-              </label>
-
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.auto.depot}
-                  onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, depot: e.target.checked } }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">Collected from Depot</span>
-              </label>
-
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.auto.outpost}
-                  onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, outpost: e.target.checked } }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">Collected from Outpost</span>
-              </label>
-
+            <div className="grid grid-cols-1 gap-3">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -411,6 +380,16 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                   <option value="a_little_confident">A little confident</option>
                   <option value="not_confident">Not confident</option>
                 </select>
+
+                <label className="flex items-center gap-2 mt-3">
+                  <input
+                    type="checkbox"
+                    checked={formData.matchClimbed}
+                    onChange={(e) => setFormData(prev => ({ ...prev, matchClimbed: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-700">Climbed (match)</span>
+                </label>
               </div>
             </div>
           </div>
