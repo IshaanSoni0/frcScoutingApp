@@ -22,8 +22,7 @@ type TeamStats = {
   matchesScheduled: number; // total matches the team is scheduled to play (from matches list)
   highClimbCount: number; // number of matches where majority reported high climb
   diedCount: number; // number of matches where majority reported died
-  avgEndgameFuel: number; // average endgame fuel (shift-style endgame fuel)
-  avgTotalFuel: number; // average total fuel per match (auto + teleop parts + endgame)
+  avgTotalFuel: number; // average total fuel per match (auto + teleop offence)
   maxClimbLevel: number; // maximum climb level observed (0-3)
   trench: string; // Yes/No/N/A
   shootingAccuracy: string; // descriptive label or N/A
@@ -98,11 +97,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                 defense: rawTele.defense?.defense ?? 'na',
                 duration: rawTele.defense?.duration ?? 0,
               },
-              endgame: {
-                fuel: typeof rawTele.endgame?.fuel === 'number' ? rawTele.endgame.fuel : 0,
-              },
             },
-            endgame: r.payload?.endgame || { climb: 'none' },
             defense: r.payload?.defense || 'none',
             timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
           } as any;
@@ -181,9 +176,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         defense: rawTele.defense?.defense ?? 'na',
                         duration: rawTele.defense?.duration ?? 0,
                       },
-                      endgame: { fuel: typeof rawTele.endgame?.fuel === 'number' ? rawTele.endgame.fuel : 0 },
                     },
-            endgame: r.payload?.endgame || { climb: 'none' },
             defense: r.payload?.defense || 'none',
             timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
           } as any;
@@ -246,83 +239,37 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         return yes / arr.length >= 0.5;
       };
 
-      // per-match majority for high climbs and died
+      // endgame-related fields removed; populate default/placeholder values
       let highClimbCount = 0;
       let diedCount = 0;
-      matchKeys.forEach(mk => {
-        const scouters = byMatch[mk];
-        const isHigh = majority(scouters, (s) => (s.endgame?.climb === 'high'));
-        if (isHigh) highClimbCount += 1;
-        const isDied = majority(scouters, (s) => (s.endgame?.died && s.endgame.died !== 'none'));
-        if (isDied) diedCount += 1;
-      });
-
-      // average mapping helpers for driverSkill, robotSpeed, defense
-      // map new endgame fields: drivingSkill and drivingSpeed
-      const mapDriver = (v: any) => (v === 'poor' ? 1 : v === 'average' ? 2 : v === 'good' ? 3 : v === 'excellent' ? 4 : 0);
-      const mapSpeed = (v: any) => (v === 'very_slow' ? 1 : v === 'slow' ? 2 : v === 'average' ? 3 : v === 'moderately_fast' ? 4 : v === 'very_fast' ? 5 : 0);
       const mapDefense = (v: any) => (v === 'none' ? 1 : v === 'bad' ? 2 : v === 'ok' ? 3 : v === 'great' ? 4 : 0);
-
-      const driverVals = entries.map(e => mapDriver((e.endgame as any)?.drivingSkill));
-      const speedVals = entries.map(e => mapSpeed((e.endgame as any)?.drivingSpeed));
       const defVals = entries.map(e => mapDefense(e.defense));
-
       const avgOrNA = (arr: number[]) => {
         const nonZero = arr.filter(v => v > 0);
         if (nonZero.length === 0) return 0;
         return Math.round((nonZero.reduce((s, v) => s + v, 0) / nonZero.length) * 100) / 100;
       };
-
-      const avgDriver = avgOrNA(driverVals);
-      const avgSpeed = avgOrNA(speedVals);
+      const avgDriver = 0;
+      const avgSpeed = 0;
       const avgDefense = avgOrNA(defVals);
-
-      const mapBackDriver = (v: number) => v <= 1.5 ? 'Low' : v <= 2.5 ? 'Medium' : 'High';
-      const mapBackSpeed = (v: number) => v <= 1.5 ? 'Slow' : v <= 2.5 ? 'Medium' : 'Fast';
+      const mapBackDriver = (v: number) => 'N/A';
+      const mapBackSpeed = (v: number) => 'N/A';
       const mapBackDefense = (v: number) => v <= 1.5 ? 'None/Bad' : v <= 2.5 ? 'OK' : 'Great';
       const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
-
-      // map and aggregate trench, shooting accuracy/speed, intake speed, and robot range
-      const mapShootingAccuracy = (v: any) => (
-        v === 'very_inaccurate' ? 1 : v === 'inaccurate' ? 2 : v === 'moderately_accurate' ? 3 : v === 'accurate' ? 4 : v === 'very_accurate' ? 5 : 0
-      );
-      const mapSpeedLike = (v: any) => (
-        v === 'very_slow' ? 1 : v === 'slow' ? 2 : v === 'average' ? 3 : v === 'moderately_fast' ? 4 : v === 'very_fast' ? 5 : 0
-      );
-      const mapRange = (v: any) => (
-        v === 'short' ? 1 : v === 'average' ? 2 : v === 'long' ? 3 : v === 'very_long' ? 4 : 0
-      );
-
-      const shootingAccVals = entries.map(e => mapShootingAccuracy((e.endgame as any)?.shootingAccuracy));
-      const shootingSpeedVals = entries.map(e => mapSpeedLike((e.endgame as any)?.shootingSpeed));
-      const intakeSpeedVals = entries.map(e => mapSpeedLike((e.endgame as any)?.intakeSpeed));
-      const rangeVals = entries.map(e => mapRange((e.endgame as any)?.robotRange));
-
-      const avgShootingAcc = avgOrNA(shootingAccVals);
-      const avgShootingSpeed = avgOrNA(shootingSpeedVals);
-      const avgIntakeSpeed = avgOrNA(intakeSpeedVals);
-      const avgRange = avgOrNA(rangeVals);
-
-      const mapBackShootingAcc = (v: number) => v <= 1.5 ? 'Very Inaccurate' : v <= 2.5 ? 'Inaccurate' : v <= 3.5 ? 'Moderately Accurate' : v <= 4.5 ? 'Accurate' : 'Very Accurate';
-      const mapBackSpeedLike = (v: number) => v <= 1.5 ? 'Very Slow' : v <= 2.5 ? 'Slow' : v <= 3.5 ? 'Average' : v <= 4.5 ? 'Moderately Fast' : 'Very Fast';
-      const mapBackRange = (v: number) => v <= 1.5 ? 'Short' : v <= 2.5 ? 'Average' : v <= 3.5 ? 'Long' : 'Very Long';
-
-      // trench majority
-      const trenchYes = entries.filter(e => ((e.endgame as any)?.trench === 'yes')).length;
-      const trenchNo = entries.filter(e => ((e.endgame as any)?.trench === 'no')).length;
-      const trenchVal = entries.length === 0 ? 'N/A' : (trenchYes / entries.length >= 0.5 ? 'Yes' : (trenchNo / entries.length >= 0.5 ? 'No' : 'N/A'));
-
+      const avgShootingAcc = 0;
+      const avgShootingSpeed = 0;
+      const avgIntakeSpeed = 0;
+      const avgRange = 0;
+      const trenchVal = 'N/A';
       // New scouter shape: auto.fuel (number), teleop.offence.fuel and teleop.defense.duration
       const autoFuelArr = entries.map(e => (typeof e.auto?.fuel === 'number' ? e.auto.fuel : 0));
       const teleopOffence = entries.map(e => (typeof e.teleop?.offence?.fuel === 'number' ? e.teleop.offence.fuel : 0));
-      const teleopEndgame = entries.map(e => (typeof (e.endgame as any)?.fuel === 'number' ? (e.endgame as any).fuel : 0));
 
       const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
 
       const avgAutoFuel = avg(autoFuelArr);
       const avgTeleopFuel = avg(teleopOffence);
-      const avgEndgameFuel = avg(teleopEndgame);
-      const avgTotalFuel = avg(autoFuelArr.map((v, i) => v + teleopOffence[i] + teleopEndgame[i]));
+      const avgTotalFuel = avg(autoFuelArr.map((v, i) => v + teleopOffence[i]));
 
       // average total defense time per entry (teleop.defense.duration)
       const defenseDurations = entries.map(e => Number((e.teleop as any)?.defense?.duration || 0));
@@ -330,17 +277,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
       const climbedArr = entries.map(e => e.auto?.climbed ? 1 : 0);
       const avgClimbedPercent = (climbedArr.length === 0 ? 0 : (sum(climbedArr) / climbedArr.length) * 100);
-      const mapClimb = (c: any) => {
-        if (!c) return 0;
-        if (typeof c === 'number') return c;
-        const s = String(c).toLowerCase();
-        if (s === 'level3' || s === '3' || s === 'high') return 3;
-        if (s === 'level2' || s === '2' || s === 'medium') return 2;
-        if (s === 'level1' || s === '1' || s === 'low') return 1;
-        return 0;
-      };
-      const climbLevels = entries.map(e => mapClimb((e.endgame as any)?.climb));
-      const maxClimbLevel = climbLevels.length === 0 ? 0 : Math.max(...climbLevels);
+      const maxClimbLevel = 0;
 
       return {
         teamKey: tk,
@@ -348,18 +285,16 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         count,
           avgAutoFuel: Math.round(avgAutoFuel * 100) / 100,
           avgTeleopFuel: Math.round(avgTeleopFuel * 100) / 100,
-  
-          
-          avgEndgameFuel: Math.round(avgEndgameFuel * 100) / 100,
+
           avgTotalFuel: Math.round(avgTotalFuel * 100) / 100,
           avgClimbedPercent: Math.round(avgClimbedPercent * 100) / 100,
           maxClimbLevel,
           avgDefenseTimeSeconds,
           trench: trenchVal,
-          shootingAccuracy: avgShootingAcc === 0 ? 'N/A' : mapBackShootingAcc(avgShootingAcc),
-          shootingSpeed: avgShootingSpeed === 0 ? 'N/A' : mapBackSpeedLike(avgShootingSpeed),
-          intakeSpeed: avgIntakeSpeed === 0 ? 'N/A' : mapBackSpeedLike(avgIntakeSpeed),
-          robotRange: avgRange === 0 ? 'N/A' : mapBackRange(avgRange),
+          shootingAccuracy: 'N/A',
+          shootingSpeed: 'N/A',
+          intakeSpeed: 'N/A',
+          robotRange: 'N/A',
   matchesPlayed,
   matchesScheduled,
         highClimbCount,
@@ -443,43 +378,27 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
         const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
 
-        // New scouter schema: auto.fuel and teleop.{transition,firstOffence,secondOffence}.fuel
+        // New scouter schema: auto.fuel and teleop.offence.fuel
         const autoFuelArr = scouterEntries.map(e => (typeof e.auto?.fuel === 'number' ? e.auto.fuel : 0));
         const avgAutoFuel = avg(autoFuelArr);
 
-        const teleopOffence = scouterEntries.map(e => {
-          if (typeof e.teleop?.offence?.fuel === 'number') return e.teleop.offence.fuel;
-          const f = typeof e.teleop?.firstOffence?.fuel === 'number' ? e.teleop.firstOffence.fuel : 0;
-          const s = typeof e.teleop?.secondOffence?.fuel === 'number' ? e.teleop.secondOffence.fuel : 0;
-          return f + s;
-        });
-        const teleopEndgame = scouterEntries.map(e => (typeof (e.endgame as any)?.fuel === 'number' ? (e.endgame as any).fuel : 0));
+        const teleopOffence = scouterEntries.map(e => (typeof e.teleop?.offence?.fuel === 'number' ? e.teleop.offence.fuel : 0));
         const avgTeleopFirst = 0;
         const avgTeleopSecond = 0;
         const avgTeleopTotal = avg(teleopOffence.map((v, i) => v));
-        const avgEndgame = avg(teleopEndgame);
-        const avgTotal = avg(autoFuelArr.map((v, i) => v + teleopOffence[i] + teleopEndgame[i]));
+        const avgTotal = avg(autoFuelArr.map((v, i) => v + teleopOffence[i]));
 
-      // endgame majority for this match
-      const majority = (arr: any[], fn: (v: any) => boolean) => {
-        if (!arr || arr.length === 0) return false;
-        const yes = arr.filter(fn).length;
-        return yes / arr.length >= 0.5;
-      };
-      // consider highest climb level (level3) as "high"
-      const isHighClimb = majority(scouterEntries, (s) => (s.endgame?.climb === 'level3'));
-      const isDied = majority(scouterEntries, (s) => (s.endgame?.died && s.endgame.died !== 'none'));
-      // map new drivingSkill / drivingSpeed values to numeric for averaging
-      const mapDriver = (v: any) => (v === 'poor' ? 1 : v === 'average' ? 2 : v === 'good' ? 3 : v === 'excellent' ? 4 : 0);
-      const mapSpeed = (v: any) => (v === 'very_slow' ? 1 : v === 'slow' ? 2 : v === 'average' ? 3 : v === 'moderately_fast' ? 4 : v === 'very_fast' ? 5 : 0);
+      // endgame removed: use defaults for match-level endgame-derived stats
+      const majority = (arr: any[], fn: (v: any) => boolean) => false;
+      const isHighClimb = false;
+      const isDied = false;
       const mapDefense = (v: any) => (v === 'none' ? 1 : v === 'bad' ? 2 : v === 'ok' ? 3 : v === 'great' ? 4 : 0);
-
-      const avgDriverVal = avg(scouterEntries.map(e => mapDriver((e.endgame as any)?.drivingSkill)));
-      const avgSpeedVal = avg(scouterEntries.map(e => mapSpeed((e.endgame as any)?.drivingSpeed)));
+      const avgDriverVal = 0;
+      const avgSpeedVal = 0;
       const avgDefVal = avg(scouterEntries.map(e => mapDefense(e.defense)));
 
-      const mapBackDriver = (v: number) => v <= 1.5 ? 'Poor' : v <= 2.5 ? 'Average' : v <= 3.5 ? 'Good' : 'Excellent';
-      const mapBackSpeed = (v: number) => v <= 1.5 ? 'Very Slow' : v <= 2.5 ? 'Slow' : v <= 3.5 ? 'Average' : v <= 4.5 ? 'Moderately Fast' : 'Very Fast';
+      const mapBackDriver = (v: number) => 'N/A';
+      const mapBackSpeed = (v: number) => 'N/A';
       const mapBackDefense = (v: number) => v <= 1.5 ? 'None/Bad' : v <= 2.5 ? 'OK' : 'Great';
 
       const matchInfo = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt).find((m: any) => m.key === mk);
@@ -491,10 +410,14 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         scouterCount: scouterEntries.length,
         avgAutoFuel: Math.round(avgAutoFuel * 100) / 100,
         avgTeleopTotal: Math.round(avgTeleopTotal * 100) / 100,
-        avgEndgameFuel: Math.round(avgEndgame * 100) / 100,
         avgTotalFuel: Math.round(avgTotal * 100) / 100,
         highClimb: isHighClimb ? 'High' : 'No',
         died: isDied ? 'Yes' : 'No',
+        trench: 'N/A',
+        shootingAccuracy: 'N/A',
+        shootingSpeed: 'N/A',
+        intakeSpeed: 'N/A',
+        robotRange: 'N/A',
         driverSkill: avgDriverVal === 0 ? 'N/A' : mapBackDriver(avgDriverVal),
         robotSpeed: avgSpeedVal === 0 ? 'N/A' : mapBackSpeed(avgSpeedVal),
         defense: avgDefVal === 0 ? 'N/A' : mapBackDefense(avgDefVal),
@@ -528,12 +451,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
     if (showAuto) headers.push('Auto Avg Fuel', 'Auto Climb (max, %)');
-    if (showTeleop) headers.push('Teleop Avg Fuel', 'Endgame Avg', 'Total Avg Fuel');
+    if (showTeleop) headers.push('Teleop Avg Fuel', 'Total Avg Fuel');
     headers.push('Matches Scouted', 'Died (count/matches)', 'Driver Skill', 'Driving Speed', 'Trench', 'Shooting Acc', 'Shooting Speed', 'Intake Speed', 'Robot Range', 'Defense');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
       if (showAuto) base.push(t.avgAutoFuel, `${t.maxClimbLevel}, ${t.avgClimbedPercent.toFixed(1)}%`);
-      if (showTeleop) base.push(t.avgTeleopFuel, t.avgEndgameFuel, t.avgTotalFuel);
+      if (showTeleop) base.push(t.avgTeleopFuel, t.avgTotalFuel);
       base.push(`${t.matchesPlayed}/${t.matchesScheduled}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.trench, t.shootingAccuracy, t.shootingSpeed, t.intakeSpeed, t.robotRange, t.defense);
       return base;
     });
@@ -629,30 +552,14 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         climbed: !!rawAuto.climbed,
                       },
                       teleop: {
-                        transition: {
-                          fuel: typeof rawTele.transition?.fuel === 'number' ? rawTele.transition.fuel : 0,
-                          neutralZone: !!rawTele.transition?.neutralZone,
-                          depot: !!rawTele.transition?.depot,
-                          outpost: !!rawTele.transition?.outpost,
+                        offence: {
+                          fuel: typeof rawTele.offence?.fuel === 'number' ? rawTele.offence.fuel : legacyTeleSum,
                         },
-                        firstOffence: {
-                          fuel: typeof rawTele.firstOffence?.fuel === 'number' ? rawTele.firstOffence.fuel : legacyTeleSum,
-                          neutralZone: !!rawTele.firstOffence?.neutralZone,
-                          depot: !!rawTele.firstOffence?.depot,
-                          outpost: !!rawTele.firstOffence?.outpost,
-                          launchedToSide: !!rawTele.firstOffence?.launchedToSide,
+                        defense: {
+                          defense: rawTele.defense?.defense ?? 'na',
+                          duration: rawTele.defense?.duration ?? 0,
                         },
-                        secondOffence: {
-                          fuel: typeof rawTele.secondOffence?.fuel === 'number' ? rawTele.secondOffence.fuel : 0,
-                          neutralZone: !!rawTele.secondOffence?.neutralZone,
-                          depot: !!rawTele.secondOffence?.depot,
-                          outpost: !!rawTele.secondOffence?.outpost,
-                          launchedToSide: !!rawTele.secondOffence?.launchedToSide,
-                        },
-                        firstDefense: rawTele.firstDefense || {},
-                        secondDefense: rawTele.secondDefense || {},
                       },
-                      endgame: r.payload?.endgame || { climb: 'none' },
                       defense: r.payload?.defense || 'none',
                       timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
                     } as any;
@@ -734,7 +641,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                 <th onClick={() => toggleSort('avgAutoFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Auto Avg Fuel</th>
                                 <th onClick={() => toggleSort('avgTeleopFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Teleop Avg Fuel</th>
                                 {/* Per-shift columns removed */}
-                                <th onClick={() => toggleSort('avgEndgameFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Endgame Avg</th>
                                 <th onClick={() => toggleSort('avgTotalFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Total Avg Fuel</th>
                                 <th onClick={() => toggleSort('avgClimbedPercent')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Auto Climb (max, %)</th>
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Died</th>
@@ -762,7 +668,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgAutoFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopFuel.toFixed(2)}</td>
                                   {/* Per-shift columns removed */}
-                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgEndgameFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTotalFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.maxClimbLevel}, {t.avgClimbedPercent.toFixed(1)}%</td>
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.diedCount}/{t.matchesPlayed}</td>
@@ -804,7 +709,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">Teleop Avg Fuel</th>
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">1st Offence Avg</th>
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">2nd Offence Avg</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Endgame Avg</th>
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">Total Avg Fuel</th>
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">High Climb</th>
                       <th className="text-center py-2 align-top px-3 border-l border-gray-300">Died</th>
@@ -834,7 +738,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgAutoFuel.toFixed(2)}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopTotal.toFixed(2)}</td>
                           {/* Per-shift columns removed */}
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgEndgameFuel.toFixed(2)}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTotalFuel.toFixed(2)}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.highClimb}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.died}</td>
