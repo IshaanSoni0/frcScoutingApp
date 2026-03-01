@@ -881,6 +881,27 @@ export async function upsertPitData(teamKey: string, data: any) {
   }
 }
 
+// upload a single pit image (data URL) to Supabase Storage and return a public URL
+export async function uploadPitImage(teamKey: string, dataUrl: string) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot upload pit image.');
+  try {
+    // convert dataURL to blob
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const ext = (blob.type && blob.type.split('/')[1]) || 'jpg';
+    const filename = `${teamKey}/${Date.now()}-${uuidv4()}.${ext}`;
+    // upload to bucket 'pit-images' (bucket must exist)
+    const { error: uploadErr } = await client.storage.from('pit-images').upload(filename, blob, { upsert: false });
+    if (uploadErr) throw uploadErr;
+    // get public URL
+    const { publicURL } = client.storage.from('pit-images').getPublicUrl(filename) as any;
+    return publicURL;
+  } catch (err) {
+    throw err;
+  }
+}
+
 // delete all scouting records from server
 export async function deleteScoutingFromServer() {
   const client = getSupabaseClient();

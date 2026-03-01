@@ -1,6 +1,6 @@
 import { ScoutingData, Scouter } from '../types';
 import { uuidv4 } from '../utils/uuid';
-import { migrateLocalToServer, upsertPitData } from './syncService';
+import { migrateLocalToServer, upsertPitData, uploadPitImage } from './syncService';
 
 const STORAGE_KEYS = {
   SCOUTING_DATA: 'frc-scouting-data',
@@ -158,7 +158,44 @@ export class DataService {
       const obj = JSON.parse(raw || '{}');
       obj[teamKey] = { images: images.slice(), updatedAt: Date.now() };
       localStorage.setItem(STORAGE_KEYS.PIT_IMAGES, JSON.stringify(obj));
-      // Note: not uploading images to server here (could be added later)
+      // attempt to upload any data-URL images to server storage (fire-and-forget)
+      (async () => {
+        try {
+          const storedRaw = localStorage.getItem(STORAGE_KEYS.PIT_IMAGES) || '{}';
+          const stored = JSON.parse(storedRaw || '{}');
+          const imgs: string[] = (stored[teamKey] && stored[teamKey].images) || [];
+          let mutated = false;
+          for (let i = 0; i < imgs.length; i++) {
+            const v = imgs[i];
+            if (typeof v === 'string' && v.startsWith('data:')) {
+              try {
+                const url = await uploadPitImage(teamKey, v);
+                if (url) {
+                  imgs[i] = url;
+                  mutated = true;
+                }
+              } catch (e) {
+                // ignore upload failures for individual images
+              }
+            }
+          }
+          if (mutated) {
+            stored[teamKey] = { images: imgs, updatedAt: Date.now() };
+            localStorage.setItem(STORAGE_KEYS.PIT_IMAGES, JSON.stringify(stored));
+            // also upsert pit_data payload to include image URLs for this team
+            try {
+              const pit = DataService.getPitData(teamKey) || {};
+              pit.images = imgs;
+              // eslint-disable-next-line @typescript-eslint/no-floating-promises
+              upsertPitData(teamKey, pit);
+            } catch (e) {
+              // ignore
+            }
+          }
+        } catch (e) {
+          // ignore overall upload flow errors
+        }
+      })();
     } catch (e) {
       // ignore
     }

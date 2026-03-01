@@ -506,6 +506,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [pitData, setPitData] = useState<any | null>(null);
   const [pitLoading, setPitLoading] = useState(false);
   const [pitError, setPitError] = useState<string | null>(null);
+  const [showPicturesModal, setShowPicturesModal] = useState(false);
+  const [pictureList, setPictureList] = useState<string[]>([]);
 
   // load pit data from server when user opens pit view for a team
   useEffect(() => {
@@ -733,6 +735,14 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               <div className="w-full">
                 {showPitView && (
                   <div className="p-4 bg-gray-50 rounded border">
+                    <div className="flex justify-end mb-3">
+                      <button onClick={() => {
+                        // assemble images from server payload or fallback to local storage
+                        const imgs: string[] = (pitData && pitData.images && Array.isArray(pitData.images)) ? pitData.images : (selectedTeam ? DataService.getPitImages(selectedTeam) : []);
+                        setPictureList(imgs || []);
+                        setShowPicturesModal(true);
+                      }} className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">View Pictures</button>
+                    </div>
                     {pitLoading ? (
                       <div className="italic text-gray-500 p-3">Loading pit data...</div>
                     ) : pitError ? (
@@ -853,6 +863,29 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                 {deleteInProgress ? 'Deleting...' : 'Yes, clear data'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {showPicturesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-auto p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold">Robot Pictures — {selectedTeam ? selectedTeam.replace(/^frc/, '') : ''}</div>
+              <div>
+                <button onClick={() => setShowPicturesModal(false)} className="px-2 py-1 rounded bg-gray-100">Close</button>
+              </div>
+            </div>
+            {pictureList.length === 0 ? (
+              <div className="italic text-gray-500">No pictures available for this team.</div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {pictureList.map((src, i) => (
+                  <div key={i} className="rounded overflow-hidden border bg-gray-50">
+                    <img src={src} alt={`robot-${i}`} className="w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
