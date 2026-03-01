@@ -43,6 +43,8 @@ export interface ScoutingData {
     defense?: {
       defense?: 'na' | 'bad' | 'average' | 'good';
       duration?: number;
+      shutdown?: 'no' | 'part' | 'full';
+      confidence?: 'confident' | 'a_little' | 'not_confident';
     };
     endgame?: {
       fuel?: number;
