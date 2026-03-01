@@ -508,6 +508,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [pitError, setPitError] = useState<string | null>(null);
   const [showPicturesModal, setShowPicturesModal] = useState(false);
   const [pictureList, setPictureList] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [picturesTeamKey, setPicturesTeamKey] = useState<string | null>(null);
 
   // load pit data from server when user opens pit view for a team
   useEffect(() => {
@@ -735,12 +737,14 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               <div className="w-full">
                 {showPitView && (
                   <div className="p-4 bg-gray-50 rounded border">
-                    <div className="flex justify-end mb-3">
+                        <div className="flex justify-end mb-3">
                       <button onClick={() => {
                         // assemble images from server payload or fallback to local storage
                         const teamKey = selectedTeam;
                         const imgs: string[] = (pitData && pitData.images && Array.isArray(pitData.images)) ? pitData.images : (teamKey ? DataService.getPitImages(teamKey) : []);
                         setPictureList(imgs || []);
+                        // remember which team the pictures belong to (we close the team modal)
+                        setPicturesTeamKey(teamKey || null);
                         // close the team detail modal so the pictures modal isn't covered
                         setSelectedTeam(null);
                         setShowPicturesModal(true);
@@ -873,7 +877,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-auto p-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="font-semibold">Robot Pictures — {selectedTeam ? selectedTeam.replace(/^frc/, '') : ''}</div>
+              <div className="font-semibold">Robot Pictures — {picturesTeamKey ? picturesTeamKey.replace(/^frc/, '') : ''}</div>
               <div>
                 <button onClick={() => setShowPicturesModal(false)} className="px-2 py-1 rounded bg-gray-100">Close</button>
               </div>
@@ -884,11 +888,24 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {pictureList.map((src, i) => (
                   <div key={i} className="rounded overflow-hidden border bg-gray-50">
-                    <img src={src} alt={`robot-${i}`} className="w-full object-cover" />
+                    <button onClick={() => setLightboxIndex(i)} className="w-full h-full block focus:outline-none">
+                      <img src={src} alt={`robot-${i}`} className="w-full object-cover" />
+                    </button>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {lightboxIndex !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-70 flex items-center justify-center p-4" onClick={() => setLightboxIndex(null)}>
+          <div className="relative max-w-[95%] max-h-[95%] w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setLightboxIndex(i => (i === null ? null : Math.max(0, i - 1)))} className="absolute left-2 text-white bg-black bg-opacity-40 rounded-full p-2">◀</button>
+            <img src={pictureList[lightboxIndex]} alt={`robot-large-${lightboxIndex}`} className="max-w-full max-h-[80vh] object-contain rounded" />
+            <button onClick={() => setLightboxIndex(i => (i === null ? null : Math.min(pictureList.length - 1, i + 1)))} className="absolute right-2 text-white bg-black bg-opacity-40 rounded-full p-2">▶</button>
+            <button onClick={() => setLightboxIndex(null)} className="absolute top-2 right-2 text-white bg-black bg-opacity-40 rounded p-2">✕</button>
           </div>
         </div>
       )}
