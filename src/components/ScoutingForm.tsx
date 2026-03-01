@@ -363,7 +363,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                   <div className="mb-2">
                     {/* Teleop transition collection source removed from UI per request */}
                   </div>
-                  <div className="flex items-center gap-2 w-full sm:w-48">
+                  <div className="flex items-center gap-2 w-full sm:w-64 md:w-80">
                     <ScoreButton label="Transition Fuel" value={formData.teleop.transition.fuel} onChange={(d) => handleScoreChange('teleop', 'transition.fuel', d)} />
                   </div>
                 </div>
@@ -371,7 +371,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 {/* First Offence Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">First Offence Shift</h3>
-                  <div className="flex items-center gap-2 w-full sm:w-48 mb-2">
+                  <div className="flex items-center gap-2 w-full sm:w-64 md:w-80 mb-2">
                     <ScoreButton label="First Offence Fuel" value={formData.teleop.firstOffence.fuel} onChange={(d) => handleScoreChange('teleop', 'firstOffence.fuel', d)} />
                   </div>
                   <div className="mb-2">
@@ -402,7 +402,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 {/* Second Offence Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">Second Offence Shift</h3>
-                  <div className="flex items-center gap-2 w-full sm:w-48 mb-2">
+                  <div className="flex items-center gap-2 w-full sm:w-64 md:w-80 mb-2">
                     <ScoreButton label="Second Offence Fuel" value={formData.teleop.secondOffence.fuel} onChange={(d) => handleScoreChange('teleop', 'secondOffence.fuel', d)} />
                   </div>
                   <div className="mb-2">
@@ -434,7 +434,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                   {/* Endgame (as part of Teleop) */}
                   <div className="border rounded p-3">
                     <h3 className="font-medium text-gray-800 mb-2">Endgame</h3>
-                    <div className="flex items-center gap-2 w-full sm:w-48 mb-2">
+                    <div className="flex items-center gap-2 w-full sm:w-64 md:w-80 mb-2">
                       <ScoreButton label="Endgame Fuel" value={formData.teleop.endgame.fuel} onChange={(d) => handleScoreChange('teleop', 'endgame.fuel', d)} />
                     </div>
                     <div className="mb-2">
