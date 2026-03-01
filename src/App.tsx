@@ -6,8 +6,9 @@ import { LoginPage } from './components/LoginPage';
 import { MatchList } from './components/MatchList';
 import { ScoutingForm } from './components/ScoutingForm';
 import { AdminPanel } from './components/AdminPanel';
+import { PitScouting } from './components/PitScouting';
 
-type AppState = 'login' | 'matches' | 'scouting' | 'admin';
+type AppState = 'login' | 'matches' | 'scouting' | 'admin' | 'pit';
 
 function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -135,6 +136,10 @@ function App() {
     setCurrentState('scouting');
   };
 
+  const handlePitScouting = () => {
+    setCurrentState('pit');
+  };
+
   const handleScoutingComplete = () => {
     setSelectedMatch(null);
     setSelectedScouting(null);
@@ -179,12 +184,13 @@ function App() {
   if (currentState === 'matches' && user) {
     return (
       <>
-        <MatchList
-          matches={matches}
-          user={user}
-          onMatchSelect={handleMatchSelect}
-          onBack={handleLogout}
-        />
+            <MatchList
+              matches={matches}
+              user={user}
+              onMatchSelect={handleMatchSelect}
+              onBack={handleLogout}
+              onPitScouting={handlePitScouting}
+            />
         {cleanupSummary && (
           <div className="fixed bottom-6 left-6 z-50">
             <div className="bg-green-600 text-white rounded px-4 py-3 shadow-lg">
@@ -198,6 +204,12 @@ function App() {
         )}
         {maybeUpdateBanner}
       </>
+    );
+  }
+
+  if (currentState === 'pit' && user) {
+    return (
+      <PitScouting onBack={() => setCurrentState('matches')} />
     );
   }
 

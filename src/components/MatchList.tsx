@@ -11,9 +11,10 @@ interface MatchListProps {
   // second arg: optional existing scouting record (local or server) mapped to local shape
   onMatchSelect: (match: Match, existing?: any) => void;
   onBack?: () => void;
+  onPitScouting?: () => void;
 }
 
-export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListProps) {
+export function MatchList({ matches, user, onMatchSelect, onBack, onPitScouting }: MatchListProps) {
   const getTeamForUser = (match: Match): string => {
     const alliance = match.alliances[user.alliance];
     const teamKey = alliance.team_keys[user.position - 1];
@@ -90,6 +91,12 @@ export function MatchList({ matches, user, onMatchSelect, onBack }: MatchListPro
             </span>
               {onBack && (
                 <div className="ml-auto flex flex-col items-end gap-2">
+                  <button
+                    onClick={() => { if (onPitScouting) onPitScouting(); }}
+                    className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md"
+                  >
+                    Pit Scouting
+                  </button>
                   <button
                     onClick={async () => {
                       if (isRefreshing) return;
