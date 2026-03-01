@@ -738,8 +738,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     <div className="flex justify-end mb-3">
                       <button onClick={() => {
                         // assemble images from server payload or fallback to local storage
-                        const imgs: string[] = (pitData && pitData.images && Array.isArray(pitData.images)) ? pitData.images : (selectedTeam ? DataService.getPitImages(selectedTeam) : []);
+                        const teamKey = selectedTeam;
+                        const imgs: string[] = (pitData && pitData.images && Array.isArray(pitData.images)) ? pitData.images : (teamKey ? DataService.getPitImages(teamKey) : []);
                         setPictureList(imgs || []);
+                        // close the team detail modal so the pictures modal isn't covered
+                        setSelectedTeam(null);
                         setShowPicturesModal(true);
                       }} className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">View Pictures</button>
                     </div>
