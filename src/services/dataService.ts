@@ -1,6 +1,6 @@
 import { ScoutingData, Scouter } from '../types';
 import { uuidv4 } from '../utils/uuid';
-import { migrateLocalToServer } from './syncService';
+import { migrateLocalToServer, upsertPitData } from './syncService';
 
 const STORAGE_KEYS = {
   SCOUTING_DATA: 'frc-scouting-data',
@@ -127,6 +127,13 @@ export class DataService {
       const obj = JSON.parse(raw || '{}');
       obj[teamKey] = { ...(obj[teamKey] || {}), ...data, updatedAt: Date.now() };
       localStorage.setItem(STORAGE_KEYS.PIT_DATA, JSON.stringify(obj));
+      // attempt to persist to server (fire-and-forget)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        upsertPitData(teamKey, obj[teamKey]);
+      } catch (e) {
+        // ignore server errors here
+      }
     } catch (e) {
       // ignore
     }

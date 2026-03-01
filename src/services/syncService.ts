@@ -840,6 +840,47 @@ export async function fetchServerScouting() {
   }
 }
 
+// fetch pit scouting data from server. If teamKey provided, return single team's pit data, otherwise return map of team_key->data
+export async function fetchPitData(teamKey?: string) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot fetch pit data.');
+  try {
+    if (teamKey) {
+      const { data, error } = await client.from('pit_data').select('*').eq('team_key', teamKey).limit(1).single();
+      if (error) {
+        // if not found, return null
+        if ((error as any).code === 'PGRST116' || (error as any).status === 404) return null;
+        throw error;
+      }
+      return data || null;
+    }
+    const { data, error } = await client.from('pit_data').select('*').limit(1000);
+    if (error) throw error;
+    // return array
+    return data || [];
+  } catch (err) {
+    throw err;
+  }
+}
+
+// upsert pit scouting for a team to server
+export async function upsertPitData(teamKey: string, data: any) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot upsert pit data.');
+  try {
+    const row = {
+      team_key: teamKey,
+      payload: data,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await client.from('pit_data').upsert(row, { onConflict: 'team_key' });
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    throw err;
+  }
+}
+
 // delete all scouting records from server
 export async function deleteScoutingFromServer() {
   const client = getSupabaseClient();

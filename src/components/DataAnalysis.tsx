@@ -1,9 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
-import { fetchServerScouting, deleteScoutingFromServer, performFullRefresh } from '../services/syncService';
+import { fetchServerScouting, deleteScoutingFromServer, performFullRefresh, fetchPitData } from '../services/syncService';
 import { ArrowLeft, BarChart3, Download } from 'lucide-react';
-import supabase from '../services/supabaseClient';
 
 interface DataAnalysisProps {
   onBack: () => void;
@@ -481,9 +480,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [teamMatches, setTeamMatches] = useState<any[]>([]);
   const [showPitView, setShowPitView] = useState(false);
-  const [serverPitData, setServerPitData] = useState<any | null>(null);
-  const [loadingPit, setLoadingPit] = useState(false);
-  const [pitError, setPitError] = useState<string | null>(null);
 
   const handleClearData = () => {
     (async () => {
@@ -507,59 +503,39 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const totalTeams = teamStats.length;
   const totalEntries = rows.length;
 
-  // prefer server pit data when available, otherwise fall back to local storage
-  const selectedPitDataLocal = selectedTeam ? DataService.getPitData(selectedTeam) : null;
-  const selectedPitData = serverPitData || selectedPitDataLocal;
+  const [pitData, setPitData] = useState<any | null>(null);
+  const [pitLoading, setPitLoading] = useState(false);
+  const [pitError, setPitError] = useState<string | null>(null);
 
-  // fetch pit data from supabase when pit view is opened for a selected team
+  // load pit data from server when user opens pit view for a team
   useEffect(() => {
     let mounted = true;
     (async () => {
-      if (!selectedTeam || !showPitView) return;
-      setLoadingPit(true);
-      setPitError(null);
-      setServerPitData(null);
-      const client = supabase;
-      if (!client) {
-        setLoadingPit(false);
+      if (!selectedTeam || !showPitView) {
+        setPitData(null);
+        setPitError(null);
+        setPitLoading(false);
         return;
       }
-      const tableCandidates = ['pit', 'pit_data', 'pit_scouting', 'pit_scouts'];
+      setPitLoading(true);
+      setPitError(null);
       try {
-        for (const table of tableCandidates) {
-          try {
-            const { data, error } = await client.from(table).select('*').eq('team_key', selectedTeam).limit(1).maybeSingle();
-            if (error) {
-              // table may not exist or other error; try next
-              continue;
-            }
-            if (data) {
-              if (!mounted) return;
-              // normalize server row fields to match local shape if necessary
-              const normalized = {
-                underTrench: data.under_trench ?? data.underTrench ?? data.under_trench === true,
-                climbLevel: data.climb_level ?? data.climbLevel ?? data.climbLevel,
-                climbPositions: data.climb_positions ?? data.climbPositions ?? data.climbPositions,
-                hasAuto: data.has_auto ?? data.hasAuto ?? false,
-                canClimbInAuto: data.can_climb_in_auto ?? data.canClimbInAuto ?? false,
-                autoTypes: data.auto_types ?? data.autoTypes ?? data.autoTypes,
-                updatedAt: data.updated_at ? Date.parse(data.updated_at) : (data.updatedAt || null),
-              };
-              setServerPitData(normalized as any);
-              setLoadingPit(false);
-              return;
-            }
-          } catch (e) {
-            // ignore and try next table
-            // eslint-disable-next-line no-console
-            console.debug('DataAnalysis: pit table check failed for', table, e);
-            continue;
-          }
+        const serverRow: any = await fetchPitData(selectedTeam);
+        if (!mounted) return;
+        if (serverRow) {
+          setPitData(serverRow.payload ? (typeof serverRow.payload === 'string' ? JSON.parse(serverRow.payload) : serverRow.payload) : serverRow);
+        } else {
+          // fallback to local storage
+          const local = DataService.getPitData(selectedTeam);
+          setPitData(local || null);
         }
-        setLoadingPit(false);
       } catch (e: any) {
+        // on error, fallback to local
+        const local = DataService.getPitData(selectedTeam);
+        setPitData(local || null);
         setPitError(String(e?.message || e));
-        setLoadingPit(false);
+      } finally {
+        if (mounted) setPitLoading(false);
       }
     })();
     return () => { mounted = false; };
@@ -755,52 +731,58 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               </div>
 
               <div className="w-full">
-                {showPitView ? (
+                {showPitView && (
                   <div className="p-4 bg-gray-50 rounded border">
-                    {!selectedPitData ? (
+                    {pitLoading ? (
+                      <div className="italic text-gray-500 p-3">Loading pit data...</div>
+                    ) : pitError ? (
+                      <div className="text-red-600 italic p-3">Failed to load pit data from server: {pitError}</div>
+                    ) : !pitData ? (
                       <div className="italic text-gray-500 p-3">No pit scouting data for this team.</div>
-                      ) : (
+                    ) : (
                       <div className="text-sm">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div className="p-2">
                             <div className="text-xs text-gray-500">Under Trench</div>
-                            <div className="font-medium">{selectedPitData.underTrench ? 'Yes' : 'No'}</div>
+                            <div className="font-medium">{pitData?.underTrench ? 'Yes' : 'No'}</div>
                           </div>
 
                           <div className="p-2">
                             <div className="text-xs text-gray-500">Climb Level</div>
-                            <div className="font-medium">{selectedPitData.climbLevel || 'N/A'}</div>
+                            <div className="font-medium">{pitData?.climbLevel || 'N/A'}</div>
                           </div>
 
                           <div className="p-2">
                             <div className="text-xs text-gray-500">Climb Positions</div>
-                            <div className="font-medium">{selectedPitData.climbPositions ? Object.entries(selectedPitData.climbPositions).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
+                            <div className="font-medium">{pitData?.climbPositions ? Object.entries(pitData.climbPositions).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
                           </div>
 
                           <div className="p-2">
                             <div className="text-xs text-gray-500">Has Auto</div>
-                            <div className="font-medium">{selectedPitData.hasAuto ? 'Yes' : 'No'}</div>
+                            <div className="font-medium">{pitData?.hasAuto ? 'Yes' : 'No'}</div>
                           </div>
 
                           <div className="p-2">
                             <div className="text-xs text-gray-500">Can Climb In Auto</div>
-                            <div className="font-medium">{selectedPitData.canClimbInAuto ? 'Yes' : 'No'}</div>
+                            <div className="font-medium">{pitData?.canClimbInAuto ? 'Yes' : 'No'}</div>
                           </div>
 
                           <div className="p-2">
                             <div className="text-xs text-gray-500">Auto Types</div>
-                            <div className="font-medium">{selectedPitData.autoTypes ? Object.entries(selectedPitData.autoTypes).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
+                            <div className="font-medium">{pitData?.autoTypes ? Object.entries(pitData.autoTypes).filter(([k,v])=>v).map(([k])=>k).join(', ') || 'None' : 'N/A'}</div>
                           </div>
 
                           <div className="p-2 md:col-span-2">
                             <div className="text-xs text-gray-500">Updated</div>
-                            <div className="font-medium">{selectedPitData.updatedAt ? new Date(selectedPitData.updatedAt).toLocaleString() : 'Unknown'}</div>
+                            <div className="font-medium">{pitData?.updatedAt ? new Date(pitData.updatedAt).toLocaleString() : 'Unknown'}</div>
                           </div>
                         </div>
                       </div>
                     )}
                   </div>
-                ) : (
+                )}
+
+                {!showPitView && (
                   <table className="w-full text-sm table-auto">
                     <thead>
                       <tr className="border-b border-gray-300">
