@@ -43,13 +43,14 @@ export interface ScoutingData {
     defense?: {
       defense?: 'na' | 'bad' | 'average' | 'good';
       duration?: number;
-      shutdown?: 'no' | 'part' | 'full';
-      confidence?: 'confident' | 'a_little' | 'not_confident';
     };
     endgame?: {
       fuel?: number;
     };
   };
+  // match-level fields (UI: "Match Data")
+  robotShutdown?: 'no' | 'part' | 'full';
+  dataConfidence?: 'confident' | 'a_little_confident' | 'not_confident';
   endgame: {
     climb: 'none' | 'level1' | 'level2' | 'level3';
     // trench capability

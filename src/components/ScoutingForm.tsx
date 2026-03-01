@@ -17,9 +17,12 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     auto: { fuel: 0, neutralZone: false, depot: false, outpost: false, climbed: false },
     teleop: {
       offence: { fuel: 0 },
-      defense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0, shutdown: 'no' as 'no' | 'part' | 'full', confidence: 'confident' as 'confident' | 'a_little' | 'not_confident' },
+      defense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
     },
+    // match-level fields (UI labelled as "Match Data")
     defense: 'na' as 'na' | 'bad' | 'average' | 'good',
+    robotShutdown: 'no' as 'no' | 'part' | 'full',
+    dataConfidence: 'confident' as 'confident' | 'a_little_confident' | 'not_confident',
   }));
 
   // Prefill when editing an existing record
@@ -30,8 +33,6 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
       const _offFuel = existing.teleop?.offence?.fuel ?? 0;
       const _defDuration = existing.teleop?.defense?.duration ?? 0;
       const _defRating = existing.teleop?.defense?.defense ?? existing.defense ?? 'na';
-      const _defShutdown = existing.teleop?.defense?.shutdown ?? existing.defenseShutdown ?? 'no';
-      const _defConfidence = existing.teleop?.defense?.confidence ?? existing.defenseConfidence ?? 'confident';
 
       setFormData({
         auto: {
@@ -46,10 +47,10 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
           defense: {
             defense: _defRating,
             duration: _defDuration,
-            shutdown: _defShutdown,
-            confidence: _defConfidence,
           },
         },
+        robotShutdown: existing.robotShutdown ?? 'no',
+        dataConfidence: existing.dataConfidence ?? 'confident',
         defense: existing.defense ?? 'na',
       });
     }
@@ -358,27 +359,6 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                       <TimerControl value={formData.teleop.defense.duration} onChange={(v) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, defense: { ...prev.teleop.defense, duration: v } } }))} />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <label className="block text-sm">Robot Shutdown</label>
-                    <div className="flex items-center gap-3">
-                      <select value={formData.teleop.defense.shutdown} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, defense: { ...prev.teleop.defense, shutdown: e.target.value as any } } }))} className="border rounded p-2 text-sm w-40">
-                        <option value="no">No shutdown</option>
-                        <option value="part">Part of match</option>
-                        <option value="full">Full match</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2">
-                    <label className="block text-sm">Data Confidence</label>
-                    <div className="flex items-center gap-3">
-                      <select value={formData.teleop.defense.confidence} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, defense: { ...prev.teleop.defense, confidence: e.target.value as any } } }))} className="border rounded p-2 text-sm w-56">
-                        <option value="confident">Confident</option>
-                        <option value="a_little">A little confident</option>
-                        <option value="not_confident">Not confident</option>
-                      </select>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Endgame removed from Teleop UI */}
@@ -390,27 +370,48 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
 
           {/* Defense */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Defense</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {[
-                { value: 'none', label: 'No Defense' },
-                { value: 'bad', label: 'Bad Defense' },
-                { value: 'ok', label: 'OK Defense' },
-                { value: 'great', label: 'Great Defense' }
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, defense: option.value as any }))}
-                  className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
-                    formData.defense === option.value
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Match Data</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="mb-2 font-medium text-gray-800">Defense Efficacy</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'none', label: 'No Defense' },
+                    { value: 'bad', label: 'Bad Defense' },
+                    { value: 'ok', label: 'OK Defense' },
+                    { value: 'great', label: 'Great Defense' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, defense: option.value as any }))}
+                      className={`p-3 text-sm font-medium rounded-lg border-2 transition-colors ${
+                        formData.defense === option.value
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 font-medium text-gray-800">Robot Shutdown at All?</div>
+                <select value={formData.robotShutdown} onChange={(e) => setFormData(prev => ({ ...prev, robotShutdown: e.target.value as any }))} className="w-full border rounded p-2 mb-4">
+                  <option value="no">No shutdown</option>
+                  <option value="part">Part of match</option>
+                  <option value="full">Full match</option>
+                </select>
+
+                <div className="mb-2 font-medium text-gray-800">Data Confidence Rating</div>
+                <select value={formData.dataConfidence} onChange={(e) => setFormData(prev => ({ ...prev, dataConfidence: e.target.value as any }))} className="w-full border rounded p-2">
+                  <option value="confident">Confident</option>
+                  <option value="a_little_confident">A little confident</option>
+                  <option value="not_confident">Not confident</option>
+                </select>
+              </div>
             </div>
           </div>
 
