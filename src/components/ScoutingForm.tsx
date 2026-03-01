@@ -16,12 +16,12 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
   const [formData, setFormData] = useState(() => ({
     auto: { fuel: 0, neutralZone: false, depot: false, outpost: false, climbed: false },
     teleop: {
-      transition: { fuel: 0, neutralZone: false, depot: false, outpost: false },
-      firstOffence: { fuel: 0, neutralZone: false, depot: false, outpost: false, launchedToSide: false },
-      endgame: { fuel: 0, neutralZone: false, depot: false, outpost: false, launchedToSide: false },
-      firstDefense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', neutralZone: false, depot: false, outpost: false, launchedToSide: false },
-      secondOffence: { fuel: 0, neutralZone: false, depot: false, outpost: false, launchedToSide: false },
-      secondDefense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', neutralZone: false, depot: false, outpost: false, launchedToSide: false },
+      transition: { fuel: 0 },
+      firstOffence: { fuel: 0 },
+      endgame: { fuel: 0 },
+      firstDefense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
+      secondOffence: { fuel: 0 },
+      secondDefense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
     },
     endgame: {
       trench: 'na' as 'yes' | 'no' | 'na',
@@ -52,47 +52,12 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
           climbed: !!existing.auto?.climbed,
         },
         teleop: {
-          transition: {
-              fuel: existing.teleop?.transition?.fuel ?? existing.teleop?.transition?.notes ? 0 : 0,
-            neutralZone: !!existing.teleop?.transition?.neutralZone,
-            depot: !!existing.teleop?.transition?.depot,
-            outpost: !!existing.teleop?.transition?.outpost,
-          },
-          firstOffence: {
-            fuel: existing.teleop?.firstOffence?.fuel ?? 0,
-            neutralZone: !!existing.teleop?.firstOffence?.neutralZone,
-            depot: !!existing.teleop?.firstOffence?.depot,
-            outpost: !!existing.teleop?.firstOffence?.outpost,
-            launchedToSide: !!existing.teleop?.firstOffence?.launchedToSide,
-          },
-            endgame: {
-              fuel: existing.teleop?.endgame?.fuel ?? 0,
-              neutralZone: !!existing.teleop?.endgame?.neutralZone,
-              depot: !!existing.teleop?.endgame?.depot,
-              outpost: !!existing.teleop?.endgame?.outpost,
-              launchedToSide: !!existing.teleop?.endgame?.launchedToSide,
-            },
-          firstDefense: {
-            defense: existing.teleop?.firstDefense?.defense ?? existing.teleop?.firstDefense?.notes ? 'average' : 'na',
-            neutralZone: !!existing.teleop?.firstDefense?.neutralZone,
-            depot: !!existing.teleop?.firstDefense?.depot,
-            outpost: !!existing.teleop?.firstDefense?.outpost,
-            launchedToSide: !!existing.teleop?.firstDefense?.launchedToSide,
-          },
-          secondOffence: {
-            fuel: existing.teleop?.secondOffence?.fuel ?? 0,
-            neutralZone: !!existing.teleop?.secondOffence?.neutralZone,
-            depot: !!existing.teleop?.secondOffence?.depot,
-            outpost: !!existing.teleop?.secondOffence?.outpost,
-            launchedToSide: !!existing.teleop?.secondOffence?.launchedToSide,
-          },
-          secondDefense: {
-            defense: existing.teleop?.secondDefense?.defense ?? 'na',
-            neutralZone: !!existing.teleop?.secondDefense?.neutralZone,
-            depot: !!existing.teleop?.secondDefense?.depot,
-            outpost: !!existing.teleop?.secondDefense?.outpost,
-            launchedToSide: !!existing.teleop?.secondDefense?.launchedToSide,
-          },
+          transition: { fuel: existing.teleop?.transition?.fuel ?? 0 },
+          firstOffence: { fuel: existing.teleop?.firstOffence?.fuel ?? 0 },
+          endgame: { fuel: existing.teleop?.endgame?.fuel ?? 0 },
+          firstDefense: { defense: existing.teleop?.firstDefense?.defense ?? (existing.teleop?.firstDefense?.notes ? 'average' : 'na'), duration: existing.teleop?.firstDefense?.duration ?? 0 },
+          secondOffence: { fuel: existing.teleop?.secondOffence?.fuel ?? 0 },
+          secondDefense: { defense: existing.teleop?.secondDefense?.defense ?? 'na', duration: existing.teleop?.secondDefense?.duration ?? 0 },
         },
         endgame: {
           trench: existing.endgame?.trench ?? 'na',
@@ -243,6 +208,49 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     );
   };
 
+  function TimerControl({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+    const [running, setRunning] = React.useState(false);
+    const [elapsed, setElapsed] = React.useState<number>(value || 0);
+    const intervalRef = React.useRef<number | null>(null);
+
+    React.useEffect(() => {
+      if (!running) return;
+      intervalRef.current = window.setInterval(() => {
+        setElapsed((e) => {
+          const next = e + 1;
+          onChange(next);
+          return next;
+        });
+      }, 1000);
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      };
+    }, [running]);
+
+    React.useEffect(() => {
+      // sync incoming value when not running
+      if (!running) setElapsed(value || 0);
+    }, [value, running]);
+
+    const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    const seconds = (elapsed % 60).toString().padStart(2, '0');
+
+    return (
+      <div className="flex items-center gap-2">
+        <div className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">{minutes}:{seconds}</div>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => setRunning((r) => !r)} className={`px-2 py-1 text-xs rounded ${running ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
+            {running ? 'Stop' : 'Start'}
+          </button>
+          <button type="button" onClick={() => { setRunning(false); setElapsed(0); onChange(0); }} className="px-2 py-1 text-xs rounded bg-gray-200">Reset</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-2xl mx-auto">
@@ -368,14 +376,17 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 {/* First Defense Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">First Defense Shift</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                  <div className="flex items-center justify-between gap-2 mb-2">
                     <label className="block text-sm">Defense</label>
-                    <select value={formData.teleop.firstDefense.defense} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, defense: e.target.value as any } } }))} className="col-span-1 sm:col-span-2 border rounded p-2">
-                      <option value="na">N/A</option>
-                      <option value="bad">Bad</option>
-                      <option value="average">Average</option>
-                      <option value="good">Good</option>
-                    </select>
+                    <div className="flex items-center gap-3">
+                      <select value={formData.teleop.firstDefense.defense} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, defense: e.target.value as any } } }))} className="border rounded p-2 text-sm w-36">
+                        <option value="na">N/A</option>
+                        <option value="bad">Bad</option>
+                        <option value="average">Average</option>
+                        <option value="good">Good</option>
+                      </select>
+                      <TimerControl value={formData.teleop.firstDefense.duration} onChange={(v) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, duration: v } } }))} />
+                    </div>
                   </div>
                   <div className="mb-2">
                     {/* Collection-source and launched-to-side removed from First Defense UI */}
@@ -397,14 +408,17 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
                 {/* Second Defense Shift */}
                 <div className="border rounded p-3">
                   <h3 className="font-medium text-gray-800 mb-2">Second Defense Shift</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                  <div className="flex items-center justify-between gap-2 mb-2">
                     <label className="block text-sm">Defense</label>
-                    <select value={formData.teleop.secondDefense.defense} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, defense: e.target.value as any } } }))} className="col-span-1 sm:col-span-2 border rounded p-2">
-                      <option value="na">N/A</option>
-                      <option value="bad">Bad</option>
-                      <option value="average">Average</option>
-                      <option value="good">Good</option>
-                    </select>
+                    <div className="flex items-center gap-3">
+                      <select value={formData.teleop.secondDefense.defense} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, defense: e.target.value as any } } }))} className="border rounded p-2 text-sm w-36">
+                        <option value="na">N/A</option>
+                        <option value="bad">Bad</option>
+                        <option value="average">Average</option>
+                        <option value="good">Good</option>
+                      </select>
+                      <TimerControl value={formData.teleop.secondDefense.duration} onChange={(v) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, duration: v } } }))} />
+                    </div>
                   </div>
                   <div className="mb-2">
                     {/* Collection-source and launched-to-side removed from Second Defense UI */}
