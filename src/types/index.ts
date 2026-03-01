@@ -37,39 +37,15 @@ export interface ScoutingData {
     climbed?: boolean;
   };
   teleop: {
-    transition?: {
+    offence?: {
       fuel?: number;
-      neutralZone?: boolean;
-      depot?: boolean;
-      outpost?: boolean;
     };
-    firstOffence?: {
-      fuel?: number;
-      neutralZone?: boolean;
-      depot?: boolean;
-      outpost?: boolean;
-      launchedToSide?: boolean;
-    };
-    firstDefense?: {
+    defense?: {
       defense?: 'na' | 'bad' | 'average' | 'good';
-      neutralZone?: boolean;
-      depot?: boolean;
-      outpost?: boolean;
-      launchedToSide?: boolean;
+      duration?: number;
     };
-    secondOffence?: {
+    endgame?: {
       fuel?: number;
-      neutralZone?: boolean;
-      depot?: boolean;
-      outpost?: boolean;
-      launchedToSide?: boolean;
-    };
-    secondDefense?: {
-      defense?: 'na' | 'bad' | 'average' | 'good';
-      neutralZone?: boolean;
-      depot?: boolean;
-      outpost?: boolean;
-      launchedToSide?: boolean;
     };
   };
   endgame: {

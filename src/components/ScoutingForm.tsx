@@ -16,12 +16,9 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
   const [formData, setFormData] = useState(() => ({
     auto: { fuel: 0, neutralZone: false, depot: false, outpost: false, climbed: false },
     teleop: {
-      transition: { fuel: 0 },
-      firstOffence: { fuel: 0 },
+      offence: { fuel: 0 },
+      defense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
       endgame: { fuel: 0 },
-      firstDefense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
-      secondOffence: { fuel: 0 },
-      secondDefense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
     },
     endgame: {
       trench: 'na' as 'yes' | 'no' | 'na',
@@ -43,6 +40,10 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
     if (existing) {
       // map legacy fields where possible; fall back to defaults
       const legacyAutoFuel = (existing.auto?.l1 || 0) + (existing.auto?.l2 || 0) + (existing.auto?.l3 || 0) + (existing.auto?.l4 || 0) || existing.auto?.net || existing.auto?.fuel || 0;
+      const _offFuel = existing.teleop?.offence?.fuel ?? 0;
+      const _defDuration = existing.teleop?.defense?.duration ?? 0;
+      const _defRating = existing.teleop?.defense?.defense ?? existing.defense ?? 'na';
+
       setFormData({
         auto: {
           fuel: existing.auto?.fuel ?? legacyAutoFuel ?? 0,
@@ -52,12 +53,12 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
           climbed: !!existing.auto?.climbed,
         },
         teleop: {
-          transition: { fuel: existing.teleop?.transition?.fuel ?? 0 },
-          firstOffence: { fuel: existing.teleop?.firstOffence?.fuel ?? 0 },
+          offence: { fuel: _offFuel },
+          defense: {
+            defense: _defRating,
+            duration: _defDuration,
+          },
           endgame: { fuel: existing.teleop?.endgame?.fuel ?? 0 },
-          firstDefense: { defense: existing.teleop?.firstDefense?.defense ?? (existing.teleop?.firstDefense?.notes ? 'average' : 'na'), duration: existing.teleop?.firstDefense?.duration ?? 0 },
-          secondOffence: { fuel: existing.teleop?.secondOffence?.fuel ?? 0 },
-          secondDefense: { defense: existing.teleop?.secondDefense?.defense ?? 'na', duration: existing.teleop?.secondDefense?.duration ?? 0 },
         },
         endgame: {
           trench: existing.endgame?.trench ?? 'na',
@@ -357,82 +358,38 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Teleop Period</h2>
               <div className="space-y-4">
-                {/* Transition Shift removed */}
-
-                {/* First Offence Shift */}
+                {/* Single Offence and Single Defense per teleop */}
                 <div className="border rounded p-3">
-                  <h3 className="font-medium text-gray-800 mb-2">First Offence Shift</h3>
+                  <h3 className="font-medium text-gray-800 mb-2">Offence</h3>
                   <div className="flex items-center gap-2 w-full mb-2">
-                    <ScoreButton label="First Offence Fuel" value={formData.teleop.firstOffence.fuel} onChange={(d) => handleScoreChange('teleop', 'firstOffence.fuel', d)} />
-                  </div>
-                  <div className="mb-2">
-                    {/* Collection-source and launched-to-side removed from First Offence UI */}
+                    <ScoreButton label="Offence Fuel" value={formData.teleop.offence.fuel} onChange={(d) => handleScoreChange('teleop', 'offence.fuel', d)} />
                   </div>
                 </div>
 
-                {/* First Defense Shift */}
                 <div className="border rounded p-3">
-                  <h3 className="font-medium text-gray-800 mb-2">First Defense Shift</h3>
+                  <h3 className="font-medium text-gray-800 mb-2">Defense</h3>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <label className="block text-sm">Defense</label>
                     <div className="flex items-center gap-3 flex-wrap">
-                      <select value={formData.teleop.firstDefense.defense} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, defense: e.target.value as any } } }))} className="border rounded p-2 text-sm w-28 sm:w-36">
+                      <select value={formData.teleop.defense.defense} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, defense: { ...prev.teleop.defense, defense: e.target.value as any } } }))} className="border rounded p-2 text-sm w-28 sm:w-36">
                         <option value="na">N/A</option>
                         <option value="bad">Bad</option>
                         <option value="average">Average</option>
                         <option value="good">Good</option>
                       </select>
-                      <TimerControl value={formData.teleop.firstDefense.duration} onChange={(v) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, firstDefense: { ...prev.teleop.firstDefense, duration: v } } }))} />
+                      <TimerControl value={formData.teleop.defense.duration} onChange={(v) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, defense: { ...prev.teleop.defense, duration: v } } }))} />
                     </div>
-                  </div>
-                  <div className="mb-2">
-                    {/* Collection-source and launched-to-side removed from First Defense UI */}
                   </div>
                 </div>
 
-                {/* Second Offence Shift */}
+                {/* Endgame (as part of Teleop) */}
                 <div className="border rounded p-3">
-                  <h3 className="font-medium text-gray-800 mb-2">Second Offence Shift</h3>
+                  <h3 className="font-medium text-gray-800 mb-2">Endgame</h3>
                   <div className="flex items-center gap-2 w-full mb-2">
-                    <ScoreButton label="Second Offence Fuel" value={formData.teleop.secondOffence.fuel} onChange={(d) => handleScoreChange('teleop', 'secondOffence.fuel', d)} />
-                  </div>
-                  <div className="mb-2">
-                    {/* Collection-source and launched-to-side removed from Second Offence UI */}
+                    <ScoreButton label="Endgame Fuel" value={formData.teleop.endgame.fuel} onChange={(d) => handleScoreChange('teleop', 'endgame.fuel', d)} />
                   </div>
                 </div>
-                
-
-                {/* Second Defense Shift */}
-                <div className="border rounded p-3">
-                  <h3 className="font-medium text-gray-800 mb-2">Second Defense Shift</h3>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <label className="block text-sm">Defense</label>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <select value={formData.teleop.secondDefense.defense} onChange={(e) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, defense: e.target.value as any } } }))} className="border rounded p-2 text-sm w-28 sm:w-36">
-                        <option value="na">N/A</option>
-                        <option value="bad">Bad</option>
-                        <option value="average">Average</option>
-                        <option value="good">Good</option>
-                      </select>
-                      <TimerControl value={formData.teleop.secondDefense.duration} onChange={(v) => setFormData(prev => ({ ...prev, teleop: { ...prev.teleop, secondDefense: { ...prev.teleop.secondDefense, duration: v } } }))} />
-                    </div>
-                  </div>
-                  <div className="mb-2">
-                    {/* Collection-source and launched-to-side removed from Second Defense UI */}
-                  </div>
-                  </div>
-
-                  {/* Endgame (as part of Teleop) */}
-                  <div className="border rounded p-3">
-                    <h3 className="font-medium text-gray-800 mb-2">Endgame</h3>
-                    <div className="flex items-center gap-2 w-full mb-2">
-                      <ScoreButton label="Endgame Fuel" value={formData.teleop.endgame.fuel} onChange={(d) => handleScoreChange('teleop', 'endgame.fuel', d)} />
-                    </div>
-                    <div className="mb-2">
-                      {/* Collection-source and launched-to-side removed from Teleop Endgame UI */}
-                    </div>
-                  </div>
-                </div>
+              </div>
             
           </div>
 
