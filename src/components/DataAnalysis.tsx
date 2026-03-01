@@ -345,6 +345,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   // when user clicks a team, compute per-match averages for that team
   const openTeamDetail = (teamKey: string) => {
     setSelectedTeam(teamKey);
+    setShowPitView(false);
     // group entries by matchKey
     const entries = rows.filter(r => r.teamKey === teamKey);
     const byMatch: Record<string, any[]> = {};
@@ -446,6 +447,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const closeTeamDetail = () => {
     setSelectedTeam(null);
     setTeamMatches([]);
+    setShowPitView(false);
   };
 
   const exportToCSV = () => {
@@ -477,6 +479,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [teamMatches, setTeamMatches] = useState<any[]>([]);
+  const [showPitView, setShowPitView] = useState(false);
 
   const handleClearData = () => {
     (async () => {
@@ -499,6 +502,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   // summary KPIs
   const totalTeams = teamStats.length;
   const totalEntries = rows.length;
+
+  const selectedPitData = selectedTeam ? DataService.getPitData(selectedTeam) : null;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -684,50 +689,65 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Team {selectedTeam.replace(/^frc/, '')} — Match averages</h3>
                 <div>
+                  <button onClick={() => setShowPitView(s => !s)} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 mr-2">{showPitView ? 'Matches' : 'Pit Data'}</button>
                   <button onClick={closeTeamDetail} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">Close</button>
                 </div>
               </div>
+
               <div className="w-full">
-                <table className="w-full text-sm table-auto">
-                  <thead>
-                    <tr className="border-b border-gray-300">
-                      <th className="text-center py-2 align-top px-3">Match</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Scouters</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Auto Avg Fuel</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Teleop Avg Fuel</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">1st Offence Avg</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">2nd Offence Avg</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Total Avg Fuel</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">High Climb</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Died</th>
-                      <th className="text-center py-2 align-top px-3 border-l border-gray-300">Defense</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teamMatches.map(m => (
-                        m.notScouted ? (
-                        <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
-                          <td className="py-2 align-top break-words px-3 text-center">{m.matchLabel}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300" colSpan={10}>
-                            <div className="italic text-gray-500 p-3 bg-gray-50 rounded">This match has not been scouted</div>
-                          </td>
-                        </tr>
-                      ) : (
-                        <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
-                          <td className="py-2 align-top break-words px-3 text-center">{m.matchLabel}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.scouterCount}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgAutoFuel.toFixed(2)}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopTotal.toFixed(2)}</td>
-                          {/* Per-shift columns removed */}
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTotalFuel.toFixed(2)}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.highClimb}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.died}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.defense}</td>
-                        </tr>
-                      )
-                    ))}
-                  </tbody>
-                </table>
+                {showPitView ? (
+                  <div className="p-4 bg-gray-50 rounded border">
+                    {!selectedPitData ? (
+                      <div className="italic text-gray-500 p-3">No pit scouting data for this team.</div>
+                    ) : (
+                      <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(selectedPitData, null, 2)}</pre>
+                    )}
+                  </div>
+                ) : (
+                  <table className="w-full text-sm table-auto">
+                    <thead>
+                      <tr className="border-b border-gray-300">
+                        <th className="text-center py-2 align-top px-3">Match</th>
+                        <th className="text-center py-2 align-top px-3 border-l border-gray-300">Scouters</th>
+                        <th className="text-center py-2 align-top px-3 border-l border-gray-300">Auto Avg Fuel</th>
+                        <th className="text-center py-2 align-top px-3 border-l border-gray-300">Teleop Avg Fuel</th>
+                        <th className="text-center py-2 align-top px-3 border-l border-gray-300">1st Offence Avg</th>
+                        <th className="text-center py-2 align-top px-3 border-l border-gray-300">2nd Offence Avg</th>
+                        <th className="text-center py-2 align-top px-3 border-l border-gray-300">Total Avg Fuel</th>
+                        <th className="text-center py-2 align-top px-3 border-l border-gray-300">High Climb</th>
+                        <th className="text-center py-2 align-top px-3 border-l border-gray-300">Died</th>
+                        <th className="text-center py-2 align-top px-3 border-l border-gray-300">Defense</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamMatches.map(m => {
+                        if (m.notScouted) {
+                          return (
+                            <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
+                              <td className="py-2 align-top break-words px-3 text-center">{m.matchLabel}</td>
+                              <td className="py-2 align-top px-3 border-l border-gray-300" colSpan={10}>
+                                <div className="italic text-gray-500 p-3 bg-gray-50 rounded">This match has not been scouted</div>
+                              </td>
+                            </tr>
+                          );
+                        }
+                        return (
+                          <tr key={m.matchKey} className="border-b hover:bg-gray-50 align-top">
+                            <td className="py-2 align-top break-words px-3 text-center">{m.matchLabel}</td>
+                            <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.scouterCount}</td>
+                            <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgAutoFuel.toFixed(2)}</td>
+                            <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopTotal.toFixed(2)}</td>
+                            {/* Per-shift columns removed */}
+                            <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTotalFuel.toFixed(2)}</td>
+                            <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.highClimb}</td>
+                            <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.died}</td>
+                            <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.defense}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
