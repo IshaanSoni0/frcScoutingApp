@@ -357,16 +357,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Teleop Period</h2>
               <div className="space-y-4">
-                {/* Transition Shift */}
-                <div className="border rounded p-3">
-                  <h3 className="font-medium text-gray-800 mb-2">Transition Shift</h3>
-                  <div className="mb-2">
-                    {/* Teleop transition collection source removed from UI per request */}
-                  </div>
-                  <div className="flex items-center gap-2 w-full">
-                    <ScoreButton label="Transition Fuel" value={formData.teleop.transition.fuel} onChange={(d) => handleScoreChange('teleop', 'transition.fuel', d)} />
-                  </div>
-                </div>
+                {/* Transition Shift removed */}
 
                 {/* First Offence Shift */}
                 <div className="border rounded p-3">

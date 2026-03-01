@@ -15,7 +15,7 @@ type TeamStats = {
   // new-scouter metrics
   avgAutoFuel: number; // average autonomous fuel scored
   avgTeleopFuel: number; // average teleop fuel (sum of transition + offence shifts)
-  avgTeleopTransition: number;
+  
   avgTeleopFirstOffence: number;
   avgTeleopSecondOffence: number;
   avgClimbedPercent: number; // percent of entries where auto.climbed === true
@@ -341,7 +341,6 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
       // New scouter shape: auto.fuel (number), teleop.{transition,firstOffence,secondOffence}.fuel
       const autoFuelArr = entries.map(e => (typeof e.auto?.fuel === 'number' ? e.auto.fuel : 0));
-      const teleopTransition = entries.map(e => (typeof e.teleop?.transition?.fuel === 'number' ? e.teleop.transition.fuel : 0));
       const teleopFirst = entries.map(e => (typeof e.teleop?.firstOffence?.fuel === 'number' ? e.teleop.firstOffence.fuel : 0));
       const teleopSecond = entries.map(e => (typeof e.teleop?.secondOffence?.fuel === 'number' ? e.teleop.secondOffence.fuel : 0));
       const teleopEndgame = entries.map(e => (typeof (e.endgame as any)?.fuel === 'number' ? (e.endgame as any).fuel : 0));
@@ -349,12 +348,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const avg = (arr: number[]) => (arr.length === 0 ? 0 : sum(arr) / arr.length);
 
       const avgAutoFuel = avg(autoFuelArr);
-      const avgTeleopTransition = avg(teleopTransition);
       const avgTeleopFirstOffence = avg(teleopFirst);
       const avgTeleopSecondOffence = avg(teleopSecond);
-      const avgTeleopFuel = avg(teleopTransition.map((v, i) => v + teleopFirst[i] + teleopSecond[i]));
+      const avgTeleopFuel = avg(teleopFirst.map((v, i) => v + teleopSecond[i]));
       const avgEndgameFuel = avg(teleopEndgame);
-      const avgTotalFuel = avg(autoFuelArr.map((v, i) => v + teleopTransition[i] + teleopFirst[i] + teleopSecond[i] + teleopEndgame[i]));
+      const avgTotalFuel = avg(autoFuelArr.map((v, i) => v + teleopFirst[i] + teleopSecond[i] + teleopEndgame[i]));
 
       // average total defense time per entry (firstDefense.duration + secondDefense.duration)
       const defenseDurations = entries.map(e => {
@@ -384,7 +382,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         count,
           avgAutoFuel: Math.round(avgAutoFuel * 100) / 100,
           avgTeleopFuel: Math.round(avgTeleopFuel * 100) / 100,
-          avgTeleopTransition: Math.round(avgTeleopTransition * 100) / 100,
+  
           avgTeleopFirstOffence: Math.round(avgTeleopFirstOffence * 100) / 100,
           avgTeleopSecondOffence: Math.round(avgTeleopSecondOffence * 100) / 100,
           avgEndgameFuel: Math.round(avgEndgameFuel * 100) / 100,
@@ -571,7 +569,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
       if (showAuto) base.push(t.avgAutoFuel, `${t.maxClimbLevel}, ${t.avgClimbedPercent.toFixed(1)}%`);
-      if (showTeleop) base.push(t.avgTeleopFuel, t.avgTeleopTransition, t.avgTeleopFirstOffence, t.avgTeleopSecondOffence, t.avgEndgameFuel, t.avgTotalFuel);
+      if (showTeleop) base.push(t.avgTeleopFuel, t.avgTeleopFirstOffence, t.avgTeleopSecondOffence, t.avgEndgameFuel, t.avgTotalFuel);
       base.push(`${t.matchesPlayed}/${t.matchesScheduled}`, `${t.diedCount}/${t.matchesPlayed}`, t.driverSkill, t.robotSpeed, t.trench, t.shootingAccuracy, t.shootingSpeed, t.intakeSpeed, t.robotRange, t.defense);
       return base;
     });
@@ -771,7 +769,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Matches Scouted</th>
                                 <th onClick={() => toggleSort('avgAutoFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Auto Avg Fuel</th>
                                 <th onClick={() => toggleSort('avgTeleopFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Teleop Avg Fuel</th>
-                                <th onClick={() => toggleSort('avgTeleopTransition')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Transition Avg</th>
+                                {/* Transition Avg removed */}
                                 <th onClick={() => toggleSort('avgTeleopFirstOffence')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">1st Offence Avg</th>
                                 <th onClick={() => toggleSort('avgTeleopSecondOffence')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">2nd Offence Avg</th>
                                 <th onClick={() => toggleSort('avgEndgameFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Endgame Avg</th>
@@ -801,7 +799,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.matchesPlayed}/{t.matchesScheduled}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgAutoFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopFuel.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopTransition.toFixed(2)}</td>
+                                  {/* Transition Avg removed */}
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopFirstOffence.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopSecondOffence.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgEndgameFuel.toFixed(2)}</td>
@@ -876,7 +874,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.scouterCount}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgAutoFuel.toFixed(2)}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopTotal.toFixed(2)}</td>
-                          <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopTransition.toFixed(2)}</td>
+                          {/* Transition Avg removed */}
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopFirstOffence.toFixed(2)}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgTeleopSecondOffence.toFixed(2)}</td>
                           <td className="py-2 align-top px-3 border-l border-gray-300 text-center">{m.avgEndgameFuel.toFixed(2)}</td>
