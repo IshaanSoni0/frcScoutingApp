@@ -846,6 +846,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                           </div>
 
                           <div className="p-2 md:col-span-2">
+                            <div className="text-xs text-gray-500">Notes</div>
+                            <div className="font-medium whitespace-pre-wrap">{pitData?.notes ? pitData.notes : 'None'}</div>
+                          </div>
+
+                          <div className="p-2 md:col-span-2">
                             <div className="text-xs text-gray-500">Updated</div>
                             <div className="font-medium">{pitData?.updatedAt ? new Date(pitData.updatedAt).toLocaleString() : 'Unknown'}</div>
                           </div>

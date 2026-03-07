@@ -35,6 +35,7 @@ export function PitScouting({ onBack }: { onBack: () => void }) {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [form, setForm] = useState<PitForm>(emptyForm);
   const [images, setImages] = useState<string[]>([]);
+  const [notes, setNotes] = useState<string>('');
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -45,6 +46,7 @@ export function PitScouting({ onBack }: { onBack: () => void }) {
     const saved = DataService.getPitData(selectedTeam);
     if (saved) {
       setForm({ ...emptyForm, ...saved });
+      setNotes(saved.notes || '');
     } else {
       setForm(emptyForm);
     }
@@ -55,7 +57,7 @@ export function PitScouting({ onBack }: { onBack: () => void }) {
 
   const save = () => {
     if (!selectedTeam) return;
-    DataService.savePitData(selectedTeam, form as any);
+    DataService.savePitData(selectedTeam, { ...(form as any), notes });
     // persist images separately
     try {
       DataService.savePitImages(selectedTeam, images);
@@ -188,6 +190,11 @@ export function PitScouting({ onBack }: { onBack: () => void }) {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="p-4 border rounded md:col-span-2">
+                <label className="block font-medium mb-2">Scouter Notes</label>
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} className="w-full border rounded p-2" placeholder="Anything notable about the robot (drive, quirks, components, etc.)"></textarea>
               </div>
 
               {showCamera && (
