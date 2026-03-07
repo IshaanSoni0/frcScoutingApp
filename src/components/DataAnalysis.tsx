@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
-import { fetchServerScouting, deleteScoutingFromServer, performFullRefresh, fetchPitData } from '../services/syncService';
+import { fetchServerScouting, deleteScoutingFromServer, deletePitDataFromServer, performFullRefresh, fetchPitData } from '../services/syncService';
 import { ArrowLeft, BarChart3, Download } from 'lucide-react';
 import { getRuntimeTbaKey, setRuntimeTbaKey } from '../services/tbaApi';
 
@@ -525,9 +525,22 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       setDeleteInProgress(true);
       setDeleteError(null);
       try {
+        // delete scouting records
         await deleteScoutingFromServer();
         DataService.clearScoutingData();
         setRows([]);
+        // delete pit data and images on server and locally
+        try {
+          await deletePitDataFromServer();
+        } catch (e) {
+          console.warn('deletePitDataFromServer failed:', e);
+        }
+        try {
+          DataService.clearPitData();
+          DataService.clearPitImages();
+        } catch (e) {
+          console.warn('Local clear of pit data/images failed:', e);
+        }
         setShowConfirmClearData(false);
       } catch (e: any) {
         console.error('Failed to delete scouting data from server:', e);

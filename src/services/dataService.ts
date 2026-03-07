@@ -239,6 +239,22 @@ export class DataService {
     }
   }
 
+  static clearPitData(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.PIT_DATA);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  static clearPitImages(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.PIT_IMAGES);
+    } catch (e) {
+      // ignore
+    }
+  }
+
   static clearScoutingData(): void {
     try {
       localStorage.removeItem(STORAGE_KEYS.SCOUTING_DATA);
@@ -372,8 +388,8 @@ export class DataService {
         const rows = this.getScoutingData();
         const updated = rows.map(r => {
           try {
-            const auto = r.auto || {};
-            const teleop = r.teleop || {};
+            const auto = (r.auto || {}) as any;
+            const teleop = (r.teleop || {}) as any;
             const coercedAutoNet = typeof auto.net === 'number' ? auto.net : (auto.net ? 1 : 0);
             const coercedTeleNet = typeof teleop.net === 'number' ? teleop.net : (teleop.net ? 1 : 0);
             const coercedTelePros = typeof teleop.prosser === 'number' ? teleop.prosser : (teleop.prosser ? 1 : 0);

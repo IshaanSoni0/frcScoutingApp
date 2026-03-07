@@ -946,6 +946,41 @@ export async function deleteScoutingFromServer() {
   }
 }
 
+// delete all pit_data rows and remove storage files in the 'pit-images' bucket
+export async function deletePitDataFromServer() {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot delete pit data.');
+  try {
+    // delete pit_data rows
+    const { error: delErr } = await client.from('pit_data').delete();
+    if (delErr) throw delErr;
+
+    // attempt to list and remove files from the storage bucket 'pit-images'
+    try {
+      const listRes: any = await client.storage.from('pit-images').list('');
+      if (listRes?.error) {
+        // not fatal - surface later if needed
+      } else if (Array.isArray(listRes?.data) && listRes.data.length > 0) {
+        const files = listRes.data.map((f: any) => f.name).filter(Boolean);
+        if (files.length > 0) {
+          const { error: remErr } = await client.storage.from('pit-images').remove(files);
+          if (remErr) {
+            // surface as non-fatal
+            console.warn('deletePitDataFromServer: failed to remove some files', remErr);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('deletePitDataFromServer: storage cleanup failed', e);
+    }
+
+    return true;
+  } catch (err) {
+    const e: any = err;
+    throw new Error('deletePitDataFromServer: ' + (e?.message || String(e)));
+  }
+}
+
 // push matches array to server immediately and refresh local storage
 export async function pushMatchesToServer(matches: any[]) {
   const client = getSupabaseClient();
