@@ -3,6 +3,7 @@ import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
 import { fetchServerScouting, deleteScoutingFromServer, performFullRefresh, fetchPitData } from '../services/syncService';
 import { ArrowLeft, BarChart3, Download } from 'lucide-react';
+import { getRuntimeTbaKey, setRuntimeTbaKey } from '../services/tbaApi';
 
 interface DataAnalysisProps {
   onBack: () => void;
@@ -12,6 +13,7 @@ type TeamStats = {
   teamKey: string; // frcXXXX
   team: string; // display without frc
   count: number;
+  tbaOPR?: number;
   // new-scouter metrics
   avgAutoFuel: number; // average autonomous fuel scored
   avgTeleopFuel: number; // average teleop fuel (offence shift total)
@@ -46,6 +48,9 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [matchesVersion, setMatchesVersion] = useState(0);
   const [loadingServer, setLoadingServer] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [runtimeKey, setRuntimeKey] = useState<string>(() => getRuntimeTbaKey() || '');
+  const [tbaError, setTbaError] = useState<string | null>(null);
+  const [oprMap, setOprMap] = useState<Record<string, number>>({});
   const [teamFilter, setTeamFilter] = useState('');
   const [minEntries, setMinEntries] = useState(0);
   const [showAuto, setShowAuto] = useState(true);
@@ -104,6 +109,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         });
         setRows(mapped as ScoutingData[]);
         setServerError(null);
+        // if a TBA key exists, attempt to fetch OPRs for the currently selected event
+        try {
+          if (getRuntimeTbaKey()) await fetchAndApplyOprs();
+        } catch (e) {
+          // ignore fetch errors here; fetchAndApplyOprs sets tbaError
+        }
       } catch (e: any) {
         console.error('Failed to fetch server scouting records on mount:', e);
         setServerError(String(e?.message || e));
@@ -283,6 +294,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         teamKey: tk,
         team: tk.replace(/^frc/, ''),
         count,
+        tbaOPR: oprMap[tk.replace(/^frc/, '')] ?? 0,
           avgAutoFuel: Math.round(avgAutoFuel * 100) / 100,
           avgTeleopFuel: Math.round(avgTeleopFuel * 100) / 100,
 
@@ -474,6 +486,33 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     URL.revokeObjectURL(url);
   };
 
+  // Fetch OPRs for the currently selected event from The Blue Alliance
+  const TBA_BASE_URL = 'https://www.thebluealliance.com/api/v3';
+  const fetchAndApplyOprs = async () => {
+    try {
+      setTbaError(null);
+      const key = getRuntimeTbaKey();
+      const eventKey = DataService.getSelectedEvent();
+      if (!eventKey) {
+        setTbaError('No event selected to fetch OPRs');
+        return;
+      }
+      const headers: any = key ? { 'X-TBA-Auth-Key': key } : {};
+      const resp = await fetch(`${TBA_BASE_URL}/event/${eventKey}/oprs`, { headers });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        throw new Error(`TBA OPRs fetch failed: ${resp.status} ${txt}`);
+      }
+      const body = await resp.json();
+      const oprs: Record<string, number> = (body && body.oprs) || {};
+      // map OPRs to strings matching team numbers (no frc prefix)
+      setOprMap(oprs);
+    } catch (e: any) {
+      console.error('Failed to fetch OPRs', e);
+      setTbaError(String(e?.message || e));
+    }
+  };
+
   const [showConfirmClearData, setShowConfirmClearData] = useState(false);
   const [deleteInProgress, setDeleteInProgress] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -560,6 +599,21 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
             <div className="mt-2 text-red-600">Server: {serverError}</div>
           )}
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-2">
+              <input
+                placeholder="Enter TBA API key"
+                value={runtimeKey}
+                onChange={(e) => setRuntimeKey(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { setRuntimeTbaKey(runtimeKey); fetchAndApplyOprs(); } }}
+                className="px-2 py-1 border rounded-md text-sm w-56"
+              />
+              <button
+                onClick={() => { setRuntimeTbaKey(runtimeKey); fetchAndApplyOprs(); }}
+                className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 text-sm"
+              >
+                Submit
+              </button>
+            </div>
             <button
               onClick={exportToCSV}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -681,6 +735,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <thead>
                     <tr className="border-b border-gray-300">
                                 <th className="text-center py-3 font-medium text-gray-900 px-3">Team</th>
+                                <th onClick={() => toggleSort('tbaOPR')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">TBA OPR</th>
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Entries</th>
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Matches Scouted</th>
                                 <th onClick={() => toggleSort('avgAutoFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Auto Avg Fuel</th>
@@ -702,6 +757,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                             {t.team}
                           </button>
                         </td>
+                        <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.tbaOPR ? t.tbaOPR.toFixed(2) : '—'}</td>
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.count}</td>
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.matchesPlayed}/{t.matchesScheduled}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgAutoFuel.toFixed(2)}</td>
