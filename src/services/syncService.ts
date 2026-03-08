@@ -951,15 +951,21 @@ export async function deletePitDataFromServer() {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase client not configured; cannot delete pit data.');
   try {
-    // delete pit_data rows
-    const { error: delErr } = await client.from('pit_data').delete();
-    if (delErr) throw delErr;
+    // fetch pit_data rows (we must delete with a WHERE clause; Supabase rejects blind deletes)
+    const { data: pitRows, error: fetchErr } = await client.from('pit_data').select('team_key').limit(1000);
+    if (fetchErr) throw fetchErr;
+    const keys: string[] = Array.isArray(pitRows) ? pitRows.map((r: any) => r.team_key).filter(Boolean) : [];
+    if (keys.length > 0) {
+      const { error: delErr } = await client.from('pit_data').delete().in('team_key', keys);
+      if (delErr) throw delErr;
+    }
 
     // attempt to list and remove files from the storage bucket 'pit-images'
     try {
       const listRes: any = await client.storage.from('pit-images').list('');
       if (listRes?.error) {
         // not fatal - surface later if needed
+        console.warn('deletePitDataFromServer: storage list error', listRes.error);
       } else if (Array.isArray(listRes?.data) && listRes.data.length > 0) {
         const files = listRes.data.map((f: any) => f.name).filter(Boolean);
         if (files.length > 0) {
