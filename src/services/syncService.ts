@@ -103,22 +103,30 @@ async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: 
       const batchLabel = `sync:pushBatch-${i}-${Date.now()}`;
       try { console.time(batchLabel); } catch (e) {}
       // map to server shape
-      const payload = batch.map(r => ({
-        id: r.id,
-        match_key: r.matchKey,
-        team_key: r.teamKey,
-        scouter_name: r.scouter,
-        alliance: r.alliance,
-        position: r.position,
-        payload: {
-          auto: r.auto,
-          teleop: r.teleop,
-          endgame: r.endgame,
-          defense: r.defense,
-        },
-        client_id: r.clientId,
-        timestamp: new Date(r.timestamp || r.createdAt).toISOString(),
-      }));
+        const payload = batch.map(r => {
+        // ensure match-level climb is persisted inside payload.endgame.climb so server rows
+        // have a canonical place for match climb regardless of local field shape
+        const endgame = Object.assign({}, r.endgame || {});
+        if (!endgame.climb && r.matchClimbed) {
+          endgame.climb = r.matchClimbed;
+        }
+        return {
+          id: r.id,
+          match_key: r.matchKey,
+          team_key: r.teamKey,
+          scouter_name: r.scouter,
+          alliance: r.alliance,
+          position: r.position,
+          payload: {
+            auto: r.auto,
+            teleop: r.teleop,
+            endgame,
+            defense: r.defense,
+          },
+          client_id: r.clientId,
+          timestamp: new Date(r.timestamp || r.createdAt).toISOString(),
+        };
+      });
 
       let attempt = 0;
       while (attempt <= maxRetries) {
