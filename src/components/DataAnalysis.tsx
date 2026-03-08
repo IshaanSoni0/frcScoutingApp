@@ -95,8 +95,11 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               neutralZone: !!rawAuto.neutralZone,
               depot: !!rawAuto.depot,
               outpost: !!rawAuto.outpost,
-              climbed: !!rawAuto.climbed,
+              // preserve the original climbed value (string level or legacy boolean/number)
+              climbed: rawAuto.climbed,
             },
+            // preserve any explicit match-level climb value saved on the payload
+            matchClimbed: r.payload?.matchClimbed ?? (typeof rawAuto.climbed === 'string' ? rawAuto.climbed : (rawAuto.climbed ? 'level1' : 'didnt_climb')),
             teleop: {
               offence: {
                 fuel: (typeof rawTele.offence?.fuel === 'number') ? rawTele.offence.fuel : legacyTeleSum,
@@ -191,6 +194,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         duration: rawTele.defense?.duration ?? 0,
                       },
                     },
+                    matchClimbed: r.payload?.matchClimbed ?? (typeof rawAuto.climbed === 'string' ? rawAuto.climbed : (rawAuto.climbed ? 'level1' : 'didnt_climb')),
             defense: r.payload?.defense || 'none',
             timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
           } as any;
@@ -698,12 +702,13 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                       alliance: r.alliance,
                       position: r.position,
                       auto: {
-                        fuel: autoFuel,
-                        neutralZone: !!rawAuto.neutralZone,
-                        depot: !!rawAuto.depot,
-                        outpost: !!rawAuto.outpost,
-                        climbed: !!rawAuto.climbed,
-                      },
+                          fuel: autoFuel,
+                          neutralZone: !!rawAuto.neutralZone,
+                          depot: !!rawAuto.depot,
+                          outpost: !!rawAuto.outpost,
+                          climbed: rawAuto.climbed,
+                        },
+                        matchClimbed: r.payload?.matchClimbed ?? (typeof rawAuto.climbed === 'string' ? rawAuto.climbed : (rawAuto.climbed ? 'level1' : 'didnt_climb')),
                       teleop: {
                         offence: {
                           fuel: typeof rawTele.offence?.fuel === 'number' ? rawTele.offence.fuel : legacyTeleSum,
