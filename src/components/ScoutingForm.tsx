@@ -293,8 +293,6 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
               <label className="block text-sm font-medium text-gray-700">Climb (auto)</label>
               <select value={(formData.auto as any).climbed} onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, climbed: e.target.value as any } }))} className="w-48 border rounded p-2">
                 <option value="level1">Level 1</option>
-                <option value="level2">Level 2</option>
-                <option value="level3">Level 3</option>
                 <option value="didnt_climb">Didn't climb</option>
               </select>
             </div>
