@@ -883,12 +883,6 @@ export async function upsertPitData(teamKey: string, data: any) {
     };
     const { error } = await client.from('pit_data').upsert(row, { onConflict: 'team_key' });
     if (error) throw error;
-    try {
-      // notify other windows/tabs/components that server pit data changed
-      notifyServerScoutingUpdated();
-    } catch (e) {
-      // ignore
-    }
     return true;
   } catch (err) {
     throw err;

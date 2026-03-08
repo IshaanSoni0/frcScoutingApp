@@ -136,65 +136,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   // Listen for server-side updates and local storage changes so components using
   // matches recompute when matches are updated from the server (fixes stale UI on phones)
   useEffect(() => {
-    const onServer = () => {
-      // server signalled an update: refresh server scouting rows and pit data if open
-      (async () => {
-        try {
-          const serverRows: any[] = await fetchServerScouting();
-          const mapped = serverRows.map((r: any) => {
-            const rawAuto = r.payload?.auto || {};
-            const legacyAutoSum = (rawAuto.l1 || 0) + (rawAuto.l2 || 0) + (rawAuto.l3 || 0) + (rawAuto.l4 || 0) + (typeof rawAuto.net === 'number' ? rawAuto.net : (rawAuto.net ? 1 : 0));
-            const autoFuel = typeof rawAuto.fuel === 'number' ? rawAuto.fuel : legacyAutoSum;
-
-            const rawTele = r.payload?.teleop || {};
-            const legacyTeleSum = (rawTele.l1 || 0) + (rawTele.l2 || 0) + (rawTele.l3 || 0) + (rawTele.l4 || 0) + (typeof rawTele.net === 'number' ? rawTele.net : (rawTele.net ? 1 : 0)) + (typeof rawTele.prosser === 'number' ? rawTele.prosser : (rawTele.prosser ? 1 : 0));
-
-            return {
-              id: r.id,
-              matchKey: r.match_key,
-              teamKey: r.team_key,
-              scouter: r.scouter_name,
-              alliance: r.alliance,
-              position: r.position,
-              auto: {
-                fuel: autoFuel,
-                neutralZone: !!rawAuto.neutralZone,
-                depot: !!rawAuto.depot,
-                outpost: !!rawAuto.outpost,
-                climbed: rawAuto.climbed,
-              },
-              matchClimbed: r.payload?.matchClimbed ?? r.payload?.endgame?.climb ?? (typeof rawAuto.climbed === 'string' ? rawAuto.climbed : (rawAuto.climbed ? 'level1' : 'didnt_climb')),
-              teleop: {
-                offence: { fuel: (typeof rawTele.offence?.fuel === 'number') ? rawTele.offence.fuel : legacyTeleSum },
-                defense: { defense: rawTele.defense?.defense ?? 'na', duration: rawTele.defense?.duration ?? 0 },
-              },
-              defense: r.payload?.defense || 'none',
-              timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
-            } as any;
-          });
-          setRows(mapped as ScoutingData[]);
-        } catch (e) {
-          // ignore refresh errors
-        }
-        // bump version for dependent memos
-        setMatchesVersion(v => v + 1);
-
-        // if pit view is open, refresh the pit payload for the selected team
-        try {
-          if (selectedTeam && showPitView) {
-            const serverPit: any = await fetchPitData(selectedTeam);
-            if (serverPit) {
-              setPitData(serverPit.payload ? (typeof serverPit.payload === 'string' ? JSON.parse(serverPit.payload) : serverPit.payload) : serverPit);
-            } else {
-              const local = DataService.getPitData(selectedTeam);
-              setPitData(local || null);
-            }
-          }
-        } catch (e) {
-          // ignore pit refresh errors
-        }
-      })();
-    };
+    const onServer = () => setMatchesVersion(v => v + 1);
     const onStorage = (e: StorageEvent) => {
       if (!e) return;
       if (e.key === 'frc-matches' || e.key === 'frc-selected-event') setMatchesVersion(v => v + 1);
@@ -917,10 +859,23 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                 {showPitView && (
                   <div className="p-4 bg-gray-50 rounded border">
                         <div className="flex justify-end mb-3">
-                      <button onClick={() => {
-                        // assemble images from server payload or fallback to local storage
+                      <button onClick={async () => {
+                        // Fetch fresh pit data from server first so images uploaded from other devices
+                        // are available here without requiring a full "Refresh from server".
                         const teamKey = selectedTeam;
-                        const imgs: string[] = (pitData && pitData.images && Array.isArray(pitData.images)) ? pitData.images : (teamKey ? DataService.getPitImages(teamKey) : []);
+                        let imgs: string[] = [];
+                        try {
+                          const serverRow: any = teamKey ? await fetchPitData(teamKey) : null;
+                          if (serverRow) {
+                            const payload = serverRow.payload ? (typeof serverRow.payload === 'string' ? JSON.parse(serverRow.payload) : serverRow.payload) : serverRow;
+                            imgs = (payload && payload.images && Array.isArray(payload.images)) ? payload.images : [];
+                          } else {
+                            imgs = teamKey ? DataService.getPitImages(teamKey) : [];
+                          }
+                        } catch (e) {
+                          // on error, fall back to local images
+                          imgs = teamKey ? DataService.getPitImages(teamKey) : [];
+                        }
                         setPictureList(imgs || []);
                         // remember which team the pictures belong to (we close the team modal)
                         setPicturesTeamKey(teamKey || null);
