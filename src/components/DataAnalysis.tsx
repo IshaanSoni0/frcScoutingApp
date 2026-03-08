@@ -14,18 +14,21 @@ type TeamStats = {
   team: string; // display without frc
   count: number;
   tbaOPR?: number;
+  autoMaxClimb: number;
+  autoClimbedPercent: number;
+  teleMaxClimb: number;
+  teleClimbedPercent: number;
   // new-scouter metrics
   avgAutoFuel: number; // average autonomous fuel scored
   avgTeleopFuel: number; // average teleop fuel (offence shift total)
   
   // legacy per-shift averages removed; single `avgTeleopFuel` used
-  avgClimbedPercent: number; // percent of entries where auto.climbed === true
   matchesPlayed: number; // distinct matches with entries
   matchesScheduled: number; // total matches the team is scheduled to play (from matches list)
   highClimbCount: number; // number of matches where majority reported high climb
   diedCount: number; // number of matches where majority reported died
   avgTotalFuel: number; // average total fuel per match (auto + teleop offence)
-  maxClimbLevel: number; // maximum climb level observed (0-3)
+  
   trench: string; // Yes/No/N/A
   shootingAccuracy: string; // descriptive label or N/A
   shootingSpeed: string;
@@ -286,21 +289,51 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       const defenseDurations = entries.map(e => Number((e.teleop as any)?.defense?.duration || 0));
       const avgDefenseTimeSeconds = defenseDurations.length === 0 ? 0 : Math.round((sum(defenseDurations) / defenseDurations.length));
 
-      const climbedArr = entries.map(e => e.auto?.climbed ? 1 : 0);
-      const avgClimbedPercent = (climbedArr.length === 0 ? 0 : (sum(climbedArr) / climbedArr.length) * 100);
-      const maxClimbLevel = 0;
+      // compute auto climb levels: support legacy boolean and new dropdown ('level1'..'didnt_climb')
+      const mapAutoLevel = (v: any) => {
+        if (!v) return 0;
+        if (typeof v === 'number') return v;
+        if (typeof v === 'string') {
+          if (v === 'didnt_climb' || v === 'none') return 0;
+          const m = v.match(/level(\d+)/);
+          if (m) return Number(m[1]);
+        }
+        if (typeof v === 'boolean') return v ? 1 : 0;
+        return 0;
+      };
+      const autoLevels = entries.map(e => mapAutoLevel((e.auto as any)?.climbed));
+      const autoMaxClimb = autoLevels.length === 0 ? 0 : Math.max(...autoLevels);
+      const autoClimbedPercent = autoLevels.length === 0 ? 0 : (autoLevels.filter(l => l > 0).length / autoLevels.length) * 100;
+
+      // compute teleop/match climb levels from matchClimbed or endgame.climb
+      const mapMatchLevel = (v: any) => {
+        if (!v) return 0;
+        if (typeof v === 'number') return v;
+        if (typeof v === 'string') {
+          if (v === 'didnt_climb' || v === 'none') return 0;
+          const m = v.match(/level(\d+)/);
+          if (m) return Number(m[1]);
+        }
+        return 0;
+      };
+      const teleLevels = entries.map(e => mapMatchLevel((e as any).matchClimbed ?? (e.endgame && (e.endgame as any).climb) ));
+      const teleMaxClimb = teleLevels.length === 0 ? 0 : Math.max(...teleLevels);
+      const teleClimbedPercent = teleLevels.length === 0 ? 0 : (teleLevels.filter(l => l > 0).length / teleLevels.length) * 100;
 
       return {
         teamKey: tk,
         team: tk.replace(/^frc/, ''),
         count,
         tbaOPR: oprMap[tk.replace(/^frc/, '')] ?? 0,
+        autoMaxClimb,
+        autoClimbedPercent: Math.round(autoClimbedPercent * 100) / 100,
+        teleMaxClimb,
+        teleClimbedPercent: Math.round(teleClimbedPercent * 100) / 100,
           avgAutoFuel: Math.round(avgAutoFuel * 100) / 100,
           avgTeleopFuel: Math.round(avgTeleopFuel * 100) / 100,
 
           avgTotalFuel: Math.round(avgTotalFuel * 100) / 100,
-          avgClimbedPercent: Math.round(avgClimbedPercent * 100) / 100,
-          maxClimbLevel,
+          
           avgDefenseTimeSeconds,
           trench: trenchVal,
           shootingAccuracy: 'N/A',
@@ -464,12 +497,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
 
   const exportToCSV = () => {
     const headers = ['Team', 'Count'];
-    if (showAuto) headers.push('Auto Avg Fuel', 'Auto Climb (max, %)');
+    if (showAuto) headers.push('Auto Avg Fuel', 'Auto Climb (max, %)', 'Tele Climb (max, %)');
     if (showTeleop) headers.push('Teleop Avg Fuel', 'Total Avg Fuel');
     headers.push('Matches Scouted', 'Died (count/matches)', 'Defense');
     const rowsCsv = filtered.map(t => {
       const base: (string|number)[] = [t.team, t.count];
-      if (showAuto) base.push(t.avgAutoFuel, `${t.maxClimbLevel}, ${t.avgClimbedPercent.toFixed(1)}%`);
+      if (showAuto) base.push(t.avgAutoFuel, `${t.autoMaxClimb}, ${t.autoClimbedPercent.toFixed(1)}%`, `${t.teleMaxClimb}, ${t.teleClimbedPercent.toFixed(1)}%`);
       if (showTeleop) base.push(t.avgTeleopFuel, t.avgTotalFuel);
       base.push(`${t.matchesPlayed}/${t.matchesScheduled}`, `${t.diedCount}/${t.matchesPlayed}`, t.defense);
       return base;
@@ -763,7 +796,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                 <th onClick={() => toggleSort('avgTeleopFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Teleop Avg Fuel</th>
                                 {/* Per-shift columns removed */}
                                 <th onClick={() => toggleSort('avgTotalFuel')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Total Avg Fuel</th>
-                                <th onClick={() => toggleSort('avgClimbedPercent')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Auto Climb (max, %)</th>
+                                <th onClick={() => toggleSort('autoClimbedPercent')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Auto Climb (max, %)</th>
+                                <th onClick={() => toggleSort('teleClimbedPercent')} className="text-center py-3 font-medium text-gray-900 cursor-pointer px-3 border-l border-gray-300">Tele Climb (max, %)</th>
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Died</th>
                                 {/* Removed: Driver Skill, Driving Speed, Trench, Shooting Acc, Shooting Speed, Intake Speed, Robot Range */}
                                 <th className="text-center py-3 font-medium text-gray-900 px-3 border-l border-gray-300">Defense</th>
@@ -784,8 +818,10 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgAutoFuel.toFixed(2)}</td>
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTeleopFuel.toFixed(2)}</td>
                                   {/* Per-shift columns removed */}
+                                  {/* Per-shift columns removed */}
                                   <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.avgTotalFuel.toFixed(2)}</td>
-                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.maxClimbLevel}, {t.avgClimbedPercent.toFixed(1)}%</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.autoMaxClimb}, {t.autoClimbedPercent.toFixed(1)}%</td>
+                                  <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.teleMaxClimb}, {t.teleClimbedPercent.toFixed(1)}%</td>
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.diedCount}/{t.matchesPlayed}</td>
                         {/* Removed: t.driverSkill, t.robotSpeed, t.trench, t.shootingAccuracy, t.shootingSpeed, t.intakeSpeed, t.robotRange */}
                         <td className="py-3 text-gray-600 px-3 border-l border-gray-300 text-center">{t.defense}</td>

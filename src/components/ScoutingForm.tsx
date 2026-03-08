@@ -14,7 +14,7 @@ interface ScoutingFormProps {
 
 export function ScoutingForm({ match, user, onBack, onSubmit, existing }: ScoutingFormProps) {
   const [formData, setFormData] = useState(() => ({
-    auto: { fuel: 0, climbed: false },
+    auto: { fuel: 0, climbed: 'didnt_climb' as 'level1' | 'level2' | 'level3' | 'didnt_climb' },
     teleop: {
       offence: { fuel: 0 },
       defense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
@@ -38,7 +38,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
       setFormData({
         auto: {
           fuel: existing.auto?.fuel ?? legacyAutoFuel ?? 0,
-          climbed: !!existing.auto?.climbed,
+          climbed: (existing.auto?.climbedLevel as any) ?? (existing.auto?.climbed ? 'level1' : undefined) ?? (existing.matchClimbed ?? 'didnt_climb'),
         },
         teleop: {
           offence: { fuel: _offFuel },
@@ -290,15 +290,13 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.auto.climbed}
-                  onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, climbed: e.target.checked } }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">Climbed in Auto</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Climb (auto)</label>
+              <select value={(formData.auto as any).climbed} onChange={(e) => setFormData(prev => ({ ...prev, auto: { ...prev.auto, climbed: e.target.value as any } }))} className="w-48 border rounded p-2">
+                <option value="level1">Level 1</option>
+                <option value="level2">Level 2</option>
+                <option value="level3">Level 3</option>
+                <option value="didnt_climb">Didn't climb</option>
+              </select>
             </div>
           </div>
 
