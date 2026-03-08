@@ -154,19 +154,13 @@ export class DataService {
   // PIT image helpers - store data URLs (small sets) per team
   static savePitImages(teamKey: string, images: string[]): void {
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.PIT_IMAGES) || '{}';
-      const obj = JSON.parse(raw || '{}');
-      obj[teamKey] = { images: images.slice(), updatedAt: Date.now() };
-      localStorage.setItem(STORAGE_KEYS.PIT_IMAGES, JSON.stringify(obj));
-      // attempt to upload any data-URL images to server storage (fire-and-forget)
+      // Do NOT persist images to localStorage. Instead, attempt to upload any
+      // provided data-URL images immediately and upsert the pit_data row with
+      // the resulting public URLs. This prevents stale local copies from
+      // appearing after server-side clears.
       (async () => {
         try {
-          // eslint-disable-next-line no-console
-          console.debug('savePitImages: starting background upload check for', teamKey);
-          const storedRaw = localStorage.getItem(STORAGE_KEYS.PIT_IMAGES) || '{}';
-          const stored = JSON.parse(storedRaw || '{}');
-          const imgs: string[] = (stored[teamKey] && stored[teamKey].images) || [];
-          let mutated = false;
+          const imgs: string[] = images.slice();
           for (let i = 0; i < imgs.length; i++) {
             const v = imgs[i];
             if (typeof v === 'string' && v.startsWith('data:')) {
@@ -176,7 +170,6 @@ export class DataService {
                 const url = await uploadPitImage(teamKey, v);
                 if (url) {
                   imgs[i] = url;
-                  mutated = true;
                   // eslint-disable-next-line no-console
                   console.debug('savePitImages: upload succeeded', i, url);
                 } else {
@@ -186,31 +179,28 @@ export class DataService {
               } catch (e) {
                 // eslint-disable-next-line no-console
                 console.error('savePitImages: upload failed for', teamKey, i, e);
-                // continue with other images
+                // leave the original entry so we don't lose it client-side
               }
             }
           }
-          if (mutated) {
-            stored[teamKey] = { images: imgs, updatedAt: Date.now() };
-            localStorage.setItem(STORAGE_KEYS.PIT_IMAGES, JSON.stringify(stored));
-            // also upsert pit_data payload to include image URLs for this team
-            try {
-              const pit = DataService.getPitData(teamKey) || {};
-              pit.images = imgs;
-              // eslint-disable-next-line @typescript-eslint/no-floating-promises
-              upsertPitData(teamKey, pit);
-            } catch (e) {
-              // eslint-disable-next-line no-console
-              console.error('savePitImages: failed to upsert pit_data for', teamKey, e);
-            }
+
+          // persist images in the pit_data payload on the server (fire-and-forget)
+          try {
+            const pit = DataService.getPitData(teamKey) || {};
+            pit.images = imgs;
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            upsertPitData(teamKey, pit);
+          } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error('savePitImages: failed to upsert pit_data for', teamKey, e);
           }
         } catch (e) {
           // eslint-disable-next-line no-console
-          console.error('savePitImages: unexpected error in background uploader for', teamKey, e);
+          console.error('savePitImages: unexpected error in uploader for', teamKey, e);
         }
       })();
     } catch (e) {
-      // ignore
+      // ignore synchronous errors
     }
   }
 
