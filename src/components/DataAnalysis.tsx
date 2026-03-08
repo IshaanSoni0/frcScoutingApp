@@ -627,7 +627,15 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         const serverRow: any = await fetchPitData(selectedTeam);
         if (!mounted) return;
         if (serverRow) {
-          setPitData(serverRow.payload ? (typeof serverRow.payload === 'string' ? JSON.parse(serverRow.payload) : serverRow.payload) : serverRow);
+          const payload = serverRow.payload ? (typeof serverRow.payload === 'string' ? JSON.parse(serverRow.payload) : serverRow.payload) : serverRow;
+          setPitData(payload);
+          try {
+            if (selectedTeam && payload && Array.isArray(payload.images) && payload.images.length > 0) {
+              DataService.savePitImages(selectedTeam, payload.images);
+            }
+          } catch (e) {
+            // ignore
+          }
         } else {
           // fallback to local storage
           const local = DataService.getPitData(selectedTeam);
