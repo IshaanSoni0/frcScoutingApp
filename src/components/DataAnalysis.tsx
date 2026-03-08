@@ -525,25 +525,33 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       setDeleteInProgress(true);
       setDeleteError(null);
       try {
-        // delete scouting records
-        await deleteScoutingFromServer();
-        DataService.clearScoutingData();
+        // Run server deletes as best-effort in background, but always clear local state immediately
+        const serverDeletes = Promise.allSettled([
+          // attempt to delete scouting records on server
+          deleteScoutingFromServer().catch((err) => { throw err; }),
+          // attempt to delete pit data and storage files on server
+          deletePitDataFromServer().catch((err) => { throw err; }),
+        ]);
+
+        // Clear local data immediately so UI reflects the user's intent even if server ops fail
+        try { DataService.clearScoutingData(); } catch (e) { console.warn('Local clearScoutingData failed', e); }
+        try { DataService.clearPitData(); DataService.clearPitImages(); } catch (e) { console.warn('Local clearPitData/images failed', e); }
         setRows([]);
-        // delete pit data and images on server and locally
-        try {
-          await deletePitDataFromServer();
-        } catch (e) {
-          console.warn('deletePitDataFromServer failed:', e);
-        }
-        try {
-          DataService.clearPitData();
-          DataService.clearPitImages();
-        } catch (e) {
-          console.warn('Local clear of pit data/images failed:', e);
-        }
         setShowConfirmClearData(false);
+
+        // wait for server deletes and surface any errors
+        const results = await serverDeletes;
+        const failures = results.filter(r => r.status === 'rejected');
+        if (failures.length > 0) {
+          // aggregate error messages
+          const msgs = failures.map((f: any, i) => f.reason ? String(f.reason?.message || f.reason) : `failure ${i+1}`);
+          const msg = `Server delete errors: ${msgs.join('; ')}`;
+          console.warn(msg);
+          setDeleteError(msg);
+        }
       } catch (e: any) {
-        console.error('Failed to delete scouting data from server:', e);
+        // unexpected error path
+        console.error('Failed to clear data:', e);
         setDeleteError(String(e?.message || e));
       } finally {
         setDeleteInProgress(false);
