@@ -35,10 +35,10 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
       const _defDuration = existing.teleop?.defense?.duration ?? 0;
       const _defRating = existing.teleop?.defense?.defense ?? existing.defense ?? 'na';
 
-      setFormData({
+        setFormData({
         auto: {
           fuel: existing.auto?.fuel ?? legacyAutoFuel ?? 0,
-          climbed: (existing.auto?.climbedLevel as any) ?? (existing.auto?.climbed ? 'level1' : undefined) ?? (existing.matchClimbed ?? 'didnt_climb'),
+          climbed: (existing.auto?.climbedLevel as any) ?? (typeof existing.auto?.climbed === 'string' ? existing.auto?.climbed : (existing.auto?.climbed ? 'level1' : undefined)) ?? (existing.matchClimbed ?? 'didnt_climb'),
         },
         teleop: {
           offence: { fuel: _offFuel },
@@ -50,7 +50,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
         robotShutdown: existing.robotShutdown ?? 'no',
         dataConfidence: existing.dataConfidence ?? 'confident',
         defense: existing.defense ?? 'na',
-        matchClimbed: (existing.matchClimbed ?? (existing.auto?.climbed ? 'level1' : 'didnt_climb')) ?? 'didnt_climb',
+        matchClimbed: (existing.matchClimbed ?? (typeof existing.auto?.climbed === 'string' ? existing.auto?.climbed : (existing.auto?.climbed ? 'level1' : 'didnt_climb'))) ?? 'didnt_climb',
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
