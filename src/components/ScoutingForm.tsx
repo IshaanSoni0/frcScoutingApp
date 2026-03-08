@@ -14,7 +14,7 @@ interface ScoutingFormProps {
 
 export function ScoutingForm({ match, user, onBack, onSubmit, existing }: ScoutingFormProps) {
   const [formData, setFormData] = useState(() => ({
-    auto: { fuel: 0, climbed: 'didnt_climb' as 'level1' | 'didnt_climb' },
+    auto: { fuel: 0, climbed: 'didnt_climb' as 'climbed' | 'didnt_climb' },
     teleop: {
       offence: { fuel: 0 },
       defense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
@@ -38,7 +38,7 @@ export function ScoutingForm({ match, user, onBack, onSubmit, existing }: Scouti
         setFormData({
         auto: {
           fuel: existing.auto?.fuel ?? legacyAutoFuel ?? 0,
-          climbed: (existing.auto?.climbedLevel as any) ?? (typeof existing.auto?.climbed === 'string' ? existing.auto?.climbed : (existing.auto?.climbed ? 'level1' : undefined)) ?? (existing.matchClimbed ?? 'didnt_climb'),
+          climbed: (existing.auto?.climbedLevel as any) ?? (typeof existing.auto?.climbed === 'string' ? existing.auto?.climbed : (existing.auto?.climbed ? 'climbed' : undefined)) ?? (existing.matchClimbed ?? 'didnt_climb'),
         },
         teleop: {
           offence: { fuel: _offFuel },
