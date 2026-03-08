@@ -183,7 +183,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               neutralZone: !!rawAuto.neutralZone,
               depot: !!rawAuto.depot,
               outpost: !!rawAuto.outpost,
-              climbed: !!rawAuto.climbed,
+              // preserve original climbed value (string/number/boolean) so mapping can distinguish level strings
+              climbed: rawAuto.climbed,
             },
                     teleop: {
                       offence: {
