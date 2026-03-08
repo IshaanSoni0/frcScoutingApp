@@ -300,6 +300,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         if (typeof v === 'number') return v;
         if (typeof v === 'string') {
           if (v === 'didnt_climb' || v === 'none') return 0;
+          // support shorthand 'climbed' value which maps to level1
+          if (v === 'climbed') return 1;
           const m = v.match(/level(\d+)/);
           if (m) return Number(m[1]);
         }

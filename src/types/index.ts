@@ -34,7 +34,8 @@ export interface ScoutingData {
     depot?: boolean;
     outpost?: boolean;
     // climbed in auto
-    climbed?: boolean;
+    // can be legacy boolean or new string values ('climbed'|'didnt_climb'|'level1'..'level3')
+    climbed?: boolean | 'climbed' | 'didnt_climb' | 'level1' | 'level2' | 'level3';
   };
   teleop: {
     offence?: {
