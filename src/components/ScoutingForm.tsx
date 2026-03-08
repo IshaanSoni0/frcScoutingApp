@@ -14,7 +14,7 @@ interface ScoutingFormProps {
 
 export function ScoutingForm({ match, user, onBack, onSubmit, existing }: ScoutingFormProps) {
   const [formData, setFormData] = useState(() => ({
-    auto: { fuel: 0, climbed: 'didnt_climb' as 'level1' | 'level2' | 'level3' | 'didnt_climb' },
+    auto: { fuel: 0, climbed: 'didnt_climb' as 'level1' | 'didnt_climb' },
     teleop: {
       offence: { fuel: 0 },
       defense: { defense: 'na' as 'na' | 'bad' | 'average' | 'good', duration: 0 },
