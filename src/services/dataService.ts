@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   SCOUTING_DATA: 'frc-scouting-data',
   PIT_DATA: 'frc-pit-data',
   PIT_IMAGES: 'frc-pit-images',
+  TEAMS: 'frc-teams',
   SCOUTERS: 'frc-scouters',
   MATCHES: 'frc-matches',
   SELECTED_EVENT: 'frc-selected-event',
@@ -101,6 +102,49 @@ export class DataService {
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
+    }
+  }
+
+  // Manual team helpers (for when TBA match list isn't available)
+  static addTeam(teamKey: string, name?: string): void {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.TEAMS) || '{}';
+      const obj = JSON.parse(raw || '{}');
+      obj[teamKey] = { ...(obj[teamKey] || {}), name: name || obj[teamKey]?.name || '', updatedAt: Date.now() };
+      localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(obj));
+      // attempt to create a corresponding pit_data row on the server so other devices
+      // can discover this team even if matches are not available.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        upsertPitData(teamKey, {});
+      } catch (e) {
+        // ignore server errors
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  static getTeams(): Array<{ teamKey: string; name?: string }> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.TEAMS) || '{}';
+      const obj = JSON.parse(raw || '{}');
+      return Object.keys(obj).map(k => ({ teamKey: k, name: obj[k].name }));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static removeTeam(teamKey: string): void {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.TEAMS) || '{}';
+      const obj = JSON.parse(raw || '{}');
+      if (obj[teamKey]) {
+        delete obj[teamKey];
+        localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(obj));
+      }
+    } catch (e) {
+      // ignore
     }
   }
 

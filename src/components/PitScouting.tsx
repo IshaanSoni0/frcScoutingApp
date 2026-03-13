@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { DataService } from '../services/dataService';
+import { fetchPitData } from '../services/syncService';
 import { ArrowLeft, Camera } from 'lucide-react';
 
 type PitForm = {
@@ -22,6 +23,9 @@ const emptyForm: PitForm = {
 
 export function PitScouting({ onBack }: { onBack: () => void }) {
   const matches = (DataService.getMatches() || []).filter((m: any) => !m.deletedAt);
+  const [manualTeams, setManualTeams] = useState(() => DataService.getTeams());
+  const [serverPitTeams, setServerPitTeams] = useState<string[]>([]);
+
   const teams = useMemo(() => {
     const set = new Set<string>();
     matches.forEach((m: any) => {
@@ -29,8 +33,30 @@ export function PitScouting({ onBack }: { onBack: () => void }) {
         (m.alliances?.[a]?.team_keys || []).forEach((tk: string) => set.add(tk));
       });
     });
+    // include manual teams
+    manualTeams.forEach(t => set.add(t.teamKey));
+    // include teams discovered from server-side pit_data rows
+    serverPitTeams.forEach(tk => set.add(tk));
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [matches]);
+  }, [matches, manualTeams]);
+
+  const [newTeamNumber, setNewTeamNumber] = useState<string>('');
+  const [newTeamName, setNewTeamName] = useState<string>('');
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const rows: any[] = await fetchPitData();
+        if (!mounted) return;
+        const keys = (rows || []).map(r => r.team_key).filter(Boolean);
+        setServerPitTeams(keys);
+      } catch (e) {
+        // ignore fetch errors
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [form, setForm] = useState<PitForm>(emptyForm);
@@ -77,13 +103,44 @@ export function PitScouting({ onBack }: { onBack: () => void }) {
         </div>
 
         {!selectedTeam ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {teams.map(t => (
-              <button key={t} onClick={() => setSelectedTeam(t)} className="bg-white p-4 rounded shadow hover:shadow-md text-left">
-                <div className="text-lg font-semibold">{t.replace(/^frc/, '')}</div>
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="mb-4 p-4 bg-white rounded shadow">
+              <div className="flex gap-2 items-center">
+                <input value={newTeamNumber} onChange={(e) => setNewTeamNumber(e.target.value)} placeholder="Team number (e.g. 254)" className="border rounded p-2" />
+                <input value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="Nickname (optional)" className="border rounded p-2" />
+                <button onClick={() => {
+                  const raw = newTeamNumber.trim();
+                  if (!raw) return;
+                  const key = raw.startsWith('frc') ? raw : `frc${raw}`;
+                  DataService.addTeam(key, newTeamName.trim() || undefined);
+                  // reset inputs and refresh by forcing state change
+                  setNewTeamNumber(''); setNewTeamName('');
+                  setManualTeams(DataService.getTeams());
+                  // select the newly added team immediately for quick scouting
+                  setSelectedTeam(key);
+                }} className="px-3 py-2 rounded bg-blue-600 text-white">Add Team</button>
+              </div>
+              {manualTeams.length > 0 && (
+                <div className="mt-3 text-sm text-gray-600">Manual teams: {manualTeams.map(t => t.teamKey.replace(/^frc/, '')).join(', ')}</div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {teams.map(t => (
+                <div key={t} className="bg-white p-4 rounded shadow hover:shadow-md text-left flex items-center justify-between">
+                  <button onClick={() => setSelectedTeam(t)} className="text-left w-full">
+                    <div className="text-lg font-semibold">{t.replace(/^frc/, '')}</div>
+                    <div className="text-xs text-gray-500">
+                      {manualTeams.find(mt => mt.teamKey === t)?.name || ''}
+                    </div>
+                  </button>
+                  {manualTeams.find(mt => mt.teamKey === t) && (
+                    <button onClick={() => { DataService.removeTeam(t); setManualTeams(DataService.getTeams()); setSelectedTeam(null); }} title="Remove manual team" className="ml-2 text-red-600">✕</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
