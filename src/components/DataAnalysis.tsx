@@ -58,6 +58,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [minEntries, setMinEntries] = useState(0);
   const [showAuto, setShowAuto] = useState(true);
   const [showTeleop, setShowTeleop] = useState(true);
+  const [manualTeams, setManualTeams] = useState(() => DataService.getTeams());
+  const [serverPitTeams, setServerPitTeams] = useState<string[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -149,6 +151,23 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     };
   }, []);
 
+  // load manual teams and server pit_data team keys so analysis includes them
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setManualTeams(DataService.getTeams());
+        const rows: any[] = await fetchPitData();
+        if (!mounted) return;
+        const keys = (rows || []).map(r => r.team_key).filter(Boolean);
+        setServerPitTeams(keys);
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, [matchesVersion]);
+
   // auto-refresh when the component mounts (helpful when navigated to from admin panel)
   useEffect(() => {
     // simply call the existing refresh logic by triggering the same fetch flow
@@ -218,6 +237,10 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         (m.alliances?.[a]?.team_keys || []).forEach((tk: string) => teamSet.add(tk));
       });
     });
+    // include manual teams added via PitScouting
+    (manualTeams || []).forEach(t => teamSet.add(t.teamKey));
+    // include teams discovered from server-side pit_data
+    (serverPitTeams || []).forEach(tk => teamSet.add(tk));
     if (teamSet.size === 0) {
       rows.forEach(r => teamSet.add(r.teamKey));
     }
