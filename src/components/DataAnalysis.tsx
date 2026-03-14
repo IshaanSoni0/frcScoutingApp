@@ -632,6 +632,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [showPicturesModal, setShowPicturesModal] = useState(false);
   const [pictureList, setPictureList] = useState<string[]>([]);
   const [pictureNames, setPictureNames] = useState<string[]>([]);
+  const [pictureStorageUrls, setPictureStorageUrls] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [picturesTeamKey, setPicturesTeamKey] = useState<string | null>(null);
 
@@ -888,11 +889,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         // fall back to pit_data payload images and then local images.
                         const teamKey = selectedTeam;
                         let imgs: string[] = [];
+                        let storageUrls: string[] = [];
                         try {
                           if (teamKey) {
-                            const urls = await listPitImages(teamKey);
-                            if (urls && urls.length > 0) {
-                              imgs = urls;
+                            storageUrls = await listPitImages(teamKey);
+                            if (storageUrls && storageUrls.length > 0) {
+                              imgs = storageUrls;
                             }
                           }
                         } catch (e) {
@@ -916,6 +918,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         }
 
                         setPictureList(imgs || []);
+                        setPictureStorageUrls(storageUrls || []);
                         try {
                           const names = await listPitFiles(teamKey);
                           setPictureNames(names || []);
@@ -1083,6 +1086,19 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                 <div className="max-h-32 overflow-auto">
                   {pictureNames.map((n, i) => (
                     <div key={i} className="break-words">{n}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {pictureStorageUrls && pictureStorageUrls.length > 0 && (
+              <div className="mt-3 p-2 bg-gray-50 border rounded text-xs">
+                <div className="font-medium mb-1">Resolved storage URLs (click to open / copy):</div>
+                <div className="max-h-40 overflow-auto">
+                  {pictureStorageUrls.map((u, i) => (
+                    <div key={i} className="flex items-center gap-2 mb-1">
+                      <a href={u} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">{u}</a>
+                      <button onClick={() => { navigator.clipboard?.writeText(u).catch(()=>{}); }} className="px-2 py-0.5 bg-gray-200 rounded">Copy</button>
+                    </div>
                   ))}
                 </div>
               </div>

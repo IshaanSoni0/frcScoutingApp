@@ -35,6 +35,43 @@ async function sendBatchToServer(records: any[]) {
   }
 }
 
+// Resolve a usable URL for a storage object: prefer public URL, verify it returns OK,
+// otherwise attempt to create a short-lived signed URL as a fallback.
+async function resolvePublicUrl(client: any, bucket: string, path: string) {
+  try {
+    // Try public URL first
+    try {
+      const publicRes: any = client.storage.from(bucket).getPublicUrl(path);
+      const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
+      if (publicUrl) {
+        try {
+          // Validate the URL is reachable. Use HEAD to avoid fetching bodies.
+          const resp = await fetch(publicUrl, { method: 'HEAD' });
+          if (resp && resp.ok) return publicUrl;
+        } catch (e) {
+          // network/CORS may block HEAD; fall through to try signed URL
+        }
+      }
+    } catch (e) {
+      // ignore and attempt signed URL
+    }
+
+    // If public URL didn't validate, try creating a signed url (short expiry)
+    try {
+      // Supabase client exposes createSignedUrl on the storage bucket
+      const signedRes: any = await client.storage.from(bucket).createSignedUrl(path, 60);
+      const signedUrl = signedRes && signedRes.data ? (signedRes.data.signedUrl || signedRes.data.signedURL) : signedRes?.signedUrl || signedRes?.signedURL;
+      if (signedUrl) return signedUrl;
+    } catch (e) {
+      // ignore
+    }
+
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
 async function pushPendingToServer(options?: { batchSize?: number; maxRetries?: number }): Promise<number> {
   const batchSize = options?.batchSize || 50;
   if (_pushLock) {
@@ -973,12 +1010,11 @@ export async function listPitImages(teamKey: string) {
         const urls: string[] = [];
         for (const fullName of filesInFolder) {
           try {
-            const publicRes: any = client.storage.from('pit-images').getPublicUrl(fullName);
-            const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
-            if (publicUrl) urls.push(publicUrl);
+            const resolved = await resolvePublicUrl(client, 'pit-images', fullName);
+            if (resolved) urls.push(resolved);
           } catch (e) {
             // eslint-disable-next-line no-console
-            console.warn('listPitImages: failed to get public URL for', fullName, e);
+            console.warn('listPitImages: failed to resolve public URL for', fullName, e);
           }
         }
         try { console.debug('listPitImages: primary folder', primaryPrefix, 'found files=', filesInFolder.length, 'urls=', urls.length); } catch (e) {}
@@ -1026,12 +1062,11 @@ export async function listPitImages(teamKey: string) {
       const urls: string[] = [];
       for (const name of matchedNames) {
         try {
-          const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
-          const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
-          if (publicUrl) urls.push(publicUrl);
+          const resolved = await resolvePublicUrl(client, 'pit-images', name);
+          if (resolved) urls.push(resolved);
         } catch (e) {
           // eslint-disable-next-line no-console
-          console.warn('listPitImages: failed to get public URL for', name, e);
+          console.warn('listPitImages: failed to resolve public URL for', name, e);
         }
       }
       try { console.debug('listPitImages: returning public urls count=', urls.length); } catch (e) {}
