@@ -1143,6 +1143,43 @@ export async function listPitImages(teamKey: string) {
         }
       }
       try { console.debug('listPitImages: returning public urls count=', urls.length); } catch (e) {}
+      // If browser listing finds nothing but a server-side listing endpoint is configured,
+      // try that as a fallback. This is useful when the anon client cannot list the bucket
+      // but a server endpoint using the service role key can.
+      if ((!urls || urls.length === 0)) {
+        try {
+          const endpoint = (import.meta as any).env?.VITE_PIT_LIST_ENDPOINT || '/.netlify/functions/list-pit-images';
+          if (endpoint) {
+            try {
+              // expect JSON: { files: string[] } or { urls: string[] }
+              const resp = await fetch(`${endpoint}?team=${encodeURIComponent(teamFolder)}`);
+              if (resp && resp.ok) {
+                const body = await resp.json();
+                const serverFiles: string[] = Array.isArray(body?.files) ? body.files : (Array.isArray(body?.urls) ? body.urls : []);
+                const serverUrls: string[] = [];
+                for (const sf of serverFiles) {
+                  // If server returned full URLs, accept them; otherwise resolve path
+                  if (typeof sf === 'string' && (sf.startsWith('http://') || sf.startsWith('https://'))) {
+                    serverUrls.push(sf);
+                  } else if (typeof sf === 'string') {
+                    const path = sf.startsWith(teamFolder) ? sf : `${teamFolder}/${sf}`;
+                    const r = await resolvePublicUrl(client, 'pit-images', path);
+                    if (r) serverUrls.push(r);
+                  }
+                }
+                if (serverUrls.length > 0) {
+                  try { console.debug('listPitImages: server endpoint returned urls count=', serverUrls.length); } catch (e) {}
+                  return serverUrls;
+                }
+              }
+            } catch (e) {
+              console.warn('listPitImages: server endpoint fallback failed', e);
+            }
+          }
+        } catch (e) {
+          // ignore endpoint fallback errors
+        }
+      }
       return urls;
     } catch (e) {
       // eslint-disable-next-line no-console
