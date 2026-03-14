@@ -1584,6 +1584,36 @@ try {
         try { return getSupabaseInfo ? getSupabaseInfo() : null; } catch (e) { return null; }
       };
     } catch (e) {}
+    try {
+      // expose raw storage debug helpers
+      // @ts-ignore
+      window.debugListBucket = async (bucket: string, prefix = '') => {
+        try {
+          const client = getSupabaseClient();
+          if (!client) return { error: 'no-client' };
+          const res = await client.storage.from(bucket).list(prefix, { limit: 1000 });
+          return res;
+        } catch (e) { return { error: String(e) }; }
+      };
+      // @ts-ignore
+      window.debugGetPublicUrl = (bucket: string, path: string) => {
+        try {
+          const client = getSupabaseClient();
+          if (!client) return null;
+          const res: any = client.storage.from(bucket).getPublicUrl(path);
+          return res;
+        } catch (e) { return { error: String(e) }; }
+      };
+      // @ts-ignore
+      window.debugCreateSignedUrl = async (bucket: string, path: string, expires = 60) => {
+        try {
+          const client = getSupabaseClient();
+          if (!client) return { error: 'no-client' };
+          const res = await client.storage.from(bucket).createSignedUrl(path, expires);
+          return res;
+        } catch (e) { return { error: String(e) }; }
+      };
+    } catch (e) {}
   }
 } catch (e) {
   // ignore if window isn't available
