@@ -938,10 +938,14 @@ export async function listPitImages(teamKey: string) {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase client not configured; cannot list pit images.');
   try {
-    const teamNum = (teamKey || '').replace(/^frc/, '');
+    const teamNum = (teamKey || '').replace(/^frc/i, '');
+    const teamKeyLower = (teamKey || '').toLowerCase();
+    const teamNumLower = (teamNum || '').toLowerCase();
     const candidates = [] as string[];
     if (teamKey) candidates.push(teamKey);
     if (teamNum && teamNum !== teamKey) candidates.push(teamNum);
+    // include alternate token forms for matching
+    const altTokens = new Set<string>([teamKeyLower, teamNumLower, (`frc${teamNumLower}`).toLowerCase()]);
 
     // try listing files directly under common folder names first
     for (const prefix of candidates) {
@@ -951,6 +955,14 @@ export async function listPitImages(teamKey: string) {
           const urls: string[] = [];
           for (const f of listRes.data) {
             const name = f.name || f.path || f.id || f;
+            if (!name) continue;
+            const nameLower = String(name).toLowerCase();
+            // only include files that match any token in a case-insensitive way
+            let matched = false;
+            for (const t of altTokens) {
+              if (t && nameLower.includes(t)) { matched = true; break; }
+            }
+            if (!matched) continue;
             try {
               const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
               const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
@@ -988,8 +1000,14 @@ export async function listPitImages(teamKey: string) {
         for (const f of files) {
           const name = f.name || f.path || f.id || f;
           if (!name) continue;
-          if (teamKey && name.includes(teamKey)) matchedNames.push(name);
-          else if (teamNum && name.includes(teamNum)) matchedNames.push(name);
+          const nameLower = String(name).toLowerCase();
+          if (altTokens.size === 0) continue;
+          for (const t of altTokens) {
+            if (t && nameLower.includes(t)) {
+              matchedNames.push(name);
+              break;
+            }
+          }
         }
         if (files.length < limit) break;
         offset += files.length;
@@ -1027,10 +1045,13 @@ export async function listPitFiles(teamKey: string) {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase client not configured; cannot list pit files.');
   try {
-    const teamNum = (teamKey || '').replace(/^frc/, '');
+    const teamNum = (teamKey || '').replace(/^frc/i, '');
+    const teamKeyLower = (teamKey || '').toLowerCase();
+    const teamNumLower = (teamNum || '').toLowerCase();
     const candidates = [] as string[];
     if (teamKey) candidates.push(teamKey);
     if (teamNum && teamNum !== teamKey) candidates.push(teamNum);
+    const altTokens = new Set<string>([teamKeyLower, teamNumLower, (`frc${teamNumLower}`).toLowerCase()]);
 
     const matchedNames: string[] = [];
 
@@ -1041,7 +1062,11 @@ export async function listPitFiles(teamKey: string) {
         if (!listRes?.error && Array.isArray(listRes.data) && listRes.data.length > 0) {
           for (const f of listRes.data) {
             const name = f.name || f.path || f.id || f;
-            if (name) matchedNames.push(name);
+            if (!name) continue;
+            const nameLower = String(name).toLowerCase();
+            for (const t of altTokens) {
+              if (t && nameLower.includes(t)) { matchedNames.push(name); break; }
+            }
           }
         }
       } catch (e) {
@@ -1061,8 +1086,10 @@ export async function listPitFiles(teamKey: string) {
         for (const f of files) {
           const name = f.name || f.path || f.id || f;
           if (!name) continue;
-          if (teamKey && name.includes(teamKey)) matchedNames.push(name);
-          else if (teamNum && name.includes(teamNum)) matchedNames.push(name);
+          const nameLower = String(name).toLowerCase();
+          for (const t of altTokens) {
+            if (t && nameLower.includes(t)) { matchedNames.push(name); break; }
+          }
         }
         if (files.length < limit) break;
         offset += files.length;
