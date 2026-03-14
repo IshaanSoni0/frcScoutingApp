@@ -1,5 +1,5 @@
 import { DataService } from './dataService';
-import supabase from './supabaseClient';
+import supabase, { getSupabaseInfo } from './supabaseClient';
 import { uuidv4 } from '../utils/uuid';
 
 function getSupabaseClient() {
@@ -1270,6 +1270,11 @@ export async function getPitListingDiagnostics(teamKey: string) {
   if (!client) throw new Error('Supabase client not configured; cannot list pit diagnostics.');
   const diag: any = { triedPrefixes: [], rootEntries: [], matchedNamesSample: [], errors: [] };
   try {
+    try {
+      diag.client = getSupabaseInfo ? getSupabaseInfo() : null;
+    } catch (e) {
+      diag.client = null;
+    }
     const teamNum = (teamKey || '').replace(/^frc/i, '');
     const teamFolder = `frc${teamNum}`;
     const altPrefix = `${teamFolder}/`;
@@ -1572,6 +1577,13 @@ try {
         throw e;
       }
     };
+    try {
+      // expose supabase client info helper for debugging
+      // @ts-ignore
+      window.getSupabaseInfo = () => {
+        try { return getSupabaseInfo ? getSupabaseInfo() : null; } catch (e) { return null; }
+      };
+    } catch (e) {}
   }
 } catch (e) {
   // ignore if window isn't available
