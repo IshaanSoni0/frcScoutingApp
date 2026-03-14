@@ -1020,6 +1020,47 @@ export async function listPitImages(teamKey: string) {
         try { console.debug('listPitImages: primary folder', primaryPrefix, 'found files=', filesInFolder.length, 'urls=', urls.length); } catch (e) {}
         return urls;
       }
+      // If nothing found, try listing with a trailing slash (some SDK/backends treat folder vs prefix differently)
+      try {
+        const altPrefix = `${primaryPrefix}/`;
+        let offset2 = 0;
+        const filesInFolder2: string[] = [];
+        while (true) {
+          const listRes2: any = await client.storage.from('pit-images').list(altPrefix, { limit, offset: offset2 });
+          if (listRes2?.error) {
+            console.warn('listPitImages: storage list for alt prefix error', altPrefix, listRes2.error);
+            break;
+          }
+          const entries2 = Array.isArray(listRes2?.data) ? listRes2.data : [];
+          if (entries2.length === 0) break;
+          for (const f of entries2) {
+            const name = f.name || f.path || f.id || f;
+            if (!name) continue;
+            const nameStr = String(name);
+            const fullName = nameStr.toLowerCase().startsWith(primaryPrefix.toLowerCase()) ? nameStr : `${primaryPrefix}/${nameStr}`;
+            filesInFolder2.push(fullName);
+          }
+          if (entries2.length < limit) break;
+          offset2 += entries2.length;
+        }
+
+        if (filesInFolder2.length > 0) {
+          const urls2: string[] = [];
+          for (const fullName of filesInFolder2) {
+            try {
+              const resolved = await resolvePublicUrl(client, 'pit-images', fullName);
+              if (resolved) urls2.push(resolved);
+            } catch (e) {
+              // eslint-disable-next-line no-console
+              console.warn('listPitImages: failed to resolve public URL for', fullName, e);
+            }
+          }
+          try { console.debug('listPitImages: primary folder (alt)', altPrefix, 'found files=', filesInFolder2.length, 'urls=', urls2.length); } catch (e) {}
+          return urls2;
+        }
+      } catch (e) {
+        // ignore
+      }
     } catch (e) {
       // ignore and fall back to scanning whole bucket
       console.warn('listPitImages: primary prefix scan failed', e);
@@ -1034,27 +1075,59 @@ export async function listPitImages(teamKey: string) {
       const limit = 1000;
       let offset = 0;
       const matchedNames: string[] = [];
-      while (true) {
-        const listRes: any = await client.storage.from('pit-images').list('', { limit, offset });
-        if (listRes?.error) {
-          // eslint-disable-next-line no-console
-          console.warn('listPitImages: storage list page error', listRes.error);
-          break;
-        }
-        const files = Array.isArray(listRes?.data) ? listRes.data : [];
-        if (files.length === 0) break;
-        for (const f of files) {
-          const name = f.name || f.path || f.id || f;
-          if (!name) continue;
-          const nameStr = String(name);
-          const nameLower = nameStr.toLowerCase();
-          // match if the canonical folder token appears in the filename
-          if (nameLower.includes(teamFolderLower) || nameLower.includes(teamNum)) {
-            matchedNames.push(nameStr);
+      // First, list top-level entries and probe any folder that may match the team folder
+      try {
+        const rootRes: any = await client.storage.from('pit-images').list('', { limit, offset });
+        if (rootRes?.error) {
+          console.warn('listPitImages: root list error', rootRes.error);
+        } else {
+          const rootEntries = Array.isArray(rootRes?.data) ? rootRes.data : [];
+          for (const re of rootEntries) {
+            const rname = String(re.name || re.path || re.id || re || '');
+            const rLower = rname.toLowerCase();
+            if (rLower.includes(teamFolderLower) || rLower.includes(teamNum)) {
+              // attempt to list inside this folder
+              try {
+                const innerRes: any = await client.storage.from('pit-images').list(rname, { limit: 1000 });
+                if (!innerRes?.error && Array.isArray(innerRes.data) && innerRes.data.length > 0) {
+                  for (const f of innerRes.data) {
+                    const name = f.name || f.path || f.id || f;
+                    if (!name) continue;
+                    const nameStr = String(name);
+                    const fullName = nameStr.toLowerCase().startsWith(rname.toLowerCase()) ? nameStr : `${rname}/${nameStr}`;
+                    matchedNames.push(fullName);
+                  }
+                }
+              } catch (e) {
+                // ignore per-folder errors
+              }
+            }
           }
         }
-        if (files.length < limit) break;
-        offset += files.length;
+      } catch (e) {
+        // fall back to naive full listing if root list fails
+        while (true) {
+          const listRes: any = await client.storage.from('pit-images').list('', { limit, offset });
+          if (listRes?.error) {
+            // eslint-disable-next-line no-console
+            console.warn('listPitImages: storage list page error', listRes.error);
+            break;
+          }
+          const files = Array.isArray(listRes?.data) ? listRes.data : [];
+          if (files.length === 0) break;
+          for (const f of files) {
+            const name = f.name || f.path || f.id || f;
+            if (!name) continue;
+            const nameStr = String(name);
+            const nameLower = nameStr.toLowerCase();
+            // match if the canonical folder token appears in the filename
+            if (nameLower.includes(teamFolderLower) || nameLower.includes(teamNum)) {
+              matchedNames.push(nameStr);
+            }
+          }
+          if (files.length < limit) break;
+          offset += files.length;
+        }
       }
 
       // debug: log how many raw matches we found
@@ -1112,30 +1185,72 @@ export async function listPitFiles(teamKey: string) {
             }
           }
         }
+        // also try with trailing slash
+        if ((!matchedNames || matchedNames.length === 0) && prefix) {
+          const alt = `${prefix}/`;
+          try {
+            const listRes2: any = await client.storage.from('pit-images').list(alt, { limit: 1000 });
+            if (!listRes2?.error && Array.isArray(listRes2.data) && listRes2.data.length > 0) {
+              for (const f of listRes2.data) {
+                const name = f.name || f.path || f.id || f;
+                if (!name) continue;
+                const nameLower = String(name).toLowerCase();
+                for (const t of altTokens) {
+                  if (t && nameLower.includes(t)) { matchedNames.push(name); break; }
+                }
+              }
+            }
+          } catch (e) {}
+        }
       } catch (e) {
         // ignore
       }
     }
 
-    // page through bucket and collect any name that contains team key/number
+    // Inspect root entries and probe matching folders; fall back to paging root if needed
     try {
       const limit = 1000;
       let offset = 0;
-      while (true) {
-        const listRes: any = await client.storage.from('pit-images').list('', { limit, offset });
-        if (listRes?.error) break;
-        const files = Array.isArray(listRes?.data) ? listRes.data : [];
-        if (files.length === 0) break;
-        for (const f of files) {
-          const name = f.name || f.path || f.id || f;
-          if (!name) continue;
-          const nameLower = String(name).toLowerCase();
+      const rootRes: any = await client.storage.from('pit-images').list('', { limit, offset });
+      if (!rootRes?.error) {
+        const rootEntries = Array.isArray(rootRes?.data) ? rootRes.data : [];
+        for (const re of rootEntries) {
+          const rname = String(re.name || re.path || re.id || '');
+          const rLower = rname.toLowerCase();
           for (const t of altTokens) {
-            if (t && nameLower.includes(t)) { matchedNames.push(name); break; }
+            if (t && rLower.includes(t)) {
+              try {
+                const innerRes: any = await client.storage.from('pit-images').list(rname, { limit: 1000 });
+                if (!innerRes?.error && Array.isArray(innerRes.data) && innerRes.data.length > 0) {
+                  for (const f of innerRes.data) {
+                    const name = f.name || f.path || f.id || f;
+                    if (!name) continue;
+                    matchedNames.push(name);
+                  }
+                }
+              } catch (e) {}
+              break;
+            }
           }
         }
-        if (files.length < limit) break;
-        offset += files.length;
+      } else {
+        // If root list failed, fall back to paged root listing
+        while (true) {
+          const listRes: any = await client.storage.from('pit-images').list('', { limit, offset });
+          if (listRes?.error) break;
+          const files = Array.isArray(listRes?.data) ? listRes.data : [];
+          if (files.length === 0) break;
+          for (const f of files) {
+            const name = f.name || f.path || f.id || f;
+            if (!name) continue;
+            const nameLower = String(name).toLowerCase();
+            for (const t of altTokens) {
+              if (t && nameLower.includes(t)) { matchedNames.push(name); break; }
+            }
+          }
+          if (files.length < limit) break;
+          offset += files.length;
+        }
       }
     } catch (e) {
       // ignore
