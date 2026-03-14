@@ -938,29 +938,69 @@ export async function listPitImages(teamKey: string) {
   const client = getSupabaseClient();
   if (!client) throw new Error('Supabase client not configured; cannot list pit images.');
   try {
-    const prefix = teamKey || '';
-    // list files under the team prefix
-    const listRes: any = await client.storage.from('pit-images').list(prefix, { limit: 1000 });
-    if (listRes?.error) {
-      // if no files or access issue, surface empty array
-      // eslint-disable-next-line no-console
-      console.warn('listPitImages: storage list returned error', listRes.error);
-      return [];
-    }
-    const files = Array.isArray(listRes?.data) ? listRes.data : [];
-    const urls: string[] = [];
-    for (const f of files) {
+    const teamNum = (teamKey || '').replace(/^frc/, '');
+    const candidates = [] as string[];
+    if (teamKey) candidates.push(teamKey);
+    if (teamNum && teamNum !== teamKey) candidates.push(teamNum);
+
+    // try listing files directly under common folder names first
+    for (const prefix of candidates) {
       try {
-        const name = f.name || f.path || f.id || f;
-        const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
-        const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
-        if (publicUrl) urls.push(publicUrl);
+        const listRes: any = await client.storage.from('pit-images').list(prefix, { limit: 1000 });
+        if (!listRes?.error && Array.isArray(listRes.data) && listRes.data.length > 0) {
+          const urls: string[] = [];
+          for (const f of listRes.data) {
+            const name = f.name || f.path || f.id || f;
+            try {
+              const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
+              const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
+              if (publicUrl) urls.push(publicUrl);
+            } catch (e) {
+              // eslint-disable-next-line no-console
+              console.warn('listPitImages: failed to get public URL for', name, e);
+            }
+          }
+          if (urls.length > 0) return urls;
+        }
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('listPitImages: failed to get public URL for', f, e);
+        // ignore per-prefix errors and continue to next candidate
       }
     }
-    return urls;
+
+    // As a fallback, list the entire bucket (up to 1000 files) and return any files
+    // whose name starts with the team key or team number. This ensures we catch
+    // legacy/variant paths (e.g., without 'frc' prefix or nested folders).
+    try {
+      const listAll: any = await client.storage.from('pit-images').list('', { limit: 1000 });
+      if (listAll?.error) {
+        // eslint-disable-next-line no-console
+        console.warn('listPitImages: storage list all returned error', listAll.error);
+        return [];
+      }
+      const files = Array.isArray(listAll?.data) ? listAll.data : [];
+      const urls: string[] = [];
+      for (const f of files) {
+        const name = f.name || f.path || f.id || f;
+        if (!name) continue;
+        if (teamKey && name.startsWith(teamKey)) {
+          const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
+          const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
+          if (publicUrl) urls.push(publicUrl);
+          continue;
+        }
+        if (teamNum && name.startsWith(teamNum)) {
+          const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
+          const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
+          if (publicUrl) urls.push(publicUrl);
+          continue;
+        }
+      }
+      return urls;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('listPitImages: exception listing all files', e);
+      return [];
+    }
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('listPitImages: exception', err);
