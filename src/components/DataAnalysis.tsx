@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
-import { fetchServerScouting, deleteScoutingFromServer, deletePitDataFromServer, performFullRefresh, fetchPitData } from '../services/syncService';
+import { fetchServerScouting, deleteScoutingFromServer, deletePitDataFromServer, performFullRefresh, fetchPitData, listPitImages } from '../services/syncService';
 import { ArrowLeft, BarChart3, Download } from 'lucide-react';
 import { getRuntimeTbaKey, setRuntimeTbaKey } from '../services/tbaApi';
 
@@ -883,26 +883,39 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <div className="p-4 bg-gray-50 rounded border">
                         <div className="flex justify-end mb-3">
                       <button onClick={async () => {
-                        // Fetch fresh pit data from server first so images uploaded from other devices
-                        // are available here without requiring a full "Refresh from server".
+                        // Prefer listing files from Supabase storage under the team's folder,
+                        // fall back to pit_data payload images and then local images.
                         const teamKey = selectedTeam;
                         let imgs: string[] = [];
                         try {
-                          const serverRow: any = teamKey ? await fetchPitData(teamKey) : null;
-                          if (serverRow) {
-                            const payload = serverRow.payload ? (typeof serverRow.payload === 'string' ? JSON.parse(serverRow.payload) : serverRow.payload) : serverRow;
-                            imgs = (payload && payload.images && Array.isArray(payload.images)) ? payload.images : [];
-                          } else {
-                            imgs = teamKey ? DataService.getPitImages(teamKey) : [];
+                          if (teamKey) {
+                            const urls = await listPitImages(teamKey);
+                            if (urls && urls.length > 0) {
+                              imgs = urls;
+                            }
                           }
                         } catch (e) {
-                          // on error, fall back to local images
-                          imgs = teamKey ? DataService.getPitImages(teamKey) : [];
+                          // ignore storage listing errors and fall back below
                         }
+
+                        if ((!imgs || imgs.length === 0) && teamKey) {
+                          try {
+                            const serverRow: any = await fetchPitData(teamKey);
+                            if (serverRow) {
+                              const payload = serverRow.payload ? (typeof serverRow.payload === 'string' ? JSON.parse(serverRow.payload) : serverRow.payload) : serverRow;
+                              imgs = (payload && payload.images && Array.isArray(payload.images)) ? payload.images : imgs;
+                            }
+                          } catch (e) {
+                            // ignore
+                          }
+                        }
+
+                        if ((!imgs || imgs.length === 0) && teamKey) {
+                          try { imgs = DataService.getPitImages(teamKey); } catch (e) { imgs = []; }
+                        }
+
                         setPictureList(imgs || []);
-                        // remember which team the pictures belong to (we close the team modal)
                         setPicturesTeamKey(teamKey || null);
-                        // close the team detail modal so the pictures modal isn't covered
                         setSelectedTeam(null);
                         setShowPicturesModal(true);
                       }} className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">View Pictures</button>

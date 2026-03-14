@@ -933,6 +933,41 @@ export async function uploadPitImage(teamKey: string, dataUrl: string) {
   }
 }
 
+// list all pit images for a team from the storage bucket and return public URLs
+export async function listPitImages(teamKey: string) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot list pit images.');
+  try {
+    const prefix = teamKey || '';
+    // list files under the team prefix
+    const listRes: any = await client.storage.from('pit-images').list(prefix, { limit: 1000 });
+    if (listRes?.error) {
+      // if no files or access issue, surface empty array
+      // eslint-disable-next-line no-console
+      console.warn('listPitImages: storage list returned error', listRes.error);
+      return [];
+    }
+    const files = Array.isArray(listRes?.data) ? listRes.data : [];
+    const urls: string[] = [];
+    for (const f of files) {
+      try {
+        const name = f.name || f.path || f.id || f;
+        const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
+        const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
+        if (publicUrl) urls.push(publicUrl);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('listPitImages: failed to get public URL for', f, e);
+      }
+    }
+    return urls;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('listPitImages: exception', err);
+    return [];
+  }
+}
+
 // delete all scouting records from server
 export async function deleteScoutingFromServer() {
   const client = getSupabaseClient();

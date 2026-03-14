@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { DataService } from '../services/dataService';
-import { fetchPitData } from '../services/syncService';
+import { fetchPitData, listPitImages } from '../services/syncService';
 import { ArrowLeft, Camera } from 'lucide-react';
 
 type PitForm = {
@@ -76,9 +76,24 @@ export function PitScouting({ onBack }: { onBack: () => void }) {
     } else {
       setForm(emptyForm);
     }
-    // load saved images for this team
-    const imgs = DataService.getPitImages(selectedTeam);
-    setImages(imgs || []);
+    // attempt to load images from Supabase storage for this team; fall back to local images
+    (async () => {
+      try {
+        const urls = await listPitImages(selectedTeam);
+        if (urls && urls.length > 0) {
+          setImages(urls);
+          return;
+        }
+      } catch (e) {
+        // ignore storage listing errors
+      }
+      try {
+        const imgs = DataService.getPitImages(selectedTeam);
+        setImages(imgs || []);
+      } catch (e) {
+        setImages([]);
+      }
+    })();
   }, [selectedTeam]);
 
   const save = () => {
