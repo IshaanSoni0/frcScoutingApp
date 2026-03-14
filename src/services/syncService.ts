@@ -970,7 +970,8 @@ export async function listPitImages(teamKey: string) {
     // As a fallback, page through the entire bucket and return any files
     // whose name contains the team key or team number. Use pagination so
     // large buckets don't truncate results and use `includes` to catch
-    // nested/legacy paths (not just prefixes).
+    // nested/legacy paths (not just prefixes). Collect all matches (do not dedupe)
+    // so duplicate uploads are preserved.
     try {
       const limit = 1000;
       let offset = 0;
@@ -994,10 +995,10 @@ export async function listPitImages(teamKey: string) {
         offset += files.length;
       }
 
-      // remove duplicates while preserving order
-      const unique = Array.from(new Set(matchedNames));
+      // debug: log how many raw matches we found
+      try { console.debug('listPitImages: matched filenames count=', matchedNames.length); } catch (e) {}
       const urls: string[] = [];
-      for (const name of unique) {
+      for (const name of matchedNames) {
         try {
           const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
           const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
@@ -1007,6 +1008,7 @@ export async function listPitImages(teamKey: string) {
           console.warn('listPitImages: failed to get public URL for', name, e);
         }
       }
+      try { console.debug('listPitImages: returning public urls count=', urls.length); } catch (e) {}
       return urls;
     } catch (e) {
       // eslint-disable-next-line no-console
