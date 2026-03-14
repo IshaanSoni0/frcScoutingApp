@@ -939,16 +939,12 @@ export async function listPitImages(teamKey: string) {
   if (!client) throw new Error('Supabase client not configured; cannot list pit images.');
   try {
     const teamNum = (teamKey || '').replace(/^frc/i, '');
-    const teamKeyLower = (teamKey || '').toLowerCase();
-    const teamNumLower = (teamNum || '').toLowerCase();
-    const candidates = [] as string[];
-    if (teamKey) candidates.push(teamKey);
-    if (teamNum && teamNum !== teamKey) candidates.push(teamNum);
-    // include alternate token forms for matching
-    const altTokens = new Set<string>([teamKeyLower, teamNumLower, (`frc${teamNumLower}`).toLowerCase()]);
+    const teamFolder = `frc${teamNum}`;
+    const teamFolderLower = teamFolder.toLowerCase();
 
-    // try listing files directly under common folder names first
-    for (const prefix of candidates) {
+    // try listing files directly under the canonical folder frc<teamNum> first
+    const prefixesToTry = [teamFolder, teamNum, teamKey].filter(Boolean) as string[];
+    for (const prefix of prefixesToTry) {
       try {
         const listRes: any = await client.storage.from('pit-images').list(prefix, { limit: 1000 });
         if (!listRes?.error && Array.isArray(listRes.data) && listRes.data.length > 0) {
@@ -956,20 +952,19 @@ export async function listPitImages(teamKey: string) {
           for (const f of listRes.data) {
             const name = f.name || f.path || f.id || f;
             if (!name) continue;
-            const nameLower = String(name).toLowerCase();
-            // only include files that match any token in a case-insensitive way
-            let matched = false;
-            for (const t of altTokens) {
-              if (t && nameLower.includes(t)) { matched = true; break; }
+            // ensure we build a full path relative to bucket root
+            let fullName = String(name);
+            if (!fullName.toLowerCase().startsWith(prefix.toLowerCase())) {
+              // list(prefix) may return names relative to the prefix; construct full path
+              fullName = `${prefix}/${fullName}`;
             }
-            if (!matched) continue;
             try {
-              const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
+              const publicRes: any = client.storage.from('pit-images').getPublicUrl(fullName);
               const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
               if (publicUrl) urls.push(publicUrl);
             } catch (e) {
               // eslint-disable-next-line no-console
-              console.warn('listPitImages: failed to get public URL for', name, e);
+              console.warn('listPitImages: failed to get public URL for', fullName, e);
             }
           }
           if (urls.length > 0) return urls;
@@ -1000,13 +995,11 @@ export async function listPitImages(teamKey: string) {
         for (const f of files) {
           const name = f.name || f.path || f.id || f;
           if (!name) continue;
-          const nameLower = String(name).toLowerCase();
-          if (altTokens.size === 0) continue;
-          for (const t of altTokens) {
-            if (t && nameLower.includes(t)) {
-              matchedNames.push(name);
-              break;
-            }
+          const nameStr = String(name);
+          const nameLower = nameStr.toLowerCase();
+          // match if the canonical folder token appears in the filename
+          if (nameLower.includes(teamFolderLower) || nameLower.includes(teamNum)) {
+            matchedNames.push(nameStr);
           }
         }
         if (files.length < limit) break;
