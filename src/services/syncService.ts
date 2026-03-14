@@ -1282,11 +1282,13 @@ export async function getPitListingDiagnostics(teamKey: string) {
     // try primary prefix
     try {
       const res: any = await client.storage.from('pit-images').list(teamFolder, { limit: 1000 });
-      if (res?.error) {
-        diag.triedPrefixes.push({ prefix: teamFolder, error: String(res.error) });
-      } else {
+      diag.triedPrefixes.push({ prefix: teamFolder, raw: res && typeof res === 'object' ? JSON.stringify(res, null, 2).slice(0, 1000) : String(res) });
+      if (!res?.error) {
         const names = Array.isArray(res.data) ? res.data.map((d: any) => (d.name || d.path || d.id || d)) : [];
-        diag.triedPrefixes.push({ prefix: teamFolder, count: names.length, sample: names.slice(0, 10) });
+        diag.triedPrefixes[diag.triedPrefixes.length - 1].count = names.length;
+        diag.triedPrefixes[diag.triedPrefixes.length - 1].sample = names.slice(0, 10);
+      } else {
+        diag.triedPrefixes[diag.triedPrefixes.length - 1].error = String(res.error);
       }
     } catch (e: any) {
       diag.triedPrefixes.push({ prefix: teamFolder, error: String(e) });
@@ -1295,11 +1297,13 @@ export async function getPitListingDiagnostics(teamKey: string) {
     // try alt prefix with trailing slash
     try {
       const res2: any = await client.storage.from('pit-images').list(altPrefix, { limit: 1000 });
-      if (res2?.error) {
-        diag.triedPrefixes.push({ prefix: altPrefix, error: String(res2.error) });
-      } else {
+      diag.triedPrefixes.push({ prefix: altPrefix, raw: res2 && typeof res2 === 'object' ? JSON.stringify(res2, null, 2).slice(0, 1000) : String(res2) });
+      if (!res2?.error) {
         const names2 = Array.isArray(res2.data) ? res2.data.map((d: any) => (d.name || d.path || d.id || d)) : [];
-        diag.triedPrefixes.push({ prefix: altPrefix, count: names2.length, sample: names2.slice(0, 10) });
+        diag.triedPrefixes[diag.triedPrefixes.length - 1].count = names2.length;
+        diag.triedPrefixes[diag.triedPrefixes.length - 1].sample = names2.slice(0, 10);
+      } else {
+        diag.triedPrefixes[diag.triedPrefixes.length - 1].error = String(res2.error);
       }
     } catch (e: any) {
       diag.triedPrefixes.push({ prefix: altPrefix, error: String(e) });
@@ -1308,6 +1312,7 @@ export async function getPitListingDiagnostics(teamKey: string) {
     // list root entries (top-level folders/files)
     try {
       const root: any = await client.storage.from('pit-images').list('', { limit: 1000 });
+      diag.rootRaw = root && typeof root === 'object' ? JSON.stringify(root, null, 2).slice(0, 4000) : String(root);
       if (!root?.error) {
         const rootNames = Array.isArray(root.data) ? root.data.map((d: any) => (d.name || d.path || d.id || d)) : [];
         diag.rootEntries = { count: rootNames.length, sample: rootNames.slice(0, 20) };
