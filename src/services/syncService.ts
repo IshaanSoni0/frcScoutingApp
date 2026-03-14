@@ -942,36 +942,51 @@ export async function listPitImages(teamKey: string) {
     const teamFolder = `frc${teamNum}`;
     const teamFolderLower = teamFolder.toLowerCase();
 
-    // try listing files directly under the canonical folder frc<teamNum> first
-    const prefixesToTry = [teamFolder, teamNum, teamKey].filter(Boolean) as string[];
-    for (const prefix of prefixesToTry) {
-      try {
-        const listRes: any = await client.storage.from('pit-images').list(prefix, { limit: 1000 });
-        if (!listRes?.error && Array.isArray(listRes.data) && listRes.data.length > 0) {
-          const urls: string[] = [];
-          for (const f of listRes.data) {
-            const name = f.name || f.path || f.id || f;
-            if (!name) continue;
-            // ensure we build a full path relative to bucket root
-            let fullName = String(name);
-            if (!fullName.toLowerCase().startsWith(prefix.toLowerCase())) {
-              // list(prefix) may return names relative to the prefix; construct full path
-              fullName = `${prefix}/${fullName}`;
-            }
-            try {
-              const publicRes: any = client.storage.from('pit-images').getPublicUrl(fullName);
-              const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
-              if (publicUrl) urls.push(publicUrl);
-            } catch (e) {
-              // eslint-disable-next-line no-console
-              console.warn('listPitImages: failed to get public URL for', fullName, e);
-            }
-          }
-          if (urls.length > 0) return urls;
+    // First: page through the canonical folder `frc<teamNum>` and return everything there.
+    const primaryPrefix = teamFolder;
+    try {
+      const limit = 1000;
+      let offset = 0;
+      const filesInFolder: string[] = [];
+      while (true) {
+        const listRes: any = await client.storage.from('pit-images').list(primaryPrefix, { limit, offset });
+        if (listRes?.error) {
+          // eslint-disable-next-line no-console
+          console.warn('listPitImages: storage list for prefix error', primaryPrefix, listRes.error);
+          break;
         }
-      } catch (e) {
-        // ignore per-prefix errors and continue to next candidate
+        const entries = Array.isArray(listRes?.data) ? listRes.data : [];
+        if (entries.length === 0) break;
+        for (const f of entries) {
+          const name = f.name || f.path || f.id || f;
+          if (!name) continue;
+          const nameStr = String(name);
+          // if name is returned relative to prefix, build full path
+          const fullName = nameStr.toLowerCase().startsWith(primaryPrefix.toLowerCase()) ? nameStr : `${primaryPrefix}/${nameStr}`;
+          filesInFolder.push(fullName);
+        }
+        if (entries.length < limit) break;
+        offset += entries.length;
       }
+
+      if (filesInFolder.length > 0) {
+        const urls: string[] = [];
+        for (const fullName of filesInFolder) {
+          try {
+            const publicRes: any = client.storage.from('pit-images').getPublicUrl(fullName);
+            const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
+            if (publicUrl) urls.push(publicUrl);
+          } catch (e) {
+            // eslint-disable-next-line no-console
+            console.warn('listPitImages: failed to get public URL for', fullName, e);
+          }
+        }
+        try { console.debug('listPitImages: primary folder', primaryPrefix, 'found files=', filesInFolder.length, 'urls=', urls.length); } catch (e) {}
+        return urls;
+      }
+    } catch (e) {
+      // ignore and fall back to scanning whole bucket
+      console.warn('listPitImages: primary prefix scan failed', e);
     }
 
     // As a fallback, page through the entire bucket and return any files
