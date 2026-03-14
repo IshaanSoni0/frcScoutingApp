@@ -967,32 +967,44 @@ export async function listPitImages(teamKey: string) {
       }
     }
 
-    // As a fallback, list the entire bucket (up to 1000 files) and return any files
-    // whose name starts with the team key or team number. This ensures we catch
-    // legacy/variant paths (e.g., without 'frc' prefix or nested folders).
+    // As a fallback, page through the entire bucket and return any files
+    // whose name contains the team key or team number. Use pagination so
+    // large buckets don't truncate results and use `includes` to catch
+    // nested/legacy paths (not just prefixes).
     try {
-      const listAll: any = await client.storage.from('pit-images').list('', { limit: 1000 });
-      if (listAll?.error) {
-        // eslint-disable-next-line no-console
-        console.warn('listPitImages: storage list all returned error', listAll.error);
-        return [];
-      }
-      const files = Array.isArray(listAll?.data) ? listAll.data : [];
-      const urls: string[] = [];
-      for (const f of files) {
-        const name = f.name || f.path || f.id || f;
-        if (!name) continue;
-        if (teamKey && name.startsWith(teamKey)) {
-          const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
-          const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
-          if (publicUrl) urls.push(publicUrl);
-          continue;
+      const limit = 1000;
+      let offset = 0;
+      const matchedNames: string[] = [];
+      while (true) {
+        const listRes: any = await client.storage.from('pit-images').list('', { limit, offset });
+        if (listRes?.error) {
+          // eslint-disable-next-line no-console
+          console.warn('listPitImages: storage list page error', listRes.error);
+          break;
         }
-        if (teamNum && name.startsWith(teamNum)) {
+        const files = Array.isArray(listRes?.data) ? listRes.data : [];
+        if (files.length === 0) break;
+        for (const f of files) {
+          const name = f.name || f.path || f.id || f;
+          if (!name) continue;
+          if (teamKey && name.includes(teamKey)) matchedNames.push(name);
+          else if (teamNum && name.includes(teamNum)) matchedNames.push(name);
+        }
+        if (files.length < limit) break;
+        offset += files.length;
+      }
+
+      // remove duplicates while preserving order
+      const unique = Array.from(new Set(matchedNames));
+      const urls: string[] = [];
+      for (const name of unique) {
+        try {
           const publicRes: any = client.storage.from('pit-images').getPublicUrl(name);
           const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
           if (publicUrl) urls.push(publicUrl);
-          continue;
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn('listPitImages: failed to get public URL for', name, e);
         }
       }
       return urls;
