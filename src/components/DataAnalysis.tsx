@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
-import { fetchServerScouting, deleteScoutingFromServer, deletePitDataFromServer, performFullRefresh, fetchPitData, listPitImages } from '../services/syncService';
+import { fetchServerScouting, deleteScoutingFromServer, deletePitDataFromServer, performFullRefresh, fetchPitData, listPitImages, listPitFiles } from '../services/syncService';
 import { ArrowLeft, BarChart3, Download } from 'lucide-react';
 import { getRuntimeTbaKey, setRuntimeTbaKey } from '../services/tbaApi';
 
@@ -631,6 +631,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [pitError, setPitError] = useState<string | null>(null);
   const [showPicturesModal, setShowPicturesModal] = useState(false);
   const [pictureList, setPictureList] = useState<string[]>([]);
+  const [pictureNames, setPictureNames] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [picturesTeamKey, setPicturesTeamKey] = useState<string | null>(null);
 
@@ -915,6 +916,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         }
 
                         setPictureList(imgs || []);
+                        try {
+                          const names = await listPitFiles(teamKey);
+                          setPictureNames(names || []);
+                        } catch (e) {
+                          setPictureNames([]);
+                        }
                         setPicturesTeamKey(teamKey || null);
                         setSelectedTeam(null);
                         setShowPicturesModal(true);
@@ -1068,6 +1075,16 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+            {pictureNames && pictureNames.length > 0 && (
+              <div className="mt-3 p-2 bg-gray-50 border rounded text-xs">
+                <div className="font-medium mb-1">Matched storage file names (diagnostic):</div>
+                <div className="max-h-32 overflow-auto">
+                  {pictureNames.map((n, i) => (
+                    <div key={i} className="break-words">{n}</div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

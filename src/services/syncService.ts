@@ -1022,6 +1022,63 @@ export async function listPitImages(teamKey: string) {
   }
 }
 
+// return matched file names (raw) for diagnostics — includes duplicates and nested matches
+export async function listPitFiles(teamKey: string) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot list pit files.');
+  try {
+    const teamNum = (teamKey || '').replace(/^frc/, '');
+    const candidates = [] as string[];
+    if (teamKey) candidates.push(teamKey);
+    if (teamNum && teamNum !== teamKey) candidates.push(teamNum);
+
+    const matchedNames: string[] = [];
+
+    // try prefixes
+    for (const prefix of candidates) {
+      try {
+        const listRes: any = await client.storage.from('pit-images').list(prefix, { limit: 1000 });
+        if (!listRes?.error && Array.isArray(listRes.data) && listRes.data.length > 0) {
+          for (const f of listRes.data) {
+            const name = f.name || f.path || f.id || f;
+            if (name) matchedNames.push(name);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // page through bucket and collect any name that contains team key/number
+    try {
+      const limit = 1000;
+      let offset = 0;
+      while (true) {
+        const listRes: any = await client.storage.from('pit-images').list('', { limit, offset });
+        if (listRes?.error) break;
+        const files = Array.isArray(listRes?.data) ? listRes.data : [];
+        if (files.length === 0) break;
+        for (const f of files) {
+          const name = f.name || f.path || f.id || f;
+          if (!name) continue;
+          if (teamKey && name.includes(teamKey)) matchedNames.push(name);
+          else if (teamNum && name.includes(teamNum)) matchedNames.push(name);
+        }
+        if (files.length < limit) break;
+        offset += files.length;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return matchedNames;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('listPitFiles: exception', err);
+    return [];
+  }
+}
+
 // delete all scouting records from server
 export async function deleteScoutingFromServer() {
   const client = getSupabaseClient();
