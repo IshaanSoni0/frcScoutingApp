@@ -1264,6 +1264,73 @@ export async function listPitFiles(teamKey: string) {
   }
 }
 
+// Return detailed diagnostics about which prefixes/entries were inspected
+export async function getPitListingDiagnostics(teamKey: string) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase client not configured; cannot list pit diagnostics.');
+  const diag: any = { triedPrefixes: [], rootEntries: [], matchedNamesSample: [], errors: [] };
+  try {
+    const teamNum = (teamKey || '').replace(/^frc/i, '');
+    const teamFolder = `frc${teamNum}`;
+    const altPrefix = `${teamFolder}/`;
+
+    // try primary prefix
+    try {
+      const res: any = await client.storage.from('pit-images').list(teamFolder, { limit: 1000 });
+      if (res?.error) {
+        diag.triedPrefixes.push({ prefix: teamFolder, error: String(res.error) });
+      } else {
+        const names = Array.isArray(res.data) ? res.data.map((d: any) => (d.name || d.path || d.id || d)) : [];
+        diag.triedPrefixes.push({ prefix: teamFolder, count: names.length, sample: names.slice(0, 10) });
+      }
+    } catch (e: any) {
+      diag.triedPrefixes.push({ prefix: teamFolder, error: String(e) });
+    }
+
+    // try alt prefix with trailing slash
+    try {
+      const res2: any = await client.storage.from('pit-images').list(altPrefix, { limit: 1000 });
+      if (res2?.error) {
+        diag.triedPrefixes.push({ prefix: altPrefix, error: String(res2.error) });
+      } else {
+        const names2 = Array.isArray(res2.data) ? res2.data.map((d: any) => (d.name || d.path || d.id || d)) : [];
+        diag.triedPrefixes.push({ prefix: altPrefix, count: names2.length, sample: names2.slice(0, 10) });
+      }
+    } catch (e: any) {
+      diag.triedPrefixes.push({ prefix: altPrefix, error: String(e) });
+    }
+
+    // list root entries (top-level folders/files)
+    try {
+      const root: any = await client.storage.from('pit-images').list('', { limit: 1000 });
+      if (!root?.error) {
+        const rootNames = Array.isArray(root.data) ? root.data.map((d: any) => (d.name || d.path || d.id || d)) : [];
+        diag.rootEntries = { count: rootNames.length, sample: rootNames.slice(0, 20) };
+      } else {
+        diag.rootEntries = { error: String(root.error) };
+      }
+    } catch (e: any) {
+      diag.rootEntries = { error: String(e) };
+    }
+
+    // collect a small sample of matched names using listPitFiles logic
+    try {
+      const matched = await listPitFiles(teamKey);
+      diag.matchedNamesCount = matched.length;
+      diag.matchedNamesSample = matched.slice(0, 20);
+    } catch (e: any) {
+      diag.errors.push(String(e));
+    }
+
+    return diag;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('getPitListingDiagnostics: exception', err);
+    diag.errors.push(String(err));
+    return diag;
+  }
+}
+
 // delete all scouting records from server
 export async function deleteScoutingFromServer() {
   const client = getSupabaseClient();

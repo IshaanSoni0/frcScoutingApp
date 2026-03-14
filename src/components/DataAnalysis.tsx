@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ScoutingData } from '../types';
 import { DataService } from '../services/dataService';
-import { fetchServerScouting, deleteScoutingFromServer, deletePitDataFromServer, performFullRefresh, fetchPitData, listPitImages, listPitFiles } from '../services/syncService';
+import { fetchServerScouting, deleteScoutingFromServer, deletePitDataFromServer, performFullRefresh, fetchPitData, listPitImages, listPitFiles, getPitListingDiagnostics } from '../services/syncService';
 import { ArrowLeft, BarChart3, Download } from 'lucide-react';
 import { getRuntimeTbaKey, setRuntimeTbaKey } from '../services/tbaApi';
 
@@ -633,6 +633,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
   const [pictureList, setPictureList] = useState<string[]>([]);
   const [pictureNames, setPictureNames] = useState<string[]>([]);
   const [pictureStorageUrls, setPictureStorageUrls] = useState<string[]>([]);
+  const [pictureDiagnostics, setPictureDiagnostics] = useState<any | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [picturesTeamKey, setPicturesTeamKey] = useState<string | null>(null);
 
@@ -925,6 +926,12 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                         } catch (e) {
                           setPictureNames([]);
                         }
+                        try {
+                          const diag = await getPitListingDiagnostics(teamKey);
+                          setPictureDiagnostics(diag || null);
+                        } catch (e) {
+                          setPictureDiagnostics(null);
+                        }
                         setPicturesTeamKey(teamKey || null);
                         setSelectedTeam(null);
                         setShowPicturesModal(true);
@@ -1068,7 +1075,26 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
               </div>
             </div>
             {pictureList.length === 0 ? (
-              <div className="italic text-gray-500">No pictures available for this team.</div>
+              <div>
+                <div className="italic text-gray-500 mb-2">No pictures available for this team.</div>
+                {pictureDiagnostics && (
+                  <div className="p-2 bg-yellow-50 border rounded text-xs">
+                    <div className="font-medium mb-1">Storage listing diagnostics:</div>
+                    <div className="text-xs mb-1">Tried prefixes:</div>
+                    <div className="mb-2 max-h-28 overflow-auto">
+                      {pictureDiagnostics.triedPrefixes && pictureDiagnostics.triedPrefixes.map((p: any, i: number) => (
+                        <div key={i} className="break-words">- {p.prefix}: {p.error ? `error=${p.error}` : `count=${p.count || 0}`} {p.sample ? <span> sample: {String(p.sample).slice(0,200)}</span> : null}</div>
+                      ))}
+                    </div>
+                    <div className="text-xs mb-1">Root entries sample:</div>
+                    <div className="mb-2 break-words">
+                      {pictureDiagnostics.rootEntries ? (pictureDiagnostics.rootEntries.error ? `error=${pictureDiagnostics.rootEntries.error}` : `count=${pictureDiagnostics.rootEntries.count} sample=${String(pictureDiagnostics.rootEntries.sample).slice(0,300)}`) : 'none'}
+                    </div>
+                    <div className="text-xs">Matched names sample:</div>
+                    <div className="break-words max-h-28 overflow-auto">{pictureDiagnostics.matchedNamesSample && pictureDiagnostics.matchedNamesSample.length > 0 ? pictureDiagnostics.matchedNamesSample.join(', ') : 'none'}</div>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {pictureList.map((src, i) => (
