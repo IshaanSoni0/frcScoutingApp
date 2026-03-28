@@ -66,15 +66,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     (async () => {
       setLoadingServer(true);
       try {
-        // Ensure pending local rows are pushed and authoritative server state is pulled
-        try {
-          await performFullRefresh({ reload: false });
-        } catch (e) {
-          // if full refresh fails, continue to attempt to fetch server rows
-          // eslint-disable-next-line no-console
-          console.warn('DataAnalysis: performFullRefresh failed on mount', e);
-        }
-
+        // Fetch scouting data immediately so the table appears without delay
         const serverRows: any[] = await fetchServerScouting();
         if (!mounted) return;
         const mapped = serverRows.map((r: any) => {
@@ -123,6 +115,8 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
         } catch (e) {
           // ignore fetch errors here; fetchAndApplyOprs sets tbaError
         }
+        // Background sync: push any pending local rows to server (non-blocking)
+        performFullRefresh({ reload: false }).catch(() => {});
       } catch (e: any) {
         console.error('Failed to fetch server scouting records on mount:', e);
         setServerError(String(e?.message || e));
@@ -168,65 +162,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
     return () => { mounted = false; };
   }, [matchesVersion]);
 
-  // auto-refresh when the component mounts (helpful when navigated to from admin panel)
-  useEffect(() => {
-    // simply call the existing refresh logic by triggering the same fetch flow
-    let mounted = true;
-    (async () => {
-      try {
-        try {
-          await performFullRefresh({ reload: false });
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.warn('DataAnalysis: performFullRefresh failed during auto-refresh', e);
-        }
-        const serverRows: any[] = await fetchServerScouting();
-        if (!mounted) return;
-        const mapped = serverRows.map((r: any) => {
-          const rawAuto = r.payload?.auto || {};
-          const legacyAutoSum = (rawAuto.l1 || 0) + (rawAuto.l2 || 0) + (rawAuto.l3 || 0) + (rawAuto.l4 || 0) + (typeof rawAuto.net === 'number' ? rawAuto.net : (rawAuto.net ? 1 : 0));
-          const autoFuel = typeof rawAuto.fuel === 'number' ? rawAuto.fuel : legacyAutoSum;
 
-          const rawTele = r.payload?.teleop || {};
-          const legacyTeleSum = (rawTele.l1 || 0) + (rawTele.l2 || 0) + (rawTele.l3 || 0) + (rawTele.l4 || 0) + (typeof rawTele.net === 'number' ? rawTele.net : (rawTele.net ? 1 : 0)) + (typeof rawTele.prosser === 'number' ? rawTele.prosser : (rawTele.prosser ? 1 : 0));
-
-          return {
-            id: r.id,
-            matchKey: r.match_key,
-            teamKey: r.team_key,
-            scouter: r.scouter_name,
-            alliance: r.alliance,
-            position: r.position,
-            auto: {
-              fuel: autoFuel,
-              neutralZone: !!rawAuto.neutralZone,
-              depot: !!rawAuto.depot,
-              outpost: !!rawAuto.outpost,
-              // preserve raw climbed value (string like 'level3' or legacy boolean/number)
-              climbed: rawAuto.climbed,
-            },
-                    teleop: {
-                      offence: {
-                        fuel: (typeof rawTele.offence?.fuel === 'number') ? rawTele.offence.fuel : legacyTeleSum,
-                      },
-                      defense: {
-                        defense: rawTele.defense?.defense ?? 'na',
-                        duration: rawTele.defense?.duration ?? 0,
-                      },
-                    },
-                    matchClimbed: r.payload?.matchClimbed ?? r.payload?.endgame?.climb ?? (typeof rawAuto.climbed === 'string' ? rawAuto.climbed : (rawAuto.climbed ? 'level1' : 'didnt_climb')),
-            defense: r.payload?.defense || 'none',
-            timestamp: r.timestamp ? Date.parse(r.timestamp) : Date.now(),
-          } as any;
-        });
-        setRows(mapped as ScoutingData[]);
-        setServerError(null);
-      } catch (e) {
-        // ignore
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
 
   // Build list of teams from saved matches (so we include teams with no scouting rows)
   const allTeams = useMemo(() => {
