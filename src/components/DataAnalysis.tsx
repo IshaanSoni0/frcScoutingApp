@@ -245,7 +245,7 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
       rows.forEach(r => teamSet.add(r.teamKey));
     }
     return Array.from(teamSet).sort((a, b) => a.localeCompare(b));
-  }, [rows, matchesVersion]);
+  }, [rows, matchesVersion, manualTeams, serverPitTeams]);
 
   const teamStats = useMemo(() => {
     const byTeam: Record<string, ScoutingData[]> = {};
