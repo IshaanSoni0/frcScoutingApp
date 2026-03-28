@@ -822,59 +822,47 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <div className="p-4 bg-gray-50 rounded border">
                         <div className="flex justify-end mb-3">
                       <button onClick={async () => {
-                        // Primary: read image URLs from pit_data payload (stored at upload time).
-                        // Secondary: list from Supabase Storage (requires storage SELECT policy for anon).
-                        // Tertiary: local images from localStorage.
                         const teamKey = selectedTeam;
                         let imgs: string[] = [];
                         let storageUrls: string[] = [];
 
-                        // 1) Try pit_data.payload.images first — fastest, no storage listing needed
-                        if (teamKey) {
+                        // 1) Use already-loaded pitData if available (avoids a second network call)
+                        const payloadImgs: string[] = (pitData && Array.isArray(pitData.images)) ? pitData.images : [];
+                        if (payloadImgs.length > 0) {
+                          imgs = payloadImgs;
+                        } else if (teamKey) {
+                          // 2) Fetch from server if pitData not yet loaded
                           try {
                             const serverRow: any = await fetchPitData(teamKey);
                             if (serverRow) {
                               const payload = serverRow.payload ? (typeof serverRow.payload === 'string' ? JSON.parse(serverRow.payload) : serverRow.payload) : serverRow;
-                              const payloadImgs: string[] = (payload && payload.images && Array.isArray(payload.images)) ? payload.images : [];
-                              if (payloadImgs.length > 0) imgs = payloadImgs;
+                              const fetched: string[] = (payload && payload.images && Array.isArray(payload.images)) ? payload.images : [];
+                              if (fetched.length > 0) imgs = fetched;
                             }
                           } catch (e) {
                             // ignore
                           }
                         }
 
-                        // 2) List from Supabase Storage (works once storage SELECT policy is added for anon)
-                        try {
-                          if (teamKey) {
+                        // 3) Only call storage listing if no images found in pit_data payload
+                        if (imgs.length === 0 && teamKey) {
+                          try {
                             storageUrls = await listPitImages(teamKey);
-                            if (storageUrls && storageUrls.length > 0) {
-                              // Merge: storage listing is authoritative for files on disk
-                              imgs = storageUrls;
-                            }
+                            if (storageUrls && storageUrls.length > 0) imgs = storageUrls;
+                          } catch (e) {
+                            // ignore
                           }
-                        } catch (e) {
-                          // ignore storage listing errors
                         }
 
-                        // 3) Fallback to localStorage
-                        if ((!imgs || imgs.length === 0) && teamKey) {
+                        // 4) Fallback to localStorage
+                        if (imgs.length === 0 && teamKey) {
                           try { imgs = DataService.getPitImages(teamKey); } catch (e) { imgs = []; }
                         }
 
                         setPictureList(imgs || []);
                         setPictureStorageUrls(storageUrls || []);
-                        try {
-                          const names = await listPitFiles(teamKey);
-                          setPictureNames(names || []);
-                        } catch (e) {
-                          setPictureNames([]);
-                        }
-                        try {
-                          const diag = await getPitListingDiagnostics(teamKey);
-                          setPictureDiagnostics(diag || null);
-                        } catch (e) {
-                          setPictureDiagnostics(null);
-                        }
+                        setPictureNames([]);
+                        setPictureDiagnostics(null);
                         setPicturesTeamKey(teamKey || null);
                         setSelectedTeam(null);
                         setShowPicturesModal(true);
