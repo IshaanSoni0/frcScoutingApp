@@ -886,34 +886,41 @@ export function DataAnalysis({ onBack }: DataAnalysisProps) {
                   <div className="p-4 bg-gray-50 rounded border">
                         <div className="flex justify-end mb-3">
                       <button onClick={async () => {
-                        // Prefer listing files from Supabase storage under the team's folder,
-                        // fall back to pit_data payload images and then local images.
+                        // Primary: read image URLs from pit_data payload (stored at upload time).
+                        // Secondary: list from Supabase Storage (requires storage SELECT policy for anon).
+                        // Tertiary: local images from localStorage.
                         const teamKey = selectedTeam;
                         let imgs: string[] = [];
                         let storageUrls: string[] = [];
-                        try {
-                          if (teamKey) {
-                            storageUrls = await listPitImages(teamKey);
-                            if (storageUrls && storageUrls.length > 0) {
-                              imgs = storageUrls;
-                            }
-                          }
-                        } catch (e) {
-                          // ignore storage listing errors and fall back below
-                        }
 
-                        if ((!imgs || imgs.length === 0) && teamKey) {
+                        // 1) Try pit_data.payload.images first — fastest, no storage listing needed
+                        if (teamKey) {
                           try {
                             const serverRow: any = await fetchPitData(teamKey);
                             if (serverRow) {
                               const payload = serverRow.payload ? (typeof serverRow.payload === 'string' ? JSON.parse(serverRow.payload) : serverRow.payload) : serverRow;
-                              imgs = (payload && payload.images && Array.isArray(payload.images)) ? payload.images : imgs;
+                              const payloadImgs: string[] = (payload && payload.images && Array.isArray(payload.images)) ? payload.images : [];
+                              if (payloadImgs.length > 0) imgs = payloadImgs;
                             }
                           } catch (e) {
                             // ignore
                           }
                         }
 
+                        // 2) List from Supabase Storage (works once storage SELECT policy is added for anon)
+                        try {
+                          if (teamKey) {
+                            storageUrls = await listPitImages(teamKey);
+                            if (storageUrls && storageUrls.length > 0) {
+                              // Merge: storage listing is authoritative for files on disk
+                              imgs = storageUrls;
+                            }
+                          }
+                        } catch (e) {
+                          // ignore storage listing errors
+                        }
+
+                        // 3) Fallback to localStorage
                         if ((!imgs || imgs.length === 0) && teamKey) {
                           try { imgs = DataService.getPitImages(teamKey); } catch (e) { imgs = []; }
                         }
