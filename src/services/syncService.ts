@@ -39,27 +39,15 @@ async function sendBatchToServer(records: any[]) {
 // otherwise attempt to create a short-lived signed URL as a fallback.
 async function resolvePublicUrl(client: any, bucket: string, path: string) {
   try {
-    // Try public URL first
-    try {
-      const publicRes: any = client.storage.from(bucket).getPublicUrl(path);
-      const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
-      if (publicUrl) {
-        try {
-          // Validate the URL is reachable. Use HEAD to avoid fetching bodies.
-          const resp = await fetch(publicUrl, { method: 'HEAD' });
-          if (resp && resp.ok) return publicUrl;
-        } catch (e) {
-          // network/CORS may block HEAD; fall through to try signed URL
-        }
-      }
-    } catch (e) {
-      // ignore and attempt signed URL
-    }
+    // getPublicUrl is a synchronous URL builder — no network request needed.
+    // Return it directly for public buckets; CORS blocks HEAD validation so we skip it.
+    const publicRes: any = client.storage.from(bucket).getPublicUrl(path);
+    const publicUrl = publicRes && publicRes.data ? (publicRes.data.publicUrl || publicRes.data.publicURL) : (publicRes?.publicUrl || publicRes?.publicURL);
+    if (publicUrl) return publicUrl;
 
-    // If public URL didn't validate, try creating a signed url (short expiry)
+    // Fallback: generate a signed URL for private buckets (1 hour expiry)
     try {
-      // Supabase client exposes createSignedUrl on the storage bucket
-      const signedRes: any = await client.storage.from(bucket).createSignedUrl(path, 60);
+      const signedRes: any = await client.storage.from(bucket).createSignedUrl(path, 3600);
       const signedUrl = signedRes && signedRes.data ? (signedRes.data.signedUrl || signedRes.data.signedURL) : signedRes?.signedUrl || signedRes?.signedURL;
       if (signedUrl) return signedUrl;
     } catch (e) {
